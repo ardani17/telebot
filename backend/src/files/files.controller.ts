@@ -8,10 +8,13 @@ import {
   Get,
   Param,
   Logger,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { OcrService, ProcessingStats } from './ocr.service';
+import { FilesService } from './files.service';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,7 +23,10 @@ import { v4 as uuidv4 } from 'uuid';
 export class FilesController {
   private readonly logger = new Logger(FilesController.name);
 
-  constructor(private readonly ocrService: OcrService) {}
+  constructor(
+    private readonly ocrService: OcrService,
+    private readonly filesService: FilesService
+  ) {}
 
   @Post('ocr/process')
   @UseInterceptors(
@@ -216,6 +222,43 @@ export class FilesController {
         healthy: false,
         error: 'OCR service tidak tersedia',
         timestamp: new Date().toISOString(),
+      };
+    }
+  }
+
+  @Post('workbook/generate')
+  async generateWorkbookExcel(@Body() generateDto: any) {
+    try {
+      const { telegramId, userId, mediaFolderPath, folders } = generateDto;
+      
+      this.logger.log('Workbook Excel generation request', {
+        telegramId,
+        userId, 
+        mediaFolderPath,
+        foldersCount: folders?.length
+      });
+
+      const result = await this.filesService.generateWorkbookExcel({
+        telegramId,
+        userId,
+        mediaFolderPath,
+        folders
+      });
+
+      return {
+        success: true,
+        data: result
+      };
+
+    } catch (error) {
+      this.logger.error('Error generating workbook Excel', {
+        error: (error as Error).message,
+        body: generateDto
+      });
+
+      return {
+        success: false,
+        error: (error as Error).message
       };
     }
   }

@@ -7,6 +7,7 @@ import { UserDirectoryService } from './services/user-directory.service';
 import { LocalFileService } from './services/local-file.service';
 import { AuthContext, optionalAuth, requireAuth, requireAdmin, requireFeature } from './middleware/auth';
 import { OcrHandler } from './handlers/ocr.handler';
+import { WorkbookHandler } from './handlers/workbook.handler';
 
 // Load environment variables
 dotenv.config();
@@ -62,6 +63,9 @@ const userDirectoryService = new UserDirectoryService(logger);
 
 // Initialize OCR handler
 const ocrHandler = new OcrHandler(apiClient, logger);
+
+// Initialize Workbook handler
+const workbookHandler = new WorkbookHandler(apiClient, logger);
 
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
@@ -309,6 +313,19 @@ bot.command('ocr_stats', requireAuth(apiClient, logger, sessionManager, userDire
   return ocrHandler.handleOcrStats(ctx);
 });
 
+// Feature-specific commands - Workbook
+bot.command('workbook', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return workbookHandler.handleWorkbookCommand(ctx);
+});
+
+bot.command('workbook_clear', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return workbookHandler.handleWorkbookClear(ctx);
+});
+
+bot.command('workbook_stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return workbookHandler.handleWorkbookStats(ctx);
+});
+
 // Handle text messages
 bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const text = ctx.message.text;
@@ -342,6 +359,14 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
       );
     }
   } else {
+    // Check if user is in workbook mode for text handling
+    if (ctx.user) {
+      const userMode = ctx.getUserMode?.();
+      if (userMode === 'workbook') {
+        return workbookHandler.handleText(ctx);
+      }
+    }
+    
     // Handle regular text messages
     logger.info('Text message received', {
       userId: ctx.from.id,
@@ -365,8 +390,15 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
   }
 });
 
-// Handle photo uploads for OCR
+// Handle photo uploads for OCR and Workbook
 bot.on('photo', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
+  // Check if user is in workbook mode
+  const userMode = ctx.getUserMode?.();
+  if (userMode === 'workbook') {
+    return workbookHandler.handlePhoto(ctx);
+  }
+  
+  // Default to OCR handling
   return ocrHandler.handlePhoto(ctx);
 });
 
@@ -433,11 +465,35 @@ async function startBot() {
     
     if (USE_POLLING) {
       logger.info('Starting bot in polling mode...');
-      await bot.launch();
+      
+      // Clear pending updates to prevent processing old messages
+      try {
+        await bot.telegram.getUpdates({ offset: -1, limit: 1 });
+        logger.info('Cleared pending updates - bot will only process new messages');
+      } catch (error) {
+        logger.warn('Failed to clear pending updates:', error);
+      }
+      
+      await bot.launch({
+        allowedUpdates: ['message', 'callback_query', 'inline_query'],
+        dropPendingUpdates: true // This also helps skip old updates
+      });
       logger.info('✅ Bot started successfully in polling mode');
     } else {
       logger.warn('Webhook mode not implemented yet, falling back to polling');
-      await bot.launch();
+      
+      // Clear pending updates for webhook fallback too
+      try {
+        await bot.telegram.getUpdates({ offset: -1, limit: 1 });
+        logger.info('Cleared pending updates - bot will only process new messages');
+      } catch (error) {
+        logger.warn('Failed to clear pending updates:', error);
+      }
+      
+      await bot.launch({
+        allowedUpdates: ['message', 'callback_query', 'inline_query'],
+        dropPendingUpdates: true
+      });
       logger.info('✅ Bot started successfully in polling mode (fallback)');
     }
     

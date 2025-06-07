@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { FilesController } from './files.controller';
 import { OcrService } from './ocr.service';
+import { FilesService } from './files.service';
 import * as path from 'path';
 
 @Module({
@@ -11,7 +12,7 @@ import * as path from 'path';
     }),
   ],
   controllers: [FilesController],
-  providers: [OcrService],
-  exports: [OcrService],
+  providers: [OcrService, FilesService],
+  exports: [OcrService, FilesService],
 })
 export class FilesModule {}
