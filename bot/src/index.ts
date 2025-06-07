@@ -9,6 +9,7 @@ import { AuthContext, optionalAuth, requireAuth, requireAdmin, requireFeature } 
 import { OcrHandler } from './handlers/ocr.handler';
 import { WorkbookHandler } from './handlers/workbook.handler';
 import { GeotagsHandler } from './handlers/geotags.handler';
+import { LocationHandler } from './handlers/location.handler';
 
 // Load environment variables
 dotenv.config();
@@ -70,6 +71,9 @@ const workbookHandler = new WorkbookHandler(apiClient, logger);
 
 // Initialize Geotags handler
 const geotagsHandler = new GeotagsHandler(apiClient, logger);
+
+// Initialize Location handler
+const locationHandler = new LocationHandler(apiClient, logger);
 
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
@@ -354,6 +358,54 @@ bot.hears(/^\/set_time(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManag
   return geotagsHandler.handleSetTime(ctx, timeString);
 });
 
+// Feature-specific commands - Location
+bot.command('location', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleLocationCommand(ctx);
+});
+
+// Handle alamat command with parameter extraction
+bot.hears(/^\/alamat(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/alamat(?:\s+(.+))?/);
+  const addressQuery = match ? match[1] : undefined;
+  return locationHandler.handleAlamatCommand(ctx, addressQuery);
+});
+
+// Handle koordinat command with parameter extraction
+bot.hears(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/);
+  const lat = match ? match[1] : undefined;
+  const lon = match ? match[2] : undefined;
+  return locationHandler.handleKoordinatCommand(ctx, lat, lon);
+});
+
+// Handle show_map command with parameter extraction  
+bot.hears(/^\/show_map(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/show_map(?:\s+(.+))?/);
+  const locationQuery = match ? match[1] : undefined;
+  return locationHandler.handleShowMapCommand(ctx, locationQuery);
+});
+
+// Handle measurement commands
+bot.command('ukur', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleUkurCommand(ctx, 'walking');
+});
+
+bot.command('ukur_mobil', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleUkurCommand(ctx, 'driving');
+});
+
+bot.command('ukur_motor', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleUkurCommand(ctx, 'motorcycling');
+});
+
+bot.command('show_jarak', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleShowJarakCommand(ctx);
+});
+
+bot.command('batal', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return locationHandler.handleBatalCommand(ctx);
+});
+
 // Handle text messages
 bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const text = ctx.message.text;
@@ -387,11 +439,13 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
       );
     }
   } else {
-    // Check if user is in workbook mode for text handling
+    // Check if user is in specific mode for text handling
     if (ctx.user) {
       const userMode = ctx.getUserMode?.();
       if (userMode === 'workbook') {
         return workbookHandler.handleText(ctx);
+      } else if (userMode === 'location') {
+        return locationHandler.handleText(ctx);
       }
     }
     
@@ -427,33 +481,34 @@ bot.on('photo', requireAuth(apiClient, logger, sessionManager, userDirectoryServ
     return workbookHandler.handlePhoto(ctx);
   } else if (userMode === 'geotags') {
     return geotagsHandler.handlePhoto(ctx);
+  } else if (userMode === 'ocr') {
+    return ocrHandler.handlePhoto(ctx);
   }
   
-  // Default to OCR handling
-  return ocrHandler.handlePhoto(ctx);
+  // No default handling - user must be in appropriate mode
+  logger.info('Photo received but user not in any active mode', {
+    userId: ctx.from.id,
+    userMode
+  });
 });
 
-// Handle location messages for Geotags
+// Handle location messages for Geotags and Location mode
 bot.on('location', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
-  // Check if user is in geotags mode
+  // Check user mode and route to appropriate handler
   const userMode = ctx.getUserMode?.();
   if (userMode === 'geotags') {
     return geotagsHandler.handleLocation(ctx);
+  } else if (userMode === 'location') {
+    return locationHandler.handleLocation(ctx);
   }
   
-  // Handle location for other modes or general location processing
-  logger.info('Location received', {
+  // No default handling - user must be in appropriate mode to use location
+  logger.info('Location received but user not in location-enabled mode', {
     userId: ctx.from.id,
     latitude: ctx.message.location.latitude,
     longitude: ctx.message.location.longitude,
     userMode
   });
-  
-  ctx.reply(
-    '📍 Lokasi diterima!\n\n' +
-    `📍 Koordinat: ${ctx.message.location.latitude}, ${ctx.message.location.longitude}\n\n` +
-    'Untuk menggunakan geotag, aktifkan mode /geotags terlebih dahulu.'
-  );
 });
 
 // Handle file uploads (require authentication)
