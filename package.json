@@ -1,0 +1,89 @@
+{
+  "name": "teleweb",
+  "version": "1.0.0",
+  "description": "Telegram Bot Web Integration - Modern bot with web admin panel",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "bot",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "docker-compose up",
+    "dev:build": "docker-compose up --build",
+    "dev:down": "docker-compose down",
+    "dev:clean": "docker-compose down -v",
+    "dev:logs": "docker-compose logs -f",
+    "prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "prod:build": "docker-compose -f docker-compose.prod.yml up --build -d",
+    "prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "install:all": "npm install && npm run install:backend && npm run install:frontend && npm run install:bot && npm run install:shared",
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:bot": "cd bot && npm install",
+    "install:shared": "cd shared && npm install",
+    "build:all": "npm run build:shared && npm run build:backend && npm run build:frontend && npm run build:bot",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:bot": "cd bot && npm run build",
+    "build:shared": "cd shared && npm run build",
+    "lint": "npm run lint:backend && npm run lint:frontend && npm run lint:bot",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:bot": "cd bot && npm run lint",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:bot",
+    "test:backend": "cd backend && npm run test",
+    "test:frontend": "cd frontend && npm run test",
+    "test:bot": "cd bot && npm run test",
+    "db:migrate": "cd backend && npm run prisma:migrate",
+    "db:seed": "cd backend && npm run prisma:seed",
+    "db:studio": "cd backend && npm run prisma:studio",
+    "db:reset": "cd backend && npm run prisma:reset",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend && npm run type-check:bot",
+    "type-check:backend": "cd backend && npm run type-check",
+    "type-check:frontend": "cd frontend && npm run type-check",
+    "type-check:bot": "cd bot && npm run type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/teleweb.git"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "web",
+    "integration",
+    "nestjs",
+    "react",
+    "typescript",
+    "docker"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/teleweb/issues"
+  },
+  "homepage": "https://github.com/your-username/teleweb#readme",
+  "dependencies": {
+    "@google-cloud/vision": "^5.2.0",
+    "multer": "^2.0.1",
+    "sharp": "^0.34.2"
+  }
+}

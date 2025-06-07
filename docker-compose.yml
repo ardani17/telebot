@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: teleweb_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-teleweb}
+      POSTGRES_USER: ${POSTGRES_USER:-teleweb_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teleweb_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - teleweb_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: teleweb_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    networks:
+      - teleweb_network
+
+  # NestJS Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: teleweb_backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-teleweb_user}:${POSTGRES_PASSWORD:-teleweb_password}@postgres:5432/${POSTGRES_DB:-teleweb}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-key}
+      PORT: 3001
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - teleweb_network
+    command: npm run start:dev
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: teleweb_frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-3001}
+      VITE_WS_URL: ws://localhost:${BACKEND_PORT:-3001}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - teleweb_network
+    command: npm run dev
+
+  # Telegram Bot
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+      target: development
+    container_name: teleweb_bot
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      BOT_TOKEN: ${BOT_TOKEN}
+      BOT_API_SERVER: ${BOT_API_SERVER:-https://api.telegram.org}
+      BOT_API_DATA_PATH: ${BOT_API_DATA_PATH:-/app/bot_data}
+      BASE_DATA_PATH: /app/data
+      BACKEND_URL: http://backend:3001
+      BACKEND_API_KEY: ${BACKEND_API_KEY:-your-backend-api-key}
+    volumes:
+      - ./bot:/app
+      - /app/node_modules
+      - bot_data:/app/data
+      - bot_api_data:/app/bot_data
+    depends_on:
+      - backend
+    networks:
+      - teleweb_network
+    command: npm run start:dev
+
+  # Local Telegram Bot API Server (Optional)
+  telegram-bot-api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: teleweb_telegram_api
+    restart: unless-stopped
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGRAM_LOCAL: 1
+    ports:
+      - "${BOT_API_PORT:-8081}:8081"
+    volumes:
+      - bot_api_data:/var/lib/telegram-bot-api
+    networks:
+      - teleweb_network
+    profiles:
+      - local-bot-api
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_uploads:
+    driver: local
+  bot_data:
+    driver: local
+  bot_api_data:
+    driver: local
+
+networks:
+  teleweb_network:
+    driver: bridge

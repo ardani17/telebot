@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  telegramId String   @unique @map("telegram_id")
+  name       String
+  username   String?
+  role       UserRole @default(USER)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  featureAccess UserFeatureAccess[]
+  botActivities BotActivity[]
+  botSessions   BotSession[]
+  fileMetadata  FileMetadata[]
+  grantedAccess UserFeatureAccess[] @relation("GrantedBy")
+
+  @@map("users")
+}
+
+model Feature {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String
+  isEnabled   Boolean   @default(true) @map("is_enabled")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  userAccess UserFeatureAccess[]
+
+  @@map("features")
+}
+
+model UserFeatureAccess {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  featureId String   @map("feature_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+  grantedBy String   @map("granted_by")
+
+  // Relations
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  grantedByUser User @relation("GrantedBy", fields: [grantedBy], references: [id])
+
+  @@unique([userId, featureId])
+  @@map("user_feature_access")
+}
+
+model BotSession {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  mode      BotMode?
+  state     Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  expiresAt DateTime? @map("expires_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("bot_sessions")
+}
+
+model BotActivity {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  telegramId   String   @map("telegram_id")
+  action       String
+  mode         BotMode?
+  details      Json?
+  success      Boolean
+  errorMessage String?  @map("error_message")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([telegramId])
+  @@index([createdAt])
+  @@map("bot_activities")
+}
+
+model FileMetadata {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  fileName    String    @map("file_name")
+  filePath    String    @map("file_path")
+  fileType    String    @map("file_type")
+  fileSize    Int       @map("file_size")
+  mimeType    String?   @map("mime_type")
+  mode        BotMode
+  processed   Boolean   @default(false)
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([mode])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("file_metadata")
+}
+
+model BotConfig {
+  id               String              @id @default(uuid())
+  token            String              @unique
+  apiServer        String              @map("api_server")
+  webhookUrl       String?             @map("webhook_url")
+  isActive         Boolean             @default(true) @map("is_active")
+  maxFileSize      Int                 @map("max_file_size")
+  allowedFileTypes String[]            @map("allowed_file_types")
+  features         BotFeatureConfig[]
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  @@map("bot_config")
+}
+
+model BotFeatureConfig {
+  id          String    @id @default(uuid())
+  botConfigId String    @map("bot_config_id")
+  feature     BotMode
+  enabled     Boolean   @default(true)
+  config      Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  botConfig BotConfig @relation(fields: [botConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([botConfigId, feature])
+  @@map("bot_feature_config")
+}
+
+model SystemConfig {
+  id          String     @id @default(uuid())
+  key         String     @unique
+  value       String
+  description String?
+  type        ConfigType @default(STRING)
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  updatedBy   String     @map("updated_by")
+
+  @@map("system_config")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum BotMode {
+  ocr
+  rar
+  location
+  geotags
+  kml
+  workbook
+}
+
+enum ConfigType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
