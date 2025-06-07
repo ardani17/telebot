@@ -8,6 +8,7 @@ import { LocalFileService } from './services/local-file.service';
 import { AuthContext, optionalAuth, requireAuth, requireAdmin, requireFeature } from './middleware/auth';
 import { OcrHandler } from './handlers/ocr.handler';
 import { WorkbookHandler } from './handlers/workbook.handler';
+import { GeotagsHandler } from './handlers/geotags.handler';
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +67,9 @@ const ocrHandler = new OcrHandler(apiClient, logger);
 
 // Initialize Workbook handler
 const workbookHandler = new WorkbookHandler(apiClient, logger);
+
+// Initialize Geotags handler
+const geotagsHandler = new GeotagsHandler(apiClient, logger);
 
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
@@ -157,9 +161,9 @@ Mode: ${USE_POLLING ? 'Polling' : 'Webhook'}
 📄 /ocr - Extract text from images using Google Vision API
 📦 RAR - Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files
 📍 LOCATION - Location and GPS Processing - Process location data and coordinates
-🏷️ GEOTAGS - Geotag Extraction from Images - Extract GPS coordinates from image EXIF data
+🏷️ /geotags - Geotag Photos with Location - Add GPS coordinates overlay to photos
 🗺️ KML - KML File Processing - Process and convert KML/KMZ geographic files
-📊 WORKBOOK - Excel/CSV File Processing - Process spreadsheet files and data conversion
+📊 /workbook - Excel Image Processing
 
 ${ctx.user.role === 'ADMIN' ? `
 *Perintah Admin:*
@@ -187,9 +191,9 @@ bot.command('menu', requireAuth(apiClient, logger, sessionManager, userDirectory
     '📄 /ocr - OCR Text Recognition\n' +
     '📦 /rar - Archive Processing\n' +
     '📍 /location - Location Processing\n' +
-    '🏷️ /geotags - Geotag Extraction\n' +
+    '🏷️ /geotags - Geotag Photos with Location\n' +
     '🗺️ /kml - KML File Processing\n' +
-    '📊 /workbook - Excel/CSV Processing\n\n' +
+    '📊 /workbook - Excel Image Processing\n\n' +
     'Ketik /help untuk bantuan lengkap.',
     { parse_mode: 'Markdown' }
   );
@@ -326,6 +330,30 @@ bot.command('workbook_stats', requireAuth(apiClient, logger, sessionManager, use
   return workbookHandler.handleWorkbookStats(ctx);
 });
 
+// Feature-specific commands - Geotags
+bot.command('geotags', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return geotagsHandler.handleGeotagsCommand(ctx);
+});
+
+bot.command('geotags_clear', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return geotagsHandler.handleGeotagsClear(ctx);
+});
+
+bot.command('geotags_stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return geotagsHandler.handleGeotagsStats(ctx);
+});
+
+bot.command('alwaystag', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return geotagsHandler.handleAlwaysTag(ctx);
+});
+
+// Handle set_time command with parameter extraction
+bot.hears(/^\/set_time(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/set_time(?:\s+(.+))?/);
+  const timeString = match ? match[1] : undefined;
+  return geotagsHandler.handleSetTime(ctx, timeString);
+});
+
 // Handle text messages
 bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const text = ctx.message.text;
@@ -390,16 +418,42 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
   }
 });
 
-// Handle photo uploads for OCR and Workbook
+// Handle photo uploads for OCR, Workbook, and Geotags
 bot.on('photo', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
-  // Check if user is in workbook mode
+  // Check user mode and route to appropriate handler
   const userMode = ctx.getUserMode?.();
+  
   if (userMode === 'workbook') {
     return workbookHandler.handlePhoto(ctx);
+  } else if (userMode === 'geotags') {
+    return geotagsHandler.handlePhoto(ctx);
   }
   
   // Default to OCR handling
   return ocrHandler.handlePhoto(ctx);
+});
+
+// Handle location messages for Geotags
+bot.on('location', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
+  // Check if user is in geotags mode
+  const userMode = ctx.getUserMode?.();
+  if (userMode === 'geotags') {
+    return geotagsHandler.handleLocation(ctx);
+  }
+  
+  // Handle location for other modes or general location processing
+  logger.info('Location received', {
+    userId: ctx.from.id,
+    latitude: ctx.message.location.latitude,
+    longitude: ctx.message.location.longitude,
+    userMode
+  });
+  
+  ctx.reply(
+    '📍 Lokasi diterima!\n\n' +
+    `📍 Koordinat: ${ctx.message.location.latitude}, ${ctx.message.location.longitude}\n\n` +
+    'Untuk menggunakan geotag, aktifkan mode /geotags terlebih dahulu.'
+  );
 });
 
 // Handle file uploads (require authentication)
