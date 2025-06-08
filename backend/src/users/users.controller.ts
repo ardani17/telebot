@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -35,8 +35,30 @@ export class UsersController {
     telegramId: string;
     name: string;
     username?: string;
+    password?: string;
     role?: 'USER' | 'ADMIN';
   }) {
     return this.usersService.createUser(userData);
+  }
+
+  @Patch(':id')
+  updateUser(@Param('id') id: string, @Body() userData: {
+    name?: string;
+    username?: string;
+    password?: string;
+    role?: 'USER' | 'ADMIN';
+    isActive?: boolean;
+  }) {
+    return this.usersService.updateUser(id, userData);
+  }
+
+  @Delete(':id')
+  deleteUser(@Param('id') id: string) {
+    return this.usersService.deleteUser(id);
+  }
+
+  @Patch(':id/toggle-status')
+  toggleUserStatus(@Param('id') id: string) {
+    return this.usersService.toggleUserStatus(id);
   }
 }

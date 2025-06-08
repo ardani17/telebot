@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
 import { Dashboard } from '@/pages/Dashboard'
 import { Users } from '@/pages/Users'
+import { Features } from '@/pages/Features'
 import { Files } from '@/pages/Files'
 import { Activities } from '@/pages/Activities'
 import { Settings } from '@/pages/Settings'
@@ -28,6 +29,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/features" element={<Features />} />
         <Route path="/files" element={<Files />} />
         <Route path="/activities" element={<Activities />} />
         <Route path="/settings" element={<Settings />} />

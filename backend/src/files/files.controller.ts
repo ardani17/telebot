@@ -10,11 +10,16 @@ import {
   Logger,
   UseGuards,
   Req,
+  Delete,
+  Query,
+  Response,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { OcrService, ProcessingStats } from './ocr.service';
 import { FilesService } from './files.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import { v4 as uuidv4 } from 'uuid';
@@ -260,6 +265,198 @@ export class FilesController {
         success: false,
         error: (error as Error).message
       };
+    }
+  }
+
+  // File Management API Endpoints
+
+  @Get('list')
+  @UseGuards(JwtAuthGuard)
+  async getFiles(
+    @Query('userId') userId?: string,
+    @Query('telegramId') telegramId?: string,
+    @Query('mode') mode?: string,
+    @Query('processed') processed?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      return await this.filesService.getFiles({
+        userId,
+        telegramId,
+        mode,
+        processed: processed === 'true' ? true : processed === 'false' ? false : undefined,
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 50,
+      });
+    } catch (error) {
+      this.logger.error('Error getting files list', { error: error.message });
+      throw new BadRequestException('Failed to get files list');
+    }
+  }
+
+  @Get('user/:telegramId')
+  @UseGuards(JwtAuthGuard)
+  async getUserFiles(@Param('telegramId') telegramId: string) {
+    try {
+      return await this.filesService.getUserFiles(telegramId);
+    } catch (error) {
+      this.logger.error('Error getting user files', { error: error.message, telegramId });
+      throw new BadRequestException('Failed to get user files');
+    }
+  }
+
+  @Get('filesystem/all')
+  @UseGuards(JwtAuthGuard)
+  async getAllUserDirectories(@Req() req: any) {
+    try {
+      // Only allow admin to see all user directories
+      if (req.user?.role !== 'ADMIN') {
+        throw new BadRequestException('Access denied: Admin role required');
+      }
+      
+      return await this.filesService.getAllUserDirectories();
+    } catch (error) {
+      this.logger.error('Error getting all user directories', { error: error.message });
+      throw new BadRequestException('Failed to get user directories');
+    }
+  }
+
+  @Get('filesystem/:telegramId')
+  @UseGuards(JwtAuthGuard)
+  async getUserFilesystem(@Param('telegramId') telegramId: string, @Req() req: any) {
+    try {
+      console.log('=== CONTROLLER DEBUG ===');
+      console.log('Endpoint: GET /filesystem/:telegramId');
+      console.log('TelegramId param:', telegramId);
+      console.log('Request user:', req.user);
+      console.log('User role:', req.user?.role);
+      console.log('User telegramId:', req.user?.telegramId);
+      console.log('Authorization header:', req.headers.authorization);
+      
+      this.logger.log('Getting user filesystem', {
+        telegramId,
+        requestedBy: req.user?.telegramId,
+        userRole: req.user?.role,
+        userId: req.user?.id
+      });
+      
+      // Allow admin to access any user, or user to access their own files
+      if (req.user?.role !== 'ADMIN' && req.user?.telegramId !== telegramId) {
+        this.logger.warn('Access denied', {
+          userRole: req.user?.role,
+          userTelegramId: req.user?.telegramId,
+          requestedTelegramId: telegramId
+        });
+        throw new BadRequestException('Access denied: Can only access your own files');
+      }
+      
+      return await this.filesService.getUserFilesystem(telegramId);
+    } catch (error) {
+      console.log('=== CONTROLLER ERROR ===');
+      console.log('Error:', error.message);
+      console.log('Stack:', error.stack);
+      
+      this.logger.error('Error getting user filesystem', { 
+        error: error.message, 
+        telegramId,
+        stack: error.stack 
+      });
+      throw new BadRequestException(`Failed to get user filesystem: ${error.message}`);
+    }
+  }
+
+  @Get('download/:fileId')
+  @UseGuards(JwtAuthGuard)
+  async downloadFile(@Param('fileId') fileId: string, @Response() res: any) {
+    try {
+      const fileInfo = await this.filesService.getFileInfo(fileId);
+      if (!fileInfo) {
+        throw new NotFoundException('File not found');
+      }
+
+      const filePath = fileInfo.filePath;
+      if (!await fs.pathExists(filePath)) {
+        throw new NotFoundException('File not found on filesystem');
+      }
+
+      res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.fileName}"`);
+      res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
+      
+      return res.sendFile(path.resolve(filePath));
+    } catch (error) {
+      this.logger.error('Error downloading file', { error: error.message, fileId });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to download file');
+    }
+  }
+
+  @Get('download/path/:telegramId/*')
+  @UseGuards(JwtAuthGuard)
+  async downloadFileByPath(
+    @Param('telegramId') telegramId: string,
+    @Param('*') filePath: string,
+    @Response() res: any
+  ) {
+    try {
+      const result = await this.filesService.downloadFileByPath(telegramId, filePath);
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+      res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
+      
+      return res.sendFile(path.resolve(result.fullPath));
+    } catch (error) {
+      this.logger.error('Error downloading file by path', { error: error.message, telegramId, filePath });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to download file');
+    }
+  }
+
+  @Delete(':fileId')
+  @UseGuards(JwtAuthGuard)
+  async deleteFile(@Param('fileId') fileId: string) {
+    try {
+      await this.filesService.deleteFile(fileId);
+      return { success: true, message: 'File deleted successfully' };
+    } catch (error) {
+      this.logger.error('Error deleting file', { error: error.message, fileId });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to delete file');
+    }
+  }
+
+  @Delete('path/:telegramId/*')
+  @UseGuards(JwtAuthGuard)
+  async deleteFileByPath(
+    @Param('telegramId') telegramId: string,
+    @Param('*') filePath: string
+  ) {
+    try {
+      await this.filesService.deleteFileByPath(telegramId, filePath);
+      return { success: true, message: 'File deleted successfully' };
+    } catch (error) {
+      this.logger.error('Error deleting file by path', { error: error.message, telegramId, filePath });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to delete file');
+    }
+  }
+
+  @Get('stats/storage')
+  @UseGuards(JwtAuthGuard)
+  async getStorageStats() {
+    try {
+      return await this.filesService.getStorageStats();
+    } catch (error) {
+      this.logger.error('Error getting storage stats', { error: error.message });
+      throw new BadRequestException('Failed to get storage stats');
     }
   }
 } 

@@ -8,7 +8,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Sliders
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -19,6 +20,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Users', href: '/users', icon: Users },
+  { name: 'Features', href: '/features', icon: Sliders },
   { name: 'Files', href: '/files', icon: Files },
   { name: 'Activities', href: '/activities', icon: Activity },
   { name: 'Settings', href: '/settings', icon: Settings },
