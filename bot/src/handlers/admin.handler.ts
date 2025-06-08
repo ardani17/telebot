@@ -1,6 +1,9 @@
 import { AuthContext } from '../types/auth';
 import winston from 'winston';
 import { ApiClient } from '../services/api-client';
+import { execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs';
 
 interface AdminContext extends AuthContext {
   // Admin-specific context
@@ -48,6 +51,8 @@ export class AdminHandler {
 ⚙️ /features - Kelola fitur dan akses
 📊 /stats - Statistik sistem dan penggunaan
 📢 /broadcast - Kirim pesan ke semua pengguna
+🗑️ /reset_data_bot - Reset data bot (documents, photos, temp)
+🗑️ /reset_data_user - Reset data pengguna
 
 *ℹ️ Info Tambahan:*
 🏠 /menu - Kembali ke menu utama
@@ -276,6 +281,8 @@ export class AdminHandler {
 
       if (subCommand === 'quick') {
         await this.handleStatsQuick(ctx);
+      } else if (subCommand === 'storage') {
+        await this.handleStatsStorage(ctx);
       } else {
         await this.handleStatsDetailed(ctx);
       }
@@ -335,6 +342,110 @@ export class AdminHandler {
     }
   }
 
+  /**
+   * Handle /reset_data_bot command - reset bot data
+   */
+  async handleResetDataBot(ctx: AdminContext) {
+    try {
+      const telegramId = ctx.from?.id.toString();
+      if (!telegramId || !ctx.user) return;
+
+      // Verify admin access
+      if (ctx.user.role !== 'ADMIN') {
+        await ctx.reply('❌ Akses ditolak. Hanya admin yang dapat mereset data bot.');
+        return;
+      }
+
+      const confirmText = `
+🗑️ *Reset Data Bot*
+
+⚠️ **PERINGATAN**: Operasi ini akan menghapus:
+• Folder \`documents/\`
+• Folder \`photos/\`
+• Folder \`temp/\`
+
+📂 Lokasi: \`BOT_API_DATA_PATH/<bot-token>/\`
+
+❗ **Data yang dihapus tidak dapat dikembalikan!**
+
+Ketik \`/reset_data_bot confirm\` untuk melanjutkan.
+Ketik \`/admin\` untuk kembali ke menu.
+      `;
+
+      await ctx.reply(confirmText, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+      this.logger.error('Reset data bot command failed', { 
+        error: (error as Error).message, 
+        telegramId: ctx.from!.id 
+      });
+      await ctx.reply('❌ Terjadi kesalahan saat memproses reset data bot.');
+    }
+  }
+
+  /**
+   * Handle /reset_data_user command - reset user data
+   */
+  async handleResetDataUser(ctx: AdminContext, targetUserId?: string) {
+    try {
+      const telegramId = ctx.from?.id.toString();
+      if (!telegramId || !ctx.user) return;
+
+      // Verify admin access
+      if (ctx.user.role !== 'ADMIN') {
+        await ctx.reply('❌ Akses ditolak. Hanya admin yang dapat mereset data pengguna.');
+        return;
+      }
+
+      if (!targetUserId) {
+        const helpText = `
+🗑️ *Reset Data Pengguna*
+
+*📋 Cara Penggunaan:*
+\`/reset_data_user <telegram_id>\` - Reset data pengguna tertentu
+\`/reset_data_user all\` - Reset data semua pengguna
+
+*💡 Contoh:*
+\`/reset_data_user 302791169\`
+\`/reset_data_user all\`
+
+*⚠️ Catatan:*
+• Data yang dihapus tidak dapat dikembalikan
+• Operasi akan menghapus seluruh folder pengguna
+• File binlog dan sistem lainnya tetap aman
+        `;
+        
+        await ctx.reply(helpText, { parse_mode: 'Markdown' });
+        return;
+      }
+
+      const confirmText = `
+🗑️ *Reset Data Pengguna*
+
+⚠️ **PERINGATAN**: Operasi ini akan menghapus:
+${targetUserId === 'all' 
+  ? '• **SEMUA** folder pengguna di BOT_API_DATA_PATH' 
+  : `• Folder pengguna: \`${targetUserId}/\``}
+
+📂 Lokasi: \`BOT_API_DATA_PATH/${targetUserId === 'all' ? '<telegram-id>' : targetUserId}/\`
+
+❗ **Data yang dihapus tidak dapat dikembalikan!**
+
+Ketik \`/reset_data_user ${targetUserId} confirm\` untuk melanjutkan.
+Ketik \`/admin\` untuk kembali ke menu.
+      `;
+
+      await ctx.reply(confirmText, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+      this.logger.error('Reset data user command failed', { 
+        error: (error as Error).message, 
+        telegramId: ctx.from!.id 
+      });
+      await ctx.reply('❌ Terjadi kesalahan saat memproses reset data pengguna.');
+    }
+  }
+
   // Helper methods implementation
   
   private async handleUsersList(ctx: AdminContext) {
@@ -353,14 +464,32 @@ export class AdminHandler {
 
       let userList = '👥 *Daftar Pengguna*\n\n';
       
-      users.forEach((user: any, index: number) => {
+      // Get features for each user
+      for (let index = 0; index < users.length; index++) {
+        const user = users[index];
         const status = user.isActive ? '✅' : '❌';
         const role = user.role === 'ADMIN' ? '👑' : '👤';
+        
         userList += `${index + 1}. ${role} ${user.name}\n`;
         userList += `   ID: \`${user.telegramId}\`\n`;
         userList += `   Status: ${status} ${user.isActive ? 'Aktif' : 'Non-aktif'}\n`;
-        userList += `   Role: ${user.role}\n\n`;
-      });
+        userList += `   Role: ${user.role}\n`;
+        
+        // Get user features
+        if (user.role === 'ADMIN') {
+          userList += `   Features: Semua (Admin)\n\n`;
+        } else {
+          const featuresResponse = await this.apiClient.getUserFeatures(user.telegramId);
+          const features = featuresResponse.success ? featuresResponse.data || [] : [];
+          
+          const activeFeatures = features
+            .filter((access: any) => access.feature.isEnabled)
+            .map((access: any) => access.feature.name.toLowerCase())
+            .join(', ');
+          
+          userList += `   Features: ${activeFeatures || 'Tidak ada'}\n\n`;
+        }
+      }
 
       userList += `📊 Total: ${users.length} pengguna`;
 
@@ -726,6 +855,9 @@ Berhasil: ${activityStats.todaySuccess || 0}
       const featureStats = featuresResponse.data || {};
       const activityStats = activitiesResponse.data || {};
       const systemStats = systemResponse.data || {};
+      
+      // Get storage information
+      const storageInfo = this.getStorageInfo();
 
       const detailedStats = `
 📊 *Statistik Sistem (Detail)*
@@ -747,6 +879,12 @@ Berhasil: ${activityStats.todaySuccess || 0}
 • Bulan Ini: ${activityStats.monthActivities || 0}
 • Success Rate: ${activityStats.successRate || 0}%
 
+*💾 Storage Data:*
+• Bot API Data: ${storageInfo.botApiDataSize}
+• Bot User Data: ${storageInfo.botUserDataSize}
+• Total Bot Storage: ${storageInfo.totalStorageUsed}
+• Disk Usage: ${storageInfo.diskUsage}
+
 *🔧 Sistem:*
 • Uptime: ${systemStats.uptime || 'N/A'}
 • Memory Usage: ${systemStats.memoryUsage || 'N/A'}
@@ -755,6 +893,7 @@ Berhasil: ${activityStats.todaySuccess || 0}
 🕐 Update: ${new Date().toLocaleString('id-ID')}
 
 Ketik \`/stats quick\` untuk statistik ringkas.
+Ketik \`/stats storage\` untuk detail penyimpanan.
       `;
 
       await ctx.reply(detailedStats, { parse_mode: 'Markdown' });
@@ -762,6 +901,44 @@ Ketik \`/stats quick\` untuk statistik ringkas.
     } catch (error) {
       this.logger.error('Failed to get detailed stats', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik detail.');
+    }
+  }
+
+  private async handleStatsStorage(ctx: AdminContext) {
+    try {
+      // Get storage information
+      const storageInfo = this.getStorageInfo();
+
+      const storageStats = `
+💾 *Detail Penyimpanan Bot*
+
+*📂 Lokasi Data:*
+• Bot API Path: \`${storageInfo.botApiDataPath}\`
+• Bot User Path: \`${storageInfo.botUserDataPath}\`
+
+*📊 Ukuran Data:*
+• Bot API Data: ${storageInfo.botApiDataSize}
+• Bot User Data: ${storageInfo.botUserDataSize}
+• **Total Storage:** ${storageInfo.totalStorageUsed}
+
+*💽 Disk Space:*
+• Disk Usage: ${storageInfo.diskUsage}
+
+*⚠️ Monitoring Tips:*
+• Pastikan storage tidak melebihi 80% kapasitas disk
+• File lama akan dihapus otomatis setiap 24 jam
+• Untuk cleanup manual, hubungi administrator server
+
+🕐 Update: ${new Date().toLocaleString('id-ID')}
+
+Gunakan \`/stats\` untuk statistik lengkap.
+      `;
+
+      await ctx.reply(storageStats, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+      this.logger.error('Failed to get storage stats', { error: (error as Error).message });
+      await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik storage.');
     }
   }
 
@@ -850,5 +1027,297 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
       'workbook': '📊'
     };
     return icons[featureName.toLowerCase()] || '⚙️';
+  }
+
+  /**
+   * Get storage information for monitoring disk usage
+   */
+  private getStorageInfo(): { 
+    botApiDataPath: string; 
+    botApiDataSize: string; 
+    botUserDataPath: string; 
+    botUserDataSize: string;
+    totalStorageUsed: string;
+    diskUsage: string;
+  } {
+    try {
+      // Get BOT_API_DATA_PATH from environment or use default
+      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+      const botUserDataPath = path.join(process.cwd(), 'data-bot-user');
+      
+      // Get directory sizes
+      let botApiDataSize = 'N/A';
+      let botUserDataSize = 'N/A';
+      let totalStorageUsed = 'N/A';
+      let diskUsage = 'N/A';
+
+      try {
+        // Get BOT_API_DATA_PATH size
+        const botApiSizeResult = execSync(`du -sh "${botApiDataPath}" 2>/dev/null | cut -f1`, { encoding: 'utf8' }).trim();
+        botApiDataSize = botApiSizeResult || '0B';
+      } catch (error) {
+        this.logger.warn('Failed to get BOT_API_DATA_PATH size', { path: botApiDataPath, error: (error as Error).message });
+      }
+
+      try {
+        // Get bot user data size
+        const botUserSizeResult = execSync(`du -sh "${botUserDataPath}" 2>/dev/null | cut -f1`, { encoding: 'utf8' }).trim();
+        botUserDataSize = botUserSizeResult || '0B';
+      } catch (error) {
+        this.logger.warn('Failed to get bot user data size', { path: botUserDataPath, error: (error as Error).message });
+      }
+
+      try {
+        // Calculate total storage used by both directories
+        const totalBytes = execSync(`du -sb "${botApiDataPath}" "${botUserDataPath}" 2>/dev/null | awk '{sum += $1} END {print sum}' | numfmt --to=iec-i --suffix=B --format="%.1f"`, { encoding: 'utf8' }).trim();
+        totalStorageUsed = totalBytes || 'N/A';
+      } catch (error) {
+        // Fallback calculation
+        try {
+          const total = execSync(`(du -sb "${botApiDataPath}" 2>/dev/null; du -sb "${botUserDataPath}" 2>/dev/null) | awk '{sum += $1} END {printf "%.1fMB", sum/1024/1024}'`, { encoding: 'utf8' }).trim();
+          totalStorageUsed = total || 'N/A';
+        } catch (fallbackError) {
+          this.logger.warn('Failed to calculate total storage', { error: (fallbackError as Error).message });
+        }
+      }
+
+      try {
+        // Get disk usage for the current directory
+        const diskResult = execSync(`df -h . | awk 'NR==2 {print $3 "/" $2 " (" $5 ")"}'`, { encoding: 'utf8' }).trim();
+        diskUsage = diskResult || 'N/A';
+      } catch (error) {
+        this.logger.warn('Failed to get disk usage', { error: (error as Error).message });
+      }
+
+      return {
+        botApiDataPath,
+        botApiDataSize,
+        botUserDataPath,
+        botUserDataSize,
+        totalStorageUsed,
+        diskUsage
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to get storage info', { error: (error as Error).message });
+      return {
+        botApiDataPath: 'N/A',
+        botApiDataSize: 'N/A',
+        botUserDataPath: 'N/A',
+        botUserDataSize: 'N/A',
+        totalStorageUsed: 'N/A',
+        diskUsage: 'N/A'
+      };
+    }
+  }
+
+  /**
+   * Execute bot data reset
+   */
+  async executeResetDataBot(ctx: AdminContext) {
+    try {
+      const botToken = process.env.BOT_TOKEN || '';
+      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+      const botDataDir = path.join(botApiDataPath, botToken);
+
+      if (!fs.existsSync(botDataDir)) {
+        await ctx.reply('❌ Direktori data bot tidak ditemukan.');
+        return;
+      }
+
+      let deletedCount = 0;
+      let errorCount = 0;
+      const foldersToDelete = ['documents', 'photos', 'temp'];
+
+      await ctx.reply('⏳ Memulai reset data bot...');
+
+      for (const folder of foldersToDelete) {
+        const folderPath = path.join(botDataDir, folder);
+        
+        try {
+          if (fs.existsSync(folderPath)) {
+            // Use rm -rf for thorough deletion
+            execSync(`rm -rf "${folderPath}"`, { encoding: 'utf8' });
+            // Recreate empty directory
+            fs.mkdirSync(folderPath, { recursive: true });
+            deletedCount++;
+            this.logger.info('Bot data folder reset', { folder: folderPath });
+          }
+        } catch (error) {
+          errorCount++;
+          this.logger.error('Failed to reset bot data folder', { 
+            folder: folderPath, 
+            error: (error as Error).message 
+          });
+        }
+      }
+
+      const resultText = `
+✅ *Reset Data Bot Selesai*
+
+📊 **Hasil:**
+• Folder berhasil direset: ${deletedCount}
+• Folder gagal direset: ${errorCount}
+
+🗂️ **Folder yang direset:**
+${foldersToDelete.map(f => `• ${f}/`).join('\n')}
+
+${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail.' : ''}
+
+🕐 Selesai: ${new Date().toLocaleString('id-ID')}
+      `;
+
+      await ctx.reply(resultText, { parse_mode: 'Markdown' });
+
+      this.logger.info('Bot data reset completed', {
+        adminId: ctx.user!.id,
+        deletedCount,
+        errorCount,
+        botDataDir
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to execute bot data reset', { 
+        error: (error as Error).message,
+        adminId: ctx.user!.id 
+      });
+      await ctx.reply('❌ Terjadi kesalahan saat mereset data bot.');
+    }
+  }
+
+  /**
+   * Execute user data reset
+   */
+  async executeResetDataUser(ctx: AdminContext, targetUserId: string) {
+    try {
+      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+
+      if (targetUserId === 'all') {
+        // Reset all user data
+        await this.resetAllUserData(ctx, botApiDataPath);
+      } else {
+        // Reset specific user data
+        await this.resetSpecificUserData(ctx, botApiDataPath, targetUserId);
+      }
+
+    } catch (error) {
+      this.logger.error('Failed to execute user data reset', { 
+        error: (error as Error).message,
+        adminId: ctx.user!.id,
+        targetUserId
+      });
+      await ctx.reply('❌ Terjadi kesalahan saat mereset data pengguna.');
+    }
+  }
+
+  private async resetAllUserData(ctx: AdminContext, botApiDataPath: string) {
+    try {
+      const botToken = process.env.BOT_TOKEN || '';
+      
+      if (!fs.existsSync(botApiDataPath)) {
+        await ctx.reply('❌ Direktori BOT_API_DATA_PATH tidak ditemukan.');
+        return;
+      }
+
+      await ctx.reply('⏳ Memulai reset data semua pengguna...');
+
+      const entries = fs.readdirSync(botApiDataPath, { withFileTypes: true });
+      let deletedCount = 0;
+      let errorCount = 0;
+
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== botToken && /^\d+$/.test(entry.name)) {
+          const userDir = path.join(botApiDataPath, entry.name);
+          
+          try {
+            execSync(`rm -rf "${userDir}"`, { encoding: 'utf8' });
+            deletedCount++;
+            this.logger.info('User data folder deleted', { userId: entry.name, path: userDir });
+          } catch (error) {
+            errorCount++;
+            this.logger.error('Failed to delete user data folder', { 
+              userId: entry.name, 
+              path: userDir, 
+              error: (error as Error).message 
+            });
+          }
+        }
+      }
+
+      const resultText = `
+✅ *Reset Data Semua Pengguna Selesai*
+
+📊 **Hasil:**
+• Folder pengguna dihapus: ${deletedCount}
+• Folder gagal dihapus: ${errorCount}
+
+${errorCount > 0 ? '\n⚠️ Beberapa folder gagal dihapus. Cek log untuk detail.' : ''}
+
+🕐 Selesai: ${new Date().toLocaleString('id-ID')}
+      `;
+
+      await ctx.reply(resultText, { parse_mode: 'Markdown' });
+
+      this.logger.info('All user data reset completed', {
+        adminId: ctx.user!.id,
+        deletedCount,
+        errorCount
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to reset all user data', { error: (error as Error).message });
+      await ctx.reply('❌ Terjadi kesalahan saat mereset data semua pengguna.');
+    }
+  }
+
+  private async resetSpecificUserData(ctx: AdminContext, botApiDataPath: string, userId: string) {
+    try {
+      const userDir = path.join(botApiDataPath, userId);
+
+      if (!fs.existsSync(userDir)) {
+        await ctx.reply(`❌ Direktori data pengguna ${userId} tidak ditemukan.`);
+        return;
+      }
+
+      await ctx.reply(`⏳ Mereset data pengguna ${userId}...`);
+
+      try {
+        execSync(`rm -rf "${userDir}"`, { encoding: 'utf8' });
+
+        const resultText = `
+✅ *Reset Data Pengguna Selesai*
+
+👤 **Pengguna:** ${userId}
+📂 **Direktori:** \`${userDir}\`
+
+🗑️ Semua data pengguna berhasil dihapus.
+
+🕐 Selesai: ${new Date().toLocaleString('id-ID')}
+        `;
+
+        await ctx.reply(resultText, { parse_mode: 'Markdown' });
+
+        this.logger.info('User data reset completed', {
+          adminId: ctx.user!.id,
+          targetUserId: userId,
+          deletedPath: userDir
+        });
+
+      } catch (error) {
+        await ctx.reply(`❌ Gagal menghapus data pengguna ${userId}: ${(error as Error).message}`);
+        this.logger.error('Failed to delete user data', { 
+          userId, 
+          path: userDir, 
+          error: (error as Error).message 
+        });
+      }
+
+    } catch (error) {
+      this.logger.error('Failed to reset specific user data', { 
+        error: (error as Error).message,
+        userId 
+      });
+      await ctx.reply('❌ Terjadi kesalahan saat mereset data pengguna.');
+    }
   }
 } 

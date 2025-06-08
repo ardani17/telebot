@@ -42,11 +42,12 @@ show_menu() {
     echo "1. View all logs (combined)"
     echo "2. View backend logs only"
     echo "3. View bot logs only"
-    echo "4. View logs with live monitoring"
-    echo "5. View last 50 lines of all logs"
-    echo "6. Clear all logs"
-    echo "7. Check service status"
-    echo "8. Exit"
+    echo "4. View frontend logs only"
+    echo "5. View logs with live monitoring"
+    echo "6. View last 50 lines of all logs"
+    echo "7. Clear all logs"
+    echo "8. Check service status"
+    echo "9. Exit"
     echo
 }
 
@@ -68,8 +69,8 @@ check_service_status() {
     fi
     
     # Check Bot
-    if [ -f "logs/Bot.pid" ]; then
-        local bot_pid=$(cat "logs/Bot.pid")
+    if [ -f "logs/bot.pid" ]; then
+        local bot_pid=$(cat "logs/bot.pid")
         if ps -p $bot_pid > /dev/null 2>&1; then
             print_success "Bot: Running (PID: $bot_pid)"
         else
@@ -77,6 +78,18 @@ check_service_status() {
         fi
     else
         print_warning "Bot: No PID file found"
+    fi
+    
+    # Check Frontend
+    if [ -f "logs/frontend.pid" ]; then
+        local frontend_pid=$(cat "logs/frontend.pid")
+        if ps -p $frontend_pid > /dev/null 2>&1; then
+            print_success "Frontend: Running (PID: $frontend_pid)"
+        else
+            print_error "Frontend: Not running (stale PID file)"
+        fi
+    else
+        print_warning "Frontend: No PID file found"
     fi
     
     # Check ports
@@ -89,9 +102,9 @@ check_service_status() {
     fi
     
     if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        print_success "Port 3000: In use"
+        print_success "Port 3000 (Frontend): In use"
     else
-        print_warning "Port 3000: Free"
+        print_warning "Port 3000 (Frontend): Free"
     fi
     
     echo
@@ -108,7 +121,8 @@ view_logs() {
                 multitail -c -s 2 \
                     -cT ANSI \
                     -ci green "logs/backend.log" \
-                    -ci blue "logs/bot.log"
+                    -ci blue "logs/bot.log" \
+                    -ci yellow "logs/frontend.log"
             else
                 tail -f logs/*.log
             fi
@@ -129,13 +143,22 @@ view_logs() {
                 print_error "Bot log file not found"
             fi
             ;;
+        "frontend")
+            if [ -f "logs/frontend.log" ]; then
+                print_status "Showing frontend logs (Press Ctrl+C to exit)..."
+                tail -f logs/frontend.log
+            else
+                print_error "Frontend log file not found"
+            fi
+            ;;
         "live")
             print_status "Live monitoring all logs (Press Ctrl+C to exit)..."
             if command -v multitail &> /dev/null; then
                 multitail -c -s 2 \
                     -cT ANSI \
                     -ci green -l "tail -f logs/backend.log" \
-                    -ci blue -l "tail -f logs/bot.log"
+                    -ci blue -l "tail -f logs/bot.log" \
+                    -ci yellow -l "tail -f logs/frontend.log"
             else
                 print_warning "multitail not available, using basic tail"
                 tail -f logs/*.log
@@ -152,6 +175,11 @@ view_logs() {
             if [ -f "logs/bot.log" ]; then
                 echo -e "${BLUE}=== Bot Logs (last 50) ===${NC}"
                 tail -50 logs/bot.log
+                echo
+            fi
+            if [ -f "logs/frontend.log" ]; then
+                echo -e "${YELLOW}=== Frontend Logs (last 50) ===${NC}"
+                tail -50 logs/frontend.log
                 echo
             fi
             ;;
@@ -188,29 +216,32 @@ while true; do
             view_logs "bot"
             ;;
         4)
-            view_logs "live"
+            view_logs "frontend"
             ;;
         5)
+            view_logs "live"
+            ;;
+        6)
             view_logs "last50"
             echo
             read -p "Press Enter to continue..."
             ;;
-        6)
+        7)
             clear_logs
             echo
             read -p "Press Enter to continue..."
             ;;
-        7)
+        8)
             check_service_status
             echo
             read -p "Press Enter to continue..."
             ;;
-        8)
+        9)
             print_status "Goodbye!"
             exit 0
             ;;
         *)
-            print_error "Invalid option. Please choose 1-8."
+            print_error "Invalid option. Please choose 1-9."
             echo
             read -p "Press Enter to continue..."
             ;;

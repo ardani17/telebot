@@ -36,7 +36,7 @@ async function main() {
       description: 'OCR Text Recognition from Images - Extract text from images using Google Vision API' 
     },
     { 
-      name: 'rar', 
+      name: 'archive', 
       description: 'Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files' 
     },
     { 
@@ -205,7 +205,7 @@ function getFeatureSupportedFormats(featureName: string): string[] {
   switch (featureName) {
     case 'ocr':
       return ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    case 'rar':
+    case 'archive':
       return ['application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed'];
     case 'geotags':
       return ['image/jpeg', 'image/png'];

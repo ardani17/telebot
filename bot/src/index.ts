@@ -355,69 +355,69 @@ bot.hears(/^\/broadcast(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionMan
 });
 
 // Feature-specific commands - OCR
-bot.command('ocr', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ocr', requireFeature('ocr', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return ocrHandler.handleOcrCommand(ctx);
 });
 
-bot.command('ocr_clear', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ocr_clear', requireFeature('ocr', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return ocrHandler.handleOcrClear(ctx);
 });
 
-bot.command('ocr_stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ocr_stats', requireFeature('ocr', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return ocrHandler.handleOcrStats(ctx);
 });
 
 // Feature-specific commands - Workbook
-bot.command('workbook', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('workbook', requireFeature('workbook', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return workbookHandler.handleWorkbookCommand(ctx);
 });
 
-bot.command('workbook_clear', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('workbook_clear', requireFeature('workbook', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return workbookHandler.handleWorkbookClear(ctx);
 });
 
-bot.command('workbook_stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('workbook_stats', requireFeature('workbook', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return workbookHandler.handleWorkbookStats(ctx);
 });
 
 // Feature-specific commands - Geotags
-bot.command('geotags', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('geotags', requireFeature('geotags', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return geotagsHandler.handleGeotagsCommand(ctx);
 });
 
-bot.command('geotags_clear', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('geotags_clear', requireFeature('geotags', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return geotagsHandler.handleGeotagsClear(ctx);
 });
 
-bot.command('geotags_stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('geotags_stats', requireFeature('geotags', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return geotagsHandler.handleGeotagsStats(ctx);
 });
 
-bot.command('alwaystag', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('alwaystag', requireFeature('geotags', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return geotagsHandler.handleAlwaysTag(ctx);
 });
 
 // Handle set_time command with parameter extraction
-bot.hears(/^\/set_time(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.hears(/^\/set_time(?:\s+(.+))?/, requireFeature('geotags', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const match = ctx.message.text.match(/^\/set_time(?:\s+(.+))?/);
   const timeString = match ? match[1] : undefined;
   return geotagsHandler.handleSetTime(ctx, timeString);
 });
 
 // Feature-specific commands - Location
-bot.command('location', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('location', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleLocationCommand(ctx);
 });
 
 // Handle alamat command with parameter extraction
-bot.hears(/^\/alamat(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.hears(/^\/alamat(?:\s+(.+))?/, requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const match = ctx.message.text.match(/^\/alamat(?:\s+(.+))?/);
   const addressQuery = match ? match[1] : undefined;
   return locationHandler.handleAlamatCommand(ctx, addressQuery);
 });
 
 // Handle koordinat command with parameter extraction
-bot.hears(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.hears(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/, requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const match = ctx.message.text.match(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/);
   const lat = match ? match[1] : undefined;
   const lon = match ? match[2] : undefined;
@@ -425,116 +425,139 @@ bot.hears(/^\/koordinat(?:\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*))?/, requireAuth(apiCl
 });
 
 // Handle show_map command with parameter extraction  
-bot.hears(/^\/show_map(?:\s+(.+))?/, requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.hears(/^\/show_map(?:\s+(.+))?/, requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const match = ctx.message.text.match(/^\/show_map(?:\s+(.+))?/);
   const locationQuery = match ? match[1] : undefined;
   return locationHandler.handleShowMapCommand(ctx, locationQuery);
 });
 
 // Handle measurement commands
-bot.command('ukur', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ukur', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleUkurCommand(ctx, 'walking');
 });
 
-bot.command('ukur_mobil', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ukur_mobil', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleUkurCommand(ctx, 'driving');
 });
 
-bot.command('ukur_motor', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('ukur_motor', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleUkurCommand(ctx, 'motorcycling');
 });
 
-bot.command('show_jarak', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('show_jarak', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleShowJarakCommand(ctx);
 });
 
-bot.command('batal', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('batal', requireFeature('location', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return locationHandler.handleBatalCommand(ctx);
 });
 
 // KML feature commands
-bot.command('kml', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('kml', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return kmlHandler.handleKmlCommand(ctx);
 });
 
-bot.command('add', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('add', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const args = ctx.message.text.split(' ').slice(1);
   const [lat, lon, ...nameParts] = args;
   const name = nameParts.join(' ');
   return kmlHandler.handleAddCommand(ctx, lat, lon, name);
 });
 
-bot.command('addpoint', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('addpoint', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const pointName = ctx.message.text.split(' ').slice(1).join(' ');
   return kmlHandler.handleAddPointCommand(ctx, pointName);
 });
 
-bot.command('alwayspoint', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('alwayspoint', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const persistentName = ctx.message.text.split(' ').slice(1).join(' ');
   return kmlHandler.handleAlwaysPointCommand(ctx, persistentName);
 });
 
-bot.command('startline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('startline', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const lineName = ctx.message.text.split(' ').slice(1).join(' ');
   return kmlHandler.handleStartLineCommand(ctx, lineName);
 });
 
-bot.command('endline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('endline', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return kmlHandler.handleEndLineCommand(ctx);
 });
 
-bot.command('cancelline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('cancelline', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return kmlHandler.handleCancelLineCommand(ctx);
 });
 
-bot.command('mydata', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('mydata', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return kmlHandler.handleMyDataCommand(ctx);
 });
 
-bot.command('createkml', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('createkml', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const docName = ctx.message.text.split(' ').slice(1).join(' ');
   return kmlHandler.handleCreateKmlCommand(ctx, docName);
 });
 
-bot.command('cleardata', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('cleardata', requireFeature('kml', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return kmlHandler.handleClearDataCommand(ctx);
 });
 
 // Archive feature commands
-bot.command('archive', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('archive', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleArchiveCommand(ctx);
 });
 
-bot.command('zip', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('zip', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleZipCommand(ctx);
 });
 
-bot.command('extract', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('extract', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleExtractCommand(ctx);
 });
 
-bot.command('search', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('search', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleSearchCommand(ctx);
 });
 
-bot.command('find', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('find', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const searchPattern = ctx.message.text.split(' ').slice(1).join(' ');
   return archiveHandler.handleFindCommand(ctx, searchPattern);
 });
 
-bot.command('send', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('send', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleSendCommand(ctx);
 });
 
-bot.command('send_selected', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('send_selected', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleSendSelectedCommand(ctx);
 });
 
-bot.command('stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.command('stats', requireFeature('archive', apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   return archiveHandler.handleStatsCommand(ctx);
 });
 
+// Reset data commands (must be before text handler)
+bot.hears(/^\/reset_data_bot(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/reset_data_bot(?:\s+(.+))?/);
+  const confirmArg = match && match[1] ? match[1] : undefined;
+  
+  if (confirmArg === 'confirm') {
+    return adminHandler.executeResetDataBot(ctx);
+  } else {
+    return adminHandler.handleResetDataBot(ctx);
+  }
+});
 
+bot.hears(/^\/reset_data_user(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/reset_data_user(?:\s+(.+))?/);
+  const args = match && match[1] ? match[1].split(' ') : [];
+  const targetUserId = args.length > 0 ? args[0] : undefined;
+  const confirmArg = args.length > 1 ? args[1] : undefined;
+  
+  if (confirmArg === 'confirm' && targetUserId) {
+    return adminHandler.executeResetDataUser(ctx, targetUserId);
+  } else {
+    return adminHandler.handleResetDataUser(ctx, targetUserId);
+  }
+});
 
 // Handle text messages
 bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {

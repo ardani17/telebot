@@ -32,12 +32,11 @@ export function getUserFeatureDirPath(
  */
 export const AVAILABLE_FEATURES = [
   'ocr',
-  'rar', 
+  'archive',
   'location',
   'geotags',
   'kml',
-  'workbook',
-  'archive'
+  'workbook'
 ] as const;
 
 export type FeatureName = typeof AVAILABLE_FEATURES[number];

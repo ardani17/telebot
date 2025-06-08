@@ -1,7 +1,7 @@
 // Bot feature constants
 export const BOT_FEATURES = {
   OCR: 'ocr',
-  ARCHIVE: 'rar',
+  ARCHIVE: 'archive',
   LOCATION: 'location',
   GEOTAGS: 'geotags',
   KML: 'kml',
@@ -15,7 +15,7 @@ export const BOT_COMMANDS = {
   STATUS: '/status',
   CANCEL: '/cancel',
   OCR: '/ocr',
-  RAR: '/rar',
+  ARCHIVE: '/archive',
   LOCATION: '/location',
   GEOTAGS: '/geotags',
   KML: '/kml',
@@ -213,7 +213,7 @@ export const BOT_MESSAGES = {
   WELCOME: 'Selamat datang! Gunakan /help untuk melihat daftar perintah.',
   HELP: 'Daftar perintah yang tersedia:\n\n' +
         '/ocr - Mode OCR untuk extract text dari gambar\n' +
-        '/rar - Mode Archive untuk compress/extract file\n' +
+        '/archive - Mode Archive untuk compress/extract file\n' +
         '/location - Mode Location untuk proses koordinat GPS\n' +
         '/geotags - Mode Geotags untuk extract metadata lokasi\n' +
         '/kml - Mode KML untuk proses file KML\n' +

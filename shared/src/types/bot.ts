@@ -10,7 +10,7 @@ export interface BotSession {
 
 export enum BotMode {
   OCR = 'ocr',
-  ARCHIVE = 'rar',
+  ARCHIVE = 'archive',
   LOCATION = 'location',
   GEOTAGS = 'geotags',
   KML = 'kml',

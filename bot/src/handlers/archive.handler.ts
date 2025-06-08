@@ -941,7 +941,7 @@ export class ArchiveHandler {
     errorMessage?: string;
   }) {
     try {
-      await axios.post(`${this.backendUrl}/api/activities`, data);
+      await axios.post(`${this.backendUrl}/activity/record`, data);
     } catch (error) {
       this.logger.error('Failed to record activity', { error, data });
     }

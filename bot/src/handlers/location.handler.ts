@@ -4,7 +4,7 @@ import * as fs from 'fs-extra';
 import winston from 'winston';
 import { AuthContext } from '../middleware/auth';
 import { ApiClient } from '../services/api-client';
-import { createUserFeatureDir } from '../utils/file-utils';
+import { createUserFeatureDir } from '../../../shared/src/utils/file-utils';
 
 interface LocationContext extends AuthContext {
   // Session management is now handled by AuthContext

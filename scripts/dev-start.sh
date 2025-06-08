@@ -49,6 +49,11 @@ if [ ! -d "bot/node_modules" ]; then
     cd bot && npm install && cd ..
 fi
 
+if [ ! -d "frontend/node_modules" ]; then
+    print_status "Installing frontend dependencies..."
+    cd frontend && npm install && cd ..
+fi
+
 if [ ! -d "shared/node_modules" ]; then
     print_status "Installing shared dependencies..."
     cd shared && npm install && cd ..
@@ -91,6 +96,17 @@ BOT_PID=$!
 echo $BOT_PID > ../logs/bot.pid
 cd ..
 
+# Wait a bit for bot to start
+sleep 3
+
+# Start Frontend
+print_status "Starting Frontend service..."
+cd frontend
+nohup npm run dev > ../logs/frontend.log 2>&1 &
+FRONTEND_PID=$!
+echo $FRONTEND_PID > ../logs/frontend.pid
+cd ..
+
 # Display status
 print_success "Services started!"
 print_status ""
@@ -98,11 +114,18 @@ print_status "Service PIDs:"
 print_status "- Telegram API Server: $TELEGRAM_API_PID"
 print_status "- Backend: $BACKEND_PID"
 print_status "- Bot: $BOT_PID"
+print_status "- Frontend: $FRONTEND_PID"
 print_status ""
 print_status "Log files:"
 print_status "- Telegram API: logs/telegram-api.log"
 print_status "- Backend: logs/backend.log"
 print_status "- Bot: logs/bot.log"
+print_status "- Frontend: logs/frontend.log"
+print_status ""
+print_status "Service URLs:"
+print_status "- Frontend: http://localhost:3000"
+print_status "- Backend API: http://localhost:3001/api"
+print_status "- API Documentation: http://localhost:3001/api/docs"
 print_status ""
 print_status "To stop services, run: ./scripts/dev-stop.sh"
 print_status "To view logs, run: ./scripts/dev-logs.sh"

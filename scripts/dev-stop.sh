@@ -83,10 +83,12 @@ print_status "====================================="
 # Stop services by PID files first
 stop_service "Backend"
 stop_service "Bot"
+stop_service "Frontend"
 
 # Kill any remaining processes on known ports
 kill_port "3001" "Backend"
-kill_port "3000" "Bot"
+kill_port "3000" "Frontend (Vite)"
+kill_port "8081" "Bot"
 
 # Kill any Node.js processes that might be related to our services
 print_status "Cleaning up remaining Node.js processes..."
@@ -103,6 +105,13 @@ local backend_pids=$(pgrep -f "nest start --watch" 2>/dev/null || true)
 if [ ! -z "$backend_pids" ]; then
     print_status "Stopping backend processes..."
     echo $backend_pids | xargs kill -9 2>/dev/null || true
+fi
+
+# Find and kill vite processes (frontend)
+local frontend_pids=$(pgrep -f "vite" 2>/dev/null || true)
+if [ ! -z "$frontend_pids" ]; then
+    print_status "Stopping frontend processes..."
+    echo $frontend_pids | xargs kill -9 2>/dev/null || true
 fi
 
 # Clean up log files if requested
