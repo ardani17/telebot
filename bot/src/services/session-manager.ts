@@ -1,6 +1,6 @@
 import winston from 'winston';
 
-export type UserMode = 'idle' | 'ocr' | 'ocr_koordinat' | 'rar' | 'location' | 'geotags' | 'kml' | 'workbook';
+export type UserMode = 'idle' | 'ocr' | 'rar' | 'location' | 'geotags' | 'kml' | 'workbook' | 'archive';
 
 export interface UserSession {
   telegramId: string;
@@ -135,12 +135,12 @@ export class SessionManager {
     const modeDistribution: Record<UserMode, number> = {
       idle: 0,
       ocr: 0,
-      ocr_koordinat: 0,
       rar: 0,
       location: 0,
       geotags: 0,
       kml: 0,
-      workbook: 0
+      workbook: 0,
+      archive: 0
     };
 
     sessions.forEach(session => {

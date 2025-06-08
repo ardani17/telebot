@@ -11,6 +11,7 @@ import { WorkbookHandler } from './handlers/workbook.handler';
 import { GeotagsHandler } from './handlers/geotags.handler';
 import { LocationHandler } from './handlers/location.handler';
 import { KmlHandler } from './handlers/kml.handler';
+import { ArchiveHandler } from './handlers/archive.handler';
 
 // Load environment variables
 dotenv.config();
@@ -79,6 +80,9 @@ const locationHandler = new LocationHandler(apiClient, logger);
 // Initialize KML handler
 const kmlHandler = new KmlHandler(logger);
 
+// Initialize Archive handler
+const archiveHandler = new ArchiveHandler(logger);
+
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
   telegram: {
@@ -88,9 +92,10 @@ const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
 
 // Error handling
 bot.catch((err, ctx) => {
+  const error = err instanceof Error ? err : new Error(String(err));
   logger.error('Bot error:', {
-    error: err.message,
-    stack: err.stack,
+    error: error.message,
+    stack: error.stack,
     updateType: ctx.updateType,
     userId: ctx.from?.id,
     chatId: ctx.chat?.id
@@ -167,7 +172,7 @@ Mode: ${USE_POLLING ? 'Polling' : 'Webhook'}
 
 *Fitur yang Tersedia:*
 📄 /ocr - Extract text from images using Google Vision API
-📦 RAR - Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files
+📦 /archive - Archive Processing - Create ZIP, extract ZIP/RAR, search in archives
 📍 /location - Coordinates, maps, distance measurement
 🏷️ /geotags - Add GPS coordinates overlay to photos
 🗺️ /kml - Create and manage geographic points, lines, and KML files
@@ -197,7 +202,7 @@ bot.command('menu', requireAuth(apiClient, logger, sessionManager, userDirectory
     '🏠 *Menu Utama*\n\n' +
     'Mode fitur telah direset. Pilih fitur yang ingin digunakan:\n\n' +
     '📄 /ocr - OCR Text Recognition\n' +
-    '📦 /rar - Archive Processing\n' +
+    '📦 /archive - Archive Processing\n' +
     '📍 /location - Location Processing\n' +
     '🏷️ /geotags - Geotag Photos with Location\n' +
     '🗺️ /kml - KML Geographic Data Processing\n' +
@@ -458,8 +463,44 @@ bot.command('cleardata', requireAuth(apiClient, logger, sessionManager, userDire
   return kmlHandler.handleClearDataCommand(ctx);
 });
 
+// Archive feature commands
+bot.command('archive', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleArchiveCommand(ctx);
+});
+
+bot.command('zip', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleZipCommand(ctx);
+});
+
+bot.command('extract', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleExtractCommand(ctx);
+});
+
+bot.command('search', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleSearchCommand(ctx);
+});
+
+bot.command('find', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const searchPattern = ctx.message.text.split(' ').slice(1).join(' ');
+  return archiveHandler.handleFindCommand(ctx, searchPattern);
+});
+
+bot.command('send', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleSendCommand(ctx);
+});
+
+bot.command('send_selected', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleSendSelectedCommand(ctx);
+});
+
+bot.command('stats', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return archiveHandler.handleStatsCommand(ctx);
+});
+
+
+
 // Handle text messages
-bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
   const text = ctx.message.text;
   
   // Handle OCR koordinat command when user is in OCR mode
@@ -478,18 +519,19 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
     });
     
     if (ctx.user) {
-      ctx.reply(
+      await ctx.reply(
         '❓ Perintah tidak dikenal.\n\n' +
         'Gunakan /help untuk melihat daftar perintah yang tersedia.'
       );
     } else {
-      ctx.reply(
+      await ctx.reply(
         '❓ Perintah tidak dikenal.\n\n' +
         'Anda perlu terdaftar untuk menggunakan perintah bot.\n' +
         `Telegram ID: \`${ctx.from.id}\`\n\n` +
         'Hubungi administrator untuk mendapatkan akses.'
       );
     }
+    return;
   } else {
     // Check if user is in specific mode for text handling
     if (ctx.user) {
@@ -509,13 +551,13 @@ bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryServ
     });
     
     if (ctx.user) {
-      ctx.reply(
+      await ctx.reply(
         '📝 Pesan teks diterima!\n\n' +
         'Untuk menggunakan fitur bot, kirim file atau gunakan perintah yang tersedia.\n' +
         'Ketik /help untuk bantuan.'
       );
     } else {
-      ctx.reply(
+      await ctx.reply(
         '📝 Pesan diterima, tetapi Anda belum terdaftar.\n\n' +
         `Telegram ID: \`${ctx.from.id}\`\n` +
         'Hubungi administrator untuk mendapatkan akses.'
@@ -567,6 +609,13 @@ bot.on('location', requireAuth(apiClient, logger, sessionManager, userDirectoryS
 
 // Handle file uploads (require authentication)
 bot.on('document', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
+  const userMode = ctx.getUserMode?.();
+  
+  // Route to archive handler if in archive mode
+  if (userMode === 'archive') {
+    return archiveHandler.handleDocument(ctx);
+  }
+  
   // Check if it's an image document for OCR
   const document = ctx.message.document;
   const mimeType = document.mime_type || '';
@@ -579,14 +628,16 @@ bot.on('document', requireAuth(apiClient, logger, sessionManager, userDirectoryS
     userId: ctx.from.id,
     userName: ctx.user!.name,
     fileName: ctx.message.document.file_name,
-    fileSize: ctx.message.document.file_size,
+    fileSize: ctx.message.document.file_size || 0,
     mimeType: ctx.message.document.mime_type
   });
+  
+  const fileSize = ctx.message.document.file_size || 0;
   
   ctx.reply(
     '📄 File diterima!\n\n' +
     `Nama: ${ctx.message.document.file_name}\n` +
-    `Ukuran: ${(ctx.message.document.file_size / 1024 / 1024).toFixed(2)} MB\n` +
+    `Ukuran: ${(fileSize / 1024 / 1024).toFixed(2)} MB\n` +
     `Tipe: ${ctx.message.document.mime_type}\n\n` +
     '🔄 Memproses file... (fitur akan segera tersedia)'
   );
@@ -631,7 +682,7 @@ async function startBot() {
       
       // Clear pending updates to prevent processing old messages
       try {
-        await bot.telegram.getUpdates({ offset: -1, limit: 1 });
+        await bot.telegram.getUpdates(0, 1, -1, undefined);
         logger.info('Cleared pending updates - bot will only process new messages');
       } catch (error) {
         logger.warn('Failed to clear pending updates:', error);
@@ -647,7 +698,7 @@ async function startBot() {
       
       // Clear pending updates for webhook fallback too
       try {
-        await bot.telegram.getUpdates({ offset: -1, limit: 1 });
+        await bot.telegram.getUpdates(0, 1, -1, undefined);
         logger.info('Cleared pending updates - bot will only process new messages');
       } catch (error) {
         logger.warn('Failed to clear pending updates:', error);
@@ -660,13 +711,14 @@ async function startBot() {
       logger.info('✅ Bot started successfully in polling mode (fallback)');
     }
     
-  } catch (error) {
-    logger.error('Failed to start bot:', {
-      error: error.message,
-      stack: error.stack
-    });
-    process.exit(1);
-  }
+      } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error('Failed to start bot:', {
+        error: error.message,
+        stack: error.stack
+      });
+      process.exit(1);
+    }
 }
 
 // Start the bot

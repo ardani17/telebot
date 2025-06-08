@@ -36,7 +36,8 @@ export const AVAILABLE_FEATURES = [
   'location',
   'geotags',
   'kml',
-  'workbook'
+  'workbook',
+  'archive'
 ] as const;
 
 export type FeatureName = typeof AVAILABLE_FEATURES[number];

@@ -19,6 +19,7 @@ export class OcrHandler {
   private apiClient: ApiClient;
   private backendUrl: string;
   private localFileService: LocalFileService;
+  private koordinatModeUsers = new Set<string>(); // Track users in koordinat sub-mode
 
   constructor(apiClient: ApiClient, logger: winston.Logger) {
     this.apiClient = apiClient;
@@ -91,6 +92,9 @@ export class OcrHandler {
 
       // Clear OCR mode using session manager
       ctx.clearUserMode?.();
+      
+      // Also clear koordinat sub-mode if active
+      this.koordinatModeUsers.delete(telegramId);
 
       await ctx.reply('🧹 Session OCR telah dibersihkan.');
       this.logger.info('OCR session cleared', { telegramId });
@@ -182,8 +186,9 @@ export class OcrHandler {
 
       this.logger.info('OCR Koordinat command received', { telegramId, userId });
 
-      ctx.setUserMode?.('ocr_koordinat');
-      this.logger.info('User mode changed to ocr_koordinat', { userId });
+      // Stay in OCR mode but enable coordinate extraction for this user
+      this.koordinatModeUsers.add(telegramId);
+      this.logger.info('OCR koordinat sub-mode activated', { userId, telegramId });
       
       await ctx.reply(
         '📍 *Mode OCR Koordinat Aktif*\n\n' +
@@ -218,21 +223,21 @@ export class OcrHandler {
       const hasAccess = await ctx.hasFeatureAccess?.('ocr');
       if (!hasAccess) return;
 
-      // Check if user is in OCR mode or OCR koordinat mode
+      // Check if user is in OCR mode
       const userMode = ctx.getUserMode?.();
       const isInOcrMode = userMode === 'ocr';
-      const isInOcrKoordinatMode = userMode === 'ocr_koordinat';
+      const isInKoordinatMode = this.koordinatModeUsers.has(telegramId);
       
       this.logger.info('Photo received for OCR', { 
         telegramId,
         userMode,
         isInOcrMode,
-        isInOcrKoordinatMode,
+        isInKoordinatMode,
         hasAccess: true 
       });
       
-      // If user is not in OCR or OCR koordinat mode, ask them to activate it first
-      if (!isInOcrMode && !isInOcrKoordinatMode) {
+      // If user is not in OCR mode, ask them to activate it first
+      if (!isInOcrMode) {
         await ctx.reply(
           'OCR tersedia!\n\n' +
           'Untuk menggunakan OCR, silakan ketik /ocr terlebih dahulu untuk mengaktifkan mode OCR.\n\n' +
@@ -385,25 +390,23 @@ export class OcrHandler {
 
           const plainText = sanitizePlain(extractedText);
           
-          // Check if user is in koordinat mode
-          if (isInOcrKoordinatMode) {
+          // Check if user is in koordinat sub-mode
+          if (isInKoordinatMode) {
             // Extract coordinates from OCR text
             const coordinates = this.extractCoordinates(extractedText);
             
             if (coordinates) {
-              let coordMessage = '📍 **Koordinat Terdeteksi:**\n\n';
+              await ctx.reply('📍 *Koordinat Terdeteksi:*', { parse_mode: 'Markdown' });
               
               if (coordinates.decimal) {
-                coordMessage += `\`Koordinat Decimal = ${coordinates.decimal}\`\n`;
+                await ctx.reply('Koordinat Decimal = ' + `\`${coordinates.decimal}\``, { parse_mode: 'Markdown' });
               }
               
               if (coordinates.dms) {
-                coordMessage += `\`Koordinat Geografis = ${coordinates.dms}\`\n`;
+                await ctx.reply('Koordinat DMS = ' + `\`${coordinates.dms}\``, { parse_mode: 'Markdown' });
               }
               
-              coordMessage += '\n💡 *Tap untuk copy*';
-              
-              await ctx.reply(coordMessage);
+              await ctx.reply('💡 _Tap koordinat di atas untuk copy_', { parse_mode: 'Markdown' });
               
               this.logger.info('Coordinates extracted successfully', {
                 telegramId,
@@ -411,7 +414,7 @@ export class OcrHandler {
                 dms: coordinates.dms
               });
             } else {
-              await ctx.reply('📍 **Koordinat tidak terdeteksi**\n\nTidak ditemukan koordinat yang valid dalam gambar ini.');
+              await ctx.reply('📍 *Koordinat tidak terdeteksi*\n\nTidak ditemukan koordinat yang valid dalam gambar ini.', { parse_mode: 'Markdown' });
               
               this.logger.info('No coordinates found in OCR text', {
                 telegramId,
