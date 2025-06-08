@@ -819,10 +819,10 @@ export class LocationHandler {
         zoom: zoom.toString()
       };
 
-      // Add detailed markers
+      // Add detailed markers with correct format
       params.markers = [
-        `color:0x00FF00|size:mid|label:1|${firstPoint.latitude},${firstPoint.longitude}`,
-        `color:0xFF0000|size:mid|label:2|${secondPoint.latitude},${secondPoint.longitude}`
+        `color:green|size:mid|label:1|${firstPoint.latitude},${firstPoint.longitude}`,
+        `color:red|size:mid|label:2|${secondPoint.latitude},${secondPoint.longitude}`
       ];
 
       // Try to get walking polyline for more accurate path
@@ -830,10 +830,10 @@ export class LocationHandler {
       
       if (walkingPolyline && walkingPolyline.polyline) {
         // Use actual walking path
-        params.path = `color:0x0000FF|weight:4|enc:${walkingPolyline.polyline}`;
+        params.path = `color:blue|weight:4|enc:${walkingPolyline.polyline}`;
       } else {
         // Fallback to straight line
-        params.path = `color:0x0000FF|weight:3|${firstPoint.latitude},${firstPoint.longitude}|${secondPoint.latitude},${secondPoint.longitude}`;
+        params.path = `color:blue|weight:3|${firstPoint.latitude},${firstPoint.longitude}|${secondPoint.latitude},${secondPoint.longitude}`;
       }
 
       // Set center point to middle of the two points
@@ -843,8 +843,22 @@ export class LocationHandler {
 
       this.logger.info('Generating detailed short distance map', { params, distance, zoom });
 
-      const response = await axios.get(mapUrl, {
-        params,
+      // Create URL with proper marker handling
+      const baseUrl = new URL(mapUrl);
+      baseUrl.searchParams.set('size', params.size);
+      baseUrl.searchParams.set('maptype', params.maptype);
+      baseUrl.searchParams.set('key', params.key);
+      baseUrl.searchParams.set('zoom', params.zoom);
+      baseUrl.searchParams.set('center', params.center);
+      
+      // Add each marker separately
+      baseUrl.searchParams.append('markers', params.markers[0]);
+      baseUrl.searchParams.append('markers', params.markers[1]);
+      
+      // Add path
+      baseUrl.searchParams.set('path', params.path);
+
+      const response = await axios.get(baseUrl.toString(), {
         responseType: 'arraybuffer',
         timeout: 15000
       });
@@ -1398,7 +1412,7 @@ export class LocationHandler {
         `📏 **Jarak:** ${distanceText}\n` +
         `🚶‍♂️ **Waktu Jalan:** ${durationText}\n` +
         `📊 **Metode:** ${distanceSource}\n\n` +
-        `*Catatan: Pengukuran dengan detail tinggi untuk jarak pendek*`;
+        `*Terimakasih*`;
 
       await ctx.replyWithPhoto({ source: detailedMapBuffer }, {
         caption: message,

@@ -10,6 +10,7 @@ import { OcrHandler } from './handlers/ocr.handler';
 import { WorkbookHandler } from './handlers/workbook.handler';
 import { GeotagsHandler } from './handlers/geotags.handler';
 import { LocationHandler } from './handlers/location.handler';
+import { KmlHandler } from './handlers/kml.handler';
 
 // Load environment variables
 dotenv.config();
@@ -74,6 +75,9 @@ const geotagsHandler = new GeotagsHandler(apiClient, logger);
 
 // Initialize Location handler
 const locationHandler = new LocationHandler(apiClient, logger);
+
+// Initialize KML handler
+const kmlHandler = new KmlHandler(logger);
 
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
@@ -164,9 +168,9 @@ Mode: ${USE_POLLING ? 'Polling' : 'Webhook'}
 *Fitur yang Tersedia:*
 📄 /ocr - Extract text from images using Google Vision API
 📦 RAR - Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files
-📍 LOCATION - Location and GPS Processing - Process location data and coordinates
-🏷️ /geotags - Geotag Photos with Location - Add GPS coordinates overlay to photos
-🗺️ KML - KML File Processing - Process and convert KML/KMZ geographic files
+📍 /location - Coordinates, maps, distance measurement
+🏷️ /geotags - Add GPS coordinates overlay to photos
+🗺️ /kml - Create and manage geographic points, lines, and KML files
 📊 /workbook - Excel Image Processing
 
 ${ctx.user.role === 'ADMIN' ? `
@@ -196,7 +200,7 @@ bot.command('menu', requireAuth(apiClient, logger, sessionManager, userDirectory
     '📦 /rar - Archive Processing\n' +
     '📍 /location - Location Processing\n' +
     '🏷️ /geotags - Geotag Photos with Location\n' +
-    '🗺️ /kml - KML File Processing\n' +
+    '🗺️ /kml - KML Geographic Data Processing\n' +
     '📊 /workbook - Excel Image Processing\n\n' +
     'Ketik /help untuk bantuan lengkap.',
     { parse_mode: 'Markdown' }
@@ -406,6 +410,54 @@ bot.command('batal', requireAuth(apiClient, logger, sessionManager, userDirector
   return locationHandler.handleBatalCommand(ctx);
 });
 
+// KML feature commands
+bot.command('kml', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return kmlHandler.handleKmlCommand(ctx);
+});
+
+bot.command('add', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const args = ctx.message.text.split(' ').slice(1);
+  const [lat, lon, ...nameParts] = args;
+  const name = nameParts.join(' ');
+  return kmlHandler.handleAddCommand(ctx, lat, lon, name);
+});
+
+bot.command('addpoint', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const pointName = ctx.message.text.split(' ').slice(1).join(' ');
+  return kmlHandler.handleAddPointCommand(ctx, pointName);
+});
+
+bot.command('alwayspoint', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const persistentName = ctx.message.text.split(' ').slice(1).join(' ');
+  return kmlHandler.handleAlwaysPointCommand(ctx, persistentName);
+});
+
+bot.command('startline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const lineName = ctx.message.text.split(' ').slice(1).join(' ');
+  return kmlHandler.handleStartLineCommand(ctx, lineName);
+});
+
+bot.command('endline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return kmlHandler.handleEndLineCommand(ctx);
+});
+
+bot.command('cancelline', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return kmlHandler.handleCancelLineCommand(ctx);
+});
+
+bot.command('mydata', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return kmlHandler.handleMyDataCommand(ctx);
+});
+
+bot.command('createkml', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const docName = ctx.message.text.split(' ').slice(1).join(' ');
+  return kmlHandler.handleCreateKmlCommand(ctx, docName);
+});
+
+bot.command('cleardata', requireAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  return kmlHandler.handleClearDataCommand(ctx);
+});
+
 // Handle text messages
 bot.on('text', optionalAuth(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
   const text = ctx.message.text;
@@ -492,7 +544,7 @@ bot.on('photo', requireAuth(apiClient, logger, sessionManager, userDirectoryServ
   });
 });
 
-// Handle location messages for Geotags and Location mode
+// Handle location messages for Geotags, Location, and KML mode
 bot.on('location', requireAuth(apiClient, logger, sessionManager, userDirectoryService), async (ctx) => {
   // Check user mode and route to appropriate handler
   const userMode = ctx.getUserMode?.();
@@ -500,6 +552,8 @@ bot.on('location', requireAuth(apiClient, logger, sessionManager, userDirectoryS
     return geotagsHandler.handleLocation(ctx);
   } else if (userMode === 'location') {
     return locationHandler.handleLocation(ctx);
+  } else if (userMode === 'kml') {
+    return kmlHandler.handleLocation(ctx);
   }
   
   // No default handling - user must be in appropriate mode to use location
