@@ -543,3 +543,283 @@ tail -f logs/bot.log
 ---
 
 **TeleWeb Scripts** - Automated deployment and management for Telegram Bot Web Integration.
+
+# TeleWeb Development Scripts
+
+Scripts untuk memudahkan development TeleWeb bot tanpa menggunakan Docker.
+
+## 📋 Daftar Scripts
+
+### 🚀 `dev-setup.sh` - Setup Awal
+Script untuk setup environment development pertama kali.
+
+```bash
+./scripts/dev-setup.sh
+```
+
+**Fungsi:**
+- ✅ Check system requirements (Node.js, npm)
+- 📦 Install semua dependencies (root, shared, backend, bot)
+- ⚙️ Setup file .env
+- 🗄️ Setup database (migrasi & seeding)
+- 📁 Create required directories
+- 🔧 Make scripts executable
+
+**Jalankan sekali saat pertama kali setup project.**
+
+---
+
+### ▶️ `dev-start.sh` - Start Development Services
+Script untuk menjalankan semua services development.
+
+```bash
+./scripts/dev-start.sh
+```
+
+**Fungsi:**
+- 🔍 Check dependencies & environment
+- 🗄️ Setup database jika diperlukan
+- 🚀 Start Backend API (port 3001)
+- 🤖 Start Telegram Bot
+- 📊 Health check services
+- 📝 Optional log monitoring
+
+**Services yang dijalankan:**
+- **Backend API**: http://localhost:3001
+- **Swagger UI**: http://localhost:3001/api
+- **Telegram Bot**: Polling mode
+
+---
+
+### ⏹️ `dev-stop.sh` - Stop Development Services
+Script untuk menghentikan semua services.
+
+```bash
+./scripts/dev-stop.sh
+```
+
+**Fungsi:**
+- 🛑 Stop services by PID files
+- 🔪 Kill processes on ports 3001, 3000
+- 🧹 Cleanup remaining Node.js processes
+- 🗑️ Optional log file cleanup
+
+---
+
+### 📋 `dev-logs.sh` - View & Monitor Logs
+Script interaktif untuk melihat logs services.
+
+```bash
+./scripts/dev-logs.sh
+```
+
+**Menu Options:**
+1. **View all logs (combined)** - Gabungan semua logs
+2. **View backend logs only** - Logs backend saja
+3. **View bot logs only** - Logs bot saja
+4. **View logs with live monitoring** - Monitor real-time
+5. **View last 50 lines** - 50 baris terakhir
+6. **Clear all logs** - Hapus semua log files
+7. **Check service status** - Status services & ports
+8. **Exit** - Keluar
+
+---
+
+## 🔧 Workflow Development Harian
+
+### First Time Setup
+```bash
+# 1. Clone repository
+git clone <repository-url>
+cd teleweb
+
+# 2. Run setup script
+./scripts/dev-setup.sh
+
+# 3. Configure .env file (akan terbuka otomatis)
+# - Set BOT_TOKEN dengan token bot Telegram Anda
+# - Configure database URL jika perlu
+# - Set Google Cloud credentials jika menggunakan OCR
+```
+
+### Daily Development
+```bash
+# Start services
+./scripts/dev-start.sh
+
+# Monitor logs (optional)
+./scripts/dev-logs.sh
+
+# Stop services ketika selesai
+./scripts/dev-stop.sh
+```
+
+---
+
+## 📂 File & Directory Structure
+
+```
+teleweb/
+├── scripts/
+│   ├── dev-setup.sh      # Setup awal
+│   ├── dev-start.sh      # Start services
+│   ├── dev-stop.sh       # Stop services
+│   └── dev-logs.sh       # View logs
+├── logs/
+│   ├── backend.log       # Backend service logs
+│   ├── bot.log          # Bot service logs
+│   ├── Backend.pid      # Backend PID file
+│   └── Bot.pid          # Bot PID file
+├── backend/             # NestJS backend
+├── bot/                # Telegram bot
+├── shared/             # Shared utilities
+└── .env                # Environment configuration
+```
+
+---
+
+## ⚙️ Environment Configuration
+
+File `.env` yang perlu dikonfigurasi:
+
+```bash
+# Database
+DATABASE_URL="postgresql://teleweb:teleweb123@localhost:5432/teleweb?schema=public"
+
+# Redis (optional untuk caching)
+REDIS_URL="redis://localhost:6379"
+
+# JWT untuk authentication
+JWT_SECRET="your-jwt-secret-key-change-this-in-production"
+JWT_EXPIRES_IN="7d"
+
+# Bot Configuration
+BOT_TOKEN="your-telegram-bot-token"           # WAJIB diisi
+BOT_API_SERVER="http://localhost:8081"        # Local Bot API (optional)
+USE_POLLING=true
+
+# API Configuration
+BACKEND_URL="http://localhost:3001/api"
+FRONTEND_URL="http://localhost:3000"
+
+# Google Cloud Vision untuk OCR (optional)
+GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+
+# File Upload
+MAX_FILE_SIZE=10485760                        # 10MB
+UPLOAD_PATH="./uploads"
+
+# CORS
+CORS_ORIGIN="http://localhost:3000"
+
+# Logging
+LOG_LEVEL="info"
+```
+
+---
+
+## 🔍 Debugging & Troubleshooting
+
+### Check Service Status
+```bash
+# Via logs script
+./scripts/dev-logs.sh
+# Pilih option 7 untuk check status
+
+# Manual check
+ps aux | grep -E "(nest|ts-node)" | grep -v grep
+lsof -i :3001  # Backend port
+lsof -i :3000  # Bot port (jika ada)
+```
+
+### View Real-time Logs
+```bash
+# All logs combined
+tail -f logs/*.log
+
+# Individual logs
+tail -f logs/backend.log
+tail -f logs/bot.log
+```
+
+### Clean Start
+```bash
+# Stop all services
+./scripts/dev-stop.sh
+
+# Remove logs
+rm -f logs/*.log logs/*.pid
+
+# Kill any remaining processes
+pkill -f "nest start"
+pkill -f "ts-node-dev"
+
+# Start fresh
+./scripts/dev-start.sh
+```
+
+---
+
+## 🚨 Common Issues
+
+### Port Already in Use
+```bash
+# Check what's using the port
+lsof -i :3001
+
+# Kill specific process
+kill -9 <PID>
+
+# Or use dev-stop script
+./scripts/dev-stop.sh
+```
+
+### Database Connection Issues
+```bash
+# Check PostgreSQL status
+sudo systemctl status postgresql
+
+# Start PostgreSQL
+sudo systemctl start postgresql
+
+# Reset database
+cd backend
+npm run prisma:reset
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+### Dependencies Issues
+```bash
+# Clean install
+rm -rf node_modules backend/node_modules bot/node_modules shared/node_modules
+./scripts/dev-setup.sh
+```
+
+---
+
+## 🎯 Bot Admin Commands Testing
+
+Setelah services berjalan, test admin commands di bot:
+
+```
+/admin          # Panel admin
+/users list     # Daftar users
+/features list  # Daftar features
+/stats quick    # Statistik ringkas
+/broadcast Hello World  # Test broadcast
+```
+
+---
+
+## 💡 Tips Development
+
+1. **Use log monitoring**: Jalankan `./scripts/dev-logs.sh` untuk monitor real-time
+2. **Check health**: Backend health endpoint: http://localhost:3001/health
+3. **API Documentation**: Swagger UI di http://localhost:3001/api
+4. **Environment switching**: Copy `.env` ke `.env.local` untuk config lokal
+5. **Database management**: Gunakan `npm run prisma:studio` di folder backend
+
+---
+
+**Happy Coding! 🚀**

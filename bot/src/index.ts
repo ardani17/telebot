@@ -12,6 +12,7 @@ import { GeotagsHandler } from './handlers/geotags.handler';
 import { LocationHandler } from './handlers/location.handler';
 import { KmlHandler } from './handlers/kml.handler';
 import { ArchiveHandler } from './handlers/archive.handler';
+import { AdminHandler } from './handlers/admin.handler';
 
 // Load environment variables
 dotenv.config();
@@ -82,6 +83,9 @@ const kmlHandler = new KmlHandler(logger);
 
 // Initialize Archive handler
 const archiveHandler = new ArchiveHandler(logger);
+
+// Initialize Admin handler
+const adminHandler = new AdminHandler(apiClient, logger);
 
 // Create bot instance with typed context
 const bot = new Telegraf<AuthContext>(BOT_TOKEN, {
@@ -157,7 +161,12 @@ Mode: ${USE_POLLING ? 'Polling' : 'Webhook'}
     return;
   }
 
-  const helpText = `
+  // Different help text based on user role
+  let helpText = '';
+  
+  if (ctx.user.role === 'ADMIN') {
+    // Full help for Admin
+    helpText = `
 🤖 *TeleWeb Bot - Bantuan*
 
 *Status:* ✅ Terdaftar sebagai ${ctx.user.role}
@@ -178,19 +187,27 @@ Mode: ${USE_POLLING ? 'Polling' : 'Webhook'}
 🗺️ /kml - Create and manage geographic points, lines, and KML files
 📊 /workbook - Excel Image Processing
 
-${ctx.user.role === 'ADMIN' ? `
 *Perintah Admin:*
 /admin - Panel administrasi
-/users - Kelola pengguna
-/features - Kelola fitur
-` : ''}
 
 *Informasi:*
 Bot ini menggunakan Local Bot API Server
 Mode: Polling
 
 Untuk menggunakan fitur, kirim file atau gunakan perintah yang sesuai.
-  `;
+    `;
+  } else {
+    // Simplified help for User
+    helpText = `
+*Fitur yang Tersedia:*
+📄 /ocr - Extract text from images using Google Vision API
+📦 /archive - Archive Processing - Create ZIP, extract ZIP/RAR, search in archives
+📍 /location - Coordinates, maps, distance measurement
+🏷️ /geotags - Add GPS coordinates overlay to photos
+🗺️ /kml - Create and manage geographic points, lines, and KML files
+📊 /workbook - Excel Image Processing
+    `;
+  }
   
   ctx.replyWithMarkdown(helpText);
 });
@@ -302,19 +319,39 @@ bot.command('ping', requireAuth(apiClient, logger, sessionManager, userDirectory
 
 // Admin commands
 bot.command('admin', requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
-  const adminText = `
-🔧 *Panel Administrator*
+  return adminHandler.handleAdminCommand(ctx);
+});
 
-*Perintah Tersedia:*
-/users - Kelola pengguna
-/features - Kelola fitur sistem
-/stats - Statistik penggunaan
-/broadcast - Kirim pesan broadcast
+// User management commands
+bot.hears(/^\/users(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/users(?:\s+(.+))?/);
+  const args = match && match[1] ? match[1].split(' ') : [];
+  const subCommand = args.length > 0 ? args[0] : undefined;
+  const additionalArgs = args.slice(1);
+  return adminHandler.handleUsersCommand(ctx, subCommand, ...additionalArgs);
+});
 
-*Status:* Administrator verified ✅
-  `;
-  
-  ctx.replyWithMarkdown(adminText);
+// Feature management commands
+bot.hears(/^\/features(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/features(?:\s+(.+))?/);
+  const args = match && match[1] ? match[1].split(' ') : [];
+  const subCommand = args.length > 0 ? args[0] : undefined;
+  const additionalArgs = args.slice(1);
+  return adminHandler.handleFeaturesCommand(ctx, subCommand, ...additionalArgs);
+});
+
+// Statistics commands
+bot.hears(/^\/stats(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/stats(?:\s+(.+))?/);
+  const subCommand = match && match[1] ? match[1] : undefined;
+  return adminHandler.handleStatsCommand(ctx, subCommand);
+});
+
+// Broadcast commands
+bot.hears(/^\/broadcast(?:\s+(.+))?/, requireAdmin(apiClient, logger, sessionManager, userDirectoryService), (ctx) => {
+  const match = ctx.message.text.match(/^\/broadcast(?:\s+(.+))?/);
+  const messageParts = match && match[1] ? match[1].split(' ') : [];
+  return adminHandler.handleBroadcastCommand(ctx, ...messageParts);
 });
 
 // Feature-specific commands - OCR

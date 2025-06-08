@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # TeleWeb Development Stop Script
-# Script untuk menghentikan semua services development
+# This script stops all development services
 
-echo "🛑 TeleWeb - Stopping Development Services"
+set -e
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,6 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Function to print colored output
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -28,51 +29,92 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Stop PM2 processes
-print_status "Stopping PM2 services..."
-pm2 stop all 2>/dev/null || print_warning "No PM2 processes running"
-pm2 delete all 2>/dev/null || print_warning "No PM2 processes to delete"
+# Function to stop service by PID file
+stop_service() {
+    local name=$1
+    local pidfile="logs/${name}.pid"
 
-# Stop Telegram API Server
-print_status "Stopping Telegram API Server..."
-if [ -f "logs/telegram-api.pid" ]; then
-    PID=$(cat logs/telegram-api.pid)
-    if kill -0 $PID 2>/dev/null; then
-        kill $PID
-        print_success "Telegram API Server stopped"
+    if [ -f "$pidfile" ]; then
+        local pid=$(cat "$pidfile")
+        if ps -p $pid > /dev/null 2>&1; then
+            print_status "Stopping $name service (PID: $pid)..."
+            kill $pid
+            
+            # Wait for graceful shutdown
+            local count=0
+            while ps -p $pid > /dev/null 2>&1 && [ $count -lt 10 ]; do
+                sleep 1
+                ((count++))
+            done
+            
+            # Force kill if still running
+            if ps -p $pid > /dev/null 2>&1; then
+                print_warning "Force killing $name service..."
+                kill -9 $pid
+            fi
+            
+            print_success "$name service stopped"
+        else
+            print_warning "$name service was not running"
+        fi
+        
+        rm -f "$pidfile"
     else
-        print_warning "Telegram API Server was not running"
-    fi
-    rm -f logs/telegram-api.pid
-else
-    # Try to kill by process name
-    pkill -f "telegram-bot-api" 2>/dev/null || print_warning "No telegram-bot-api process found"
-fi
-
-# Clean up any remaining processes on development ports
-print_status "Cleaning up ports..."
-
-# Function to kill process on port
-kill_port() {
-    local port=$1
-    local name=$2
-    local pid=$(lsof -ti:$port 2>/dev/null)
-    if [ ! -z "$pid" ]; then
-        kill -9 $pid 2>/dev/null
-        print_success "Stopped $name on port $port"
+        print_warning "No PID file found for $name service"
     fi
 }
 
-kill_port 3001 "Backend"
-kill_port 3000 "Frontend" 
-kill_port 8081 "Telegram API"
+# Function to kill processes on specific ports
+kill_port() {
+    local port=$1
+    local service_name=$2
+    
+    local pids=$(lsof -ti :$port 2>/dev/null || true)
+    if [ ! -z "$pids" ]; then
+        print_status "Killing $service_name processes on port $port..."
+        echo $pids | xargs kill -9 2>/dev/null || true
+        print_success "$service_name processes on port $port stopped"
+    fi
+}
 
-print_success "All development services stopped!"
-echo ""
-echo "📊 Status:"
-echo "   PM2 processes: $(pm2 list | grep -c 'online' || echo '0') running"
-echo "   Port 3001: $(lsof -ti:3001 2>/dev/null | wc -l) processes"
-echo "   Port 3000: $(lsof -ti:3000 2>/dev/null | wc -l) processes"
-echo "   Port 8081: $(lsof -ti:8081 2>/dev/null | wc -l) processes"
-echo ""
-echo "🚀 To start again: ./scripts/dev-start.sh"
+print_status "TeleWeb Development Environment Stop"
+print_status "====================================="
+
+# Stop services by PID files first
+stop_service "Backend"
+stop_service "Bot"
+
+# Kill any remaining processes on known ports
+kill_port "3001" "Backend"
+kill_port "3000" "Bot"
+
+# Kill any Node.js processes that might be related to our services
+print_status "Cleaning up remaining Node.js processes..."
+
+# Find and kill ts-node-dev processes (bot)
+local bot_pids=$(pgrep -f "ts-node-dev.*src/index.ts" 2>/dev/null || true)
+if [ ! -z "$bot_pids" ]; then
+    print_status "Stopping bot processes..."
+    echo $bot_pids | xargs kill -9 2>/dev/null || true
+fi
+
+# Find and kill nest processes (backend)
+local backend_pids=$(pgrep -f "nest start --watch" 2>/dev/null || true)
+if [ ! -z "$backend_pids" ]; then
+    print_status "Stopping backend processes..."
+    echo $backend_pids | xargs kill -9 2>/dev/null || true
+fi
+
+# Clean up log files if requested
+read -p "Remove log files? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    print_status "Removing log files..."
+    rm -f logs/*.log
+    rm -f logs/*.pid
+    print_success "Log files removed"
+fi
+
+print_success "All services stopped successfully!"
+print_status ""
+print_status "To start services again, run: ./scripts/dev-start.sh"

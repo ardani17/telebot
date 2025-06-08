@@ -229,4 +229,57 @@ export class ApiClient {
       return false;
     }
   }
+
+  /**
+   * Generic request method for admin operations
+   */
+  async request<T = any>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, data?: any): Promise<ApiResponse<T>> {
+    try {
+      let response;
+      
+      // Add bot token header for bot admin endpoints
+      const headers: any = {};
+      if (url.startsWith('/admin/bot/')) {
+        const botToken = process.env.BOT_TOKEN;
+        if (botToken) {
+          headers['x-bot-token'] = botToken;
+        }
+      }
+      
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await this.client.get(url, { headers });
+          break;
+        case 'POST':
+          response = await this.client.post(url, data, { headers });
+          break;
+        case 'PATCH':
+          response = await this.client.patch(url, data, { headers });
+          break;
+        case 'DELETE':
+          response = await this.client.delete(url, { headers });
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      this.logger.error('API request failed', {
+        method,
+        url,
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message,
+      };
+    }
+  }
 } 

@@ -13,6 +13,7 @@ import { FilesModule } from './files/files.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { HealthModule } from './health/health.module';
 import { ActivityModule } from './activity/activity.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ActivityModule } from './activity/activity.module';
     WebSocketModule,
     HealthModule,
     ActivityModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

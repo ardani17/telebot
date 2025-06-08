@@ -75,18 +75,28 @@ export class FilesService {
         // Create worksheet for this folder
         const worksheet = workbook.addWorksheet(folderName);
         
-        // Set column widths for 5-column layout
-        for (let col = 1; col <= 5; col++) {
-          worksheet.getColumn(col).width = 20;
+        // Set column widths with spacing - alternating image columns and spacing columns
+        // Columns 1,3,5,7,9 for images, columns 2,4,6,8 for spacing
+        for (let col = 1; col <= 9; col++) {
+          if (col % 2 === 1) {
+            // Image columns (1,3,5,7,9)
+            worksheet.getColumn(col).width = 20;
+          } else {
+            // Spacing columns (2,4,6,8)
+            worksheet.getColumn(col).width = 2;
+          }
         }
 
         let currentRow = 1;
-        let currentCol = 1;
+        let imageCount = 0;
 
         for (const imageFile of imageFiles) {
           const imagePath = path.join(folderPath, imageFile);
           
           try {
+            // Calculate column position with spacing: 1,3,5,7,9
+            const currentCol = (imageCount % 5) * 2 + 1;
+            
             // Add image to worksheet
             const imageId = workbook.addImage({
               filename: imagePath,
@@ -102,9 +112,9 @@ export class FilesService {
             worksheet.getRow(currentRow).height = 120;
 
             // Move to next position
-            currentCol++;
-            if (currentCol > 5) {
-              currentCol = 1;
+            imageCount++;
+            if (imageCount % 5 === 0) {
+              // After 5 images, move to next row
               currentRow++;
             }
 
