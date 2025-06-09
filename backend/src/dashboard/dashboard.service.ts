@@ -373,6 +373,7 @@ export class DashboardService {
 
   async getSystemStatus() {
     try {
+      const os = require('os');
       const [dbHealth, botHealth, storage] = await Promise.all([
         this.checkDatabaseHealth(),
         this.checkBotHealth(),
@@ -382,23 +383,69 @@ export class DashboardService {
       // Check process status
       const processStatus = await this.checkProcessStatus();
 
+      // Get system information
+      const memoryUsage = process.memoryUsage();
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const uptime = process.uptime();
+
+      // Format uptime in human readable format
+      const formatUptime = (seconds: number) => {
+        const days = Math.floor(seconds / (24 * 60 * 60));
+        const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+        const minutes = Math.floor((seconds % (60 * 60)) / 60);
+        return `${days}d ${hours}h ${minutes}m`;
+      };
+
+      // Format memory sizes
+      const formatMemory = (bytes: number) => {
+        const gb = bytes / (1024 * 1024 * 1024);
+        return `${gb.toFixed(2)} GB`;
+      };
+
       return {
         database: dbHealth,
         bot: botHealth,
         storage,
         processes: processStatus,
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
+        // System information for Settings page
+        nodejs: {
+          version: process.version
+        },
+        platform: os.platform(),
+        arch: os.arch(),
+        memory: {
+          total: formatMemory(totalMemory),
+          free: formatMemory(freeMemory),
+          used: formatMemory(totalMemory - freeMemory),
+          heapUsed: formatMemory(memoryUsage.heapUsed),
+          heapTotal: formatMemory(memoryUsage.heapTotal)
+        },
+        cpus: os.cpus().length,
+        uptime: formatUptime(uptime),
+        uptimeSeconds: uptime,
         timestamp: new Date().toISOString()
       };
     } catch (error) {
+      console.error('System status error:', error);
       return {
         database: 'error',
         bot: 'error',
         storage: { used: 0, total: 0, percentage: 0 },
         processes: { backend: 'error', frontend: 'error', bot: 'error' },
-        uptime: 0,
-        memory: process.memoryUsage(),
+        nodejs: { version: process.version || 'Unknown' },
+        platform: 'Unknown',
+        arch: 'Unknown',
+        memory: {
+          total: 'Unknown',
+          free: 'Unknown',
+          used: 'Unknown',
+          heapUsed: 'Unknown',
+          heapTotal: 'Unknown'
+        },
+        cpus: 0,
+        uptime: 'Unknown',
+        uptimeSeconds: 0,
         timestamp: new Date().toISOString(),
         error: error.message
       };

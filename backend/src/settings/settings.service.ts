@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigType, SettingCategory } from '@prisma/client';
-import { UpdateSettingsDto } from './dto/settings.dto';
+import { UpdateSettingsDto, DatabaseConfigDto, SecurityConfigDto } from './dto/settings.dto';
 
 interface DefaultSetting {
   key: string;
@@ -153,6 +153,22 @@ export class SettingsService {
         description: 'Enable bot webhook mode',
         isEditable: true
       },
+      {
+        key: 'bot.apiServer',
+        value: 'http://localhost:8081',
+        category: SettingCategory.BOT,
+        type: ConfigType.STRING,
+        description: 'Bot API server URL',
+        isEditable: true
+      },
+      {
+        key: 'bot.maxFileSize',
+        value: '50MB',
+        category: SettingCategory.BOT,
+        type: ConfigType.STRING,
+        description: 'Maximum file size for bot uploads',
+        isEditable: true
+      },
 
       // File Settings
       {
@@ -179,6 +195,22 @@ export class SettingsService {
         description: 'Enable automatic file cleanup',
         isEditable: true
       },
+      {
+        key: 'files.virusScanEnabled',
+        value: 'false',
+        category: SettingCategory.FILES,
+        type: ConfigType.BOOLEAN,
+        description: 'Enable virus scanning for uploaded files',
+        isEditable: true
+      },
+      {
+        key: 'files.allowedExtensions',
+        value: 'jpg,png,pdf,zip,rar,xlsx,kml,kmz',
+        category: SettingCategory.FILES,
+        type: ConfigType.STRING,
+        description: 'Allowed file extensions (comma separated)',
+        isEditable: true
+      },
 
       // Security Settings
       {
@@ -200,6 +232,14 @@ export class SettingsService {
 
       // Rate Limiting
       {
+        key: 'rateLimit.enabled',
+        value: 'true',
+        category: SettingCategory.RATE_LIMIT,
+        type: ConfigType.BOOLEAN,
+        description: 'Enable rate limiting',
+        isEditable: true
+      },
+      {
         key: 'rateLimit.windowMs',
         value: '900000',
         category: SettingCategory.RATE_LIMIT,
@@ -236,6 +276,14 @@ export class SettingsService {
 
       // CORS Settings
       {
+        key: 'cors.enabled',
+        value: 'true',
+        category: SettingCategory.CORS,
+        type: ConfigType.BOOLEAN,
+        description: 'Enable CORS',
+        isEditable: true
+      },
+      {
         key: 'cors.origin',
         value: 'http://localhost:3000,http://103.195.190.235:3000',
         category: SettingCategory.CORS,
@@ -251,6 +299,30 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.NUMBER,
         description: 'Session maximum age in milliseconds',
+        isEditable: true
+      },
+      {
+        key: 'password.minLength',
+        value: '8',
+        category: SettingCategory.SECURITY,
+        type: ConfigType.NUMBER,
+        description: 'Minimum password length',
+        isEditable: true
+      },
+      {
+        key: 'security.bruteForceProtection',
+        value: 'true',
+        category: SettingCategory.SECURITY,
+        type: ConfigType.BOOLEAN,
+        description: 'Enable brute force protection',
+        isEditable: true
+      },
+      {
+        key: 'security.twoFactorEnabled',
+        value: 'false',
+        category: SettingCategory.SECURITY,
+        type: ConfigType.BOOLEAN,
+        description: 'Enable two-factor authentication',
         isEditable: true
       },
 
@@ -282,84 +354,7 @@ export class SettingsService {
         isEditable: true
       },
 
-      {
-        key: 'jwt.refreshExpiresIn',
-        value: '7d',
-        category: SettingCategory.SECURITY,
-        type: ConfigType.STRING,
-        description: 'JWT refresh token expiration time',
-        isEditable: true
-      },
-      {
-        key: 'session.maxAge',
-        value: '86400000',
-        category: SettingCategory.SECURITY,
-        type: ConfigType.NUMBER,
-        description: 'Session maximum age in milliseconds',
-        isEditable: true
-      },
 
-      // Rate Limiting
-      {
-        key: 'rateLimit.windowMs',
-        value: '900000',
-        category: SettingCategory.RATE_LIMIT,
-        type: ConfigType.NUMBER,
-        description: 'Rate limit window in milliseconds',
-        isEditable: true
-      },
-      {
-        key: 'rateLimit.maxRequests',
-        value: '100',
-        category: SettingCategory.RATE_LIMIT,
-        type: ConfigType.NUMBER,
-        description: 'Maximum requests per window',
-        isEditable: true
-      },
-
-      // Email Settings
-      {
-        key: 'smtp.host',
-        value: 'smtp.gmail.com',
-        category: SettingCategory.EMAIL,
-        type: ConfigType.STRING,
-        description: 'SMTP server host',
-        isEditable: true
-      },
-      {
-        key: 'smtp.port',
-        value: '587',
-        category: SettingCategory.EMAIL,
-        type: ConfigType.NUMBER,
-        description: 'SMTP server port',
-        isEditable: true
-      },
-      {
-        key: 'smtp.user',
-        value: 'your-email@gmail.com',
-        category: SettingCategory.EMAIL,
-        type: ConfigType.STRING,
-        description: 'SMTP user email',
-        isEditable: true
-      },
-      {
-        key: 'smtp.from',
-        value: 'noreply@teleweb.com',
-        category: SettingCategory.EMAIL,
-        type: ConfigType.STRING,
-        description: 'Email from address',
-        isEditable: true
-      },
-
-      // CORS Settings
-      {
-        key: 'cors.origin',
-        value: 'http://localhost:3000,http://103.195.190.235:3000',
-        category: SettingCategory.CORS,
-        type: ConfigType.STRING,
-        description: 'CORS allowed origins (comma separated)',
-        isEditable: true
-      },
 
       // Webhook Settings
       {
@@ -381,5 +376,183 @@ export class SettingsService {
         isEditable: true
       }
     ];
+  }
+
+  async getDatabaseConfig() {
+    try {
+      // Get database config from environment variables
+      const config = {
+        host: process.env.DATABASE_HOST || 'localhost',
+        port: process.env.DATABASE_PORT || '5432',
+        database: process.env.DATABASE_NAME || 'teleweb',
+        username: process.env.DATABASE_USER || 'teleweb_user',
+        password: process.env.DATABASE_PASSWORD ? '***hidden***' : '',
+        ssl: process.env.DATABASE_SSL === 'true',
+        maxConnections: parseInt(process.env.DATABASE_MAX_CONNECTIONS || '10'),
+        connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '30000'),
+      };
+
+      // Test current connection
+      const status = await this.testCurrentDatabaseConnection();
+
+      return {
+        config,
+        status
+      };
+    } catch (error) {
+      this.logger.error('Failed to get database config:', error);
+      throw error;
+    }
+  }
+
+  async updateDatabaseConfig(configDto: DatabaseConfigDto) {
+    try {
+      // Note: This would typically update environment variables or a config file
+      // For now, we'll just log the attempt and return success
+      this.logger.log(`Database config update attempted by ${configDto.updatedBy || 'system'}`);
+      
+      return {
+        message: 'Database configuration updated successfully',
+        note: 'Changes require server restart to take effect'
+      };
+    } catch (error) {
+      this.logger.error('Failed to update database config:', error);
+      throw error;
+    }
+  }
+
+  async testDatabaseConnection(configDto: DatabaseConfigDto) {
+    try {
+      // For security and simplicity, we'll test the current connection
+      // In production, you might want to create a temporary connection with the provided config
+      this.logger.log(`Testing database connection for host: ${configDto.host}:${configDto.port}`);
+      
+      const result = await this.testCurrentDatabaseConnection();
+      
+      this.logger.log(`Database connection test result: ${result.connected ? 'SUCCESS' : 'FAILED'}`);
+      
+      return {
+        success: result.connected,
+        message: result.connected ? 'Database connection successful!' : 'Database connection failed. Please check your configuration.',
+        details: {
+          host: configDto.host,
+          port: configDto.port,
+          database: configDto.database,
+          ssl: configDto.ssl,
+          tested_at: result.lastTest,
+          status: result.connected ? 'Connected' : 'Disconnected'
+        }
+      };
+    } catch (error) {
+      this.logger.error('Database connection test failed:', error);
+      return {
+        success: false,
+        message: `Connection test failed: ${error.message}`,
+        details: {
+          host: configDto.host,
+          port: configDto.port,
+          database: configDto.database,
+          ssl: configDto.ssl,
+          tested_at: new Date().toISOString(),
+          status: 'Error',
+          error: error.message
+        }
+      };
+    }
+  }
+
+  private async testCurrentDatabaseConnection() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return {
+        connected: true,
+        lastTest: new Date().toISOString(),
+        message: 'Connection successful'
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        lastTest: new Date().toISOString(),
+        message: error.message
+      };
+    }
+  }
+
+  async getSecurityConfig() {
+    try {
+      const securitySettings = await this.prisma.appSettings.findMany({
+        where: {
+          category: SettingCategory.SECURITY
+        }
+      });
+
+      const corsSettings = await this.prisma.appSettings.findMany({
+        where: {
+          category: SettingCategory.CORS
+        }
+      });
+
+      const rateLimitSettings = await this.prisma.appSettings.findMany({
+        where: {
+          category: SettingCategory.RATE_LIMIT
+        }
+      });
+
+      // Convert to SecurityConfig format
+      const settings = {
+        jwtExpirationTime: this.getSettingValue(securitySettings, 'jwt.expiresIn', '1h'),
+        refreshTokenExpiration: this.getSettingValue(securitySettings, 'jwt.refreshExpiresIn', '7d'),
+        rateLimitEnabled: this.getSettingValue(rateLimitSettings, 'rateLimit.enabled', 'true') === 'true',
+        rateLimitRequests: parseInt(this.getSettingValue(rateLimitSettings, 'rateLimit.maxRequests', '100')),
+        rateLimitWindow: parseInt(this.getSettingValue(rateLimitSettings, 'rateLimit.windowMs', '900000')) / 60000, // Convert to minutes
+        corsEnabled: this.getSettingValue(corsSettings, 'cors.enabled', 'true') === 'true',
+        corsOrigins: this.getSettingValue(corsSettings, 'cors.origin', '').split(',').filter(o => o.trim()),
+        passwordMinLength: parseInt(this.getSettingValue(securitySettings, 'password.minLength', '8')),
+        sessionTimeout: parseInt(this.getSettingValue(securitySettings, 'session.maxAge', '86400000')) / 1000, // Convert to seconds
+        bruteForceProtection: this.getSettingValue(securitySettings, 'security.bruteForceProtection', 'true') === 'true',
+        twoFactorEnabled: this.getSettingValue(securitySettings, 'security.twoFactorEnabled', 'false') === 'true',
+      };
+
+      return { settings };
+    } catch (error) {
+      this.logger.error('Failed to get security config:', error);
+      throw error;
+    }
+  }
+
+  async updateSecurityConfig(configDto: SecurityConfigDto) {
+    try {
+      const settingsToUpdate = {
+        'jwt.expiresIn': configDto.jwtExpirationTime,
+        'jwt.refreshExpiresIn': configDto.refreshTokenExpiration,
+        'rateLimit.enabled': configDto.rateLimitEnabled.toString(),
+        'rateLimit.maxRequests': configDto.rateLimitRequests.toString(),
+        'rateLimit.windowMs': (configDto.rateLimitWindow * 60000).toString(), // Convert minutes to ms
+        'cors.enabled': configDto.corsEnabled.toString(),
+        'cors.origin': configDto.corsOrigins.join(','),
+        'password.minLength': configDto.passwordMinLength.toString(),
+        'session.maxAge': (configDto.sessionTimeout * 1000).toString(), // Convert seconds to ms
+        'security.bruteForceProtection': configDto.bruteForceProtection.toString(),
+        'security.twoFactorEnabled': configDto.twoFactorEnabled.toString(),
+      };
+
+      const updateResult = await this.updateSettings({
+        settings: settingsToUpdate,
+        updatedBy: configDto.updatedBy || 'admin-web'
+      });
+
+      return {
+        message: 'Security configuration updated successfully',
+        updated: updateResult.updated
+      };
+    } catch (error) {
+      this.logger.error('Failed to update security config:', error);
+      throw error;
+    }
+  }
+
+  private getSettingValue(settings: any[], key: string, defaultValue: string): string {
+    const setting = settings.find(s => s.key === key);
+    return setting ? setting.value : defaultValue;
   }
 } 

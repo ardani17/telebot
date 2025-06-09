@@ -3,7 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
-import { UpdateSettingsDto, GetSettingsDto } from './dto/settings.dto';
+import { UpdateSettingsDto, GetSettingsDto, DatabaseConfigDto, SecurityConfigDto } from './dto/settings.dto';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -38,5 +38,40 @@ export class SettingsController {
   @ApiResponse({ status: 200, description: 'Settings reset successfully' })
   async resetSettings() {
     return this.settingsService.resetToDefaults();
+  }
+
+  @Get('database')
+  @ApiOperation({ summary: 'Get database configuration' })
+  @ApiResponse({ status: 200, description: 'Database config retrieved successfully' })
+  async getDatabaseConfig() {
+    return this.settingsService.getDatabaseConfig();
+  }
+
+  @Post('database')
+  @ApiOperation({ summary: 'Update database configuration' })
+  @ApiResponse({ status: 200, description: 'Database config updated successfully' })
+  async updateDatabaseConfig(@Body() configDto: DatabaseConfigDto) {
+    return this.settingsService.updateDatabaseConfig(configDto);
+  }
+
+  @Post('database/test')
+  @ApiOperation({ summary: 'Test database connection' })
+  @ApiResponse({ status: 200, description: 'Database connection tested' })
+  async testDatabaseConnection(@Body() configDto: DatabaseConfigDto) {
+    return this.settingsService.testDatabaseConnection(configDto);
+  }
+
+  @Get('security')
+  @ApiOperation({ summary: 'Get security configuration' })
+  @ApiResponse({ status: 200, description: 'Security config retrieved successfully' })
+  async getSecurityConfig() {
+    return this.settingsService.getSecurityConfig();
+  }
+
+  @Post('security')
+  @ApiOperation({ summary: 'Update security configuration' })
+  @ApiResponse({ status: 200, description: 'Security config updated successfully' })
+  async updateSecurityConfig(@Body() configDto: SecurityConfigDto) {
+    return this.settingsService.updateSecurityConfig(configDto);
   }
 } 

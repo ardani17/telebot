@@ -9,7 +9,13 @@ import {
   Save,
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Plus,
+  X,
+  Key,
+  Lock
 } from 'lucide-react'
 import api from '../lib/api'
 
@@ -31,16 +37,22 @@ interface EnvironmentConfig {
   corsOrigin: string
   botApiServer: string
   dataPath: string
+  nodeEnv: string
+  logLevel: string
 }
 
-// DatabaseConfig interface - will be implemented later
-// interface DatabaseConfig {
-//   host: string
-//   port: string
-//   database: string
-//   ssl: boolean
-//   maxConnections: number
-// }
+interface DatabaseConfig {
+  host: string
+  port: string
+  database: string
+  username: string
+  password: string
+  ssl: boolean
+  maxConnections: number
+  connectionTimeout: number
+  isConnected: boolean
+  lastConnectionTest: string
+}
 
 interface BotConfig {
   isActive: boolean
@@ -49,6 +61,9 @@ interface BotConfig {
   lastActivity: string
   totalUsers: number
   activeFeatures: number
+  apiServer: string
+  maxFileSize: string
+  allowedMimeTypes: string[]
 }
 
 interface FileManagementConfig {
@@ -58,12 +73,30 @@ interface FileManagementConfig {
   retentionDays: number
   totalStorage: string
   usedStorage: string
+  allowedMimeTypes: string[]
+  virusScanEnabled: boolean
+}
+
+interface SecurityConfig {
+  jwtSecret: string
+  jwtExpirationTime: string
+  refreshTokenExpiration: string
+  rateLimitEnabled: boolean
+  rateLimitRequests: number
+  rateLimitWindow: number
+  corsEnabled: boolean
+  corsOrigins: string[]
+  passwordMinLength: number
+  sessionTimeout: number
+  bruteForceProtection: boolean
+  twoFactorEnabled: boolean
 }
 
 export function Settings() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('system')
+  const [showPasswords, setShowPasswords] = useState(false)
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null)
   const [envConfig, setEnvConfig] = useState<EnvironmentConfig>({
     backendPort: '3001',
@@ -72,31 +105,60 @@ export function Settings() {
     serverHost: '0.0.0.0',
     corsOrigin: '',
     botApiServer: 'http://localhost:8081',
-    dataPath: '/home/teleweb/backend/data-bot-api'
+    dataPath: '/home/teleweb/backend/data-bot-api',
+    nodeEnv: 'development',
+    logLevel: 'info'
   })
-  // Database config - will be implemented later
-  // const [dbConfig, setDbConfig] = useState<DatabaseConfig>({
-  //   host: 'localhost',
-  //   port: '5432', 
-  //   database: 'teleweb',
-  //   ssl: false,
-  //   maxConnections: 10
-  // })
+  
+  const [dbConfig, setDbConfig] = useState<DatabaseConfig>({
+    host: 'localhost',
+    port: '5432', 
+    database: 'teleweb',
+    username: 'teleweb_user',
+    password: '',
+    ssl: false,
+    maxConnections: 10,
+    connectionTimeout: 30000,
+    isConnected: false,
+    lastConnectionTest: 'Never'
+  })
+  
   const [botConfig, setBotConfig] = useState<BotConfig>({
     isActive: false,
     webhookMode: false,
     polling: true,
     lastActivity: '',
     totalUsers: 0,
-    activeFeatures: 0
+    activeFeatures: 0,
+    apiServer: 'http://localhost:8081',
+    maxFileSize: '50MB',
+    allowedMimeTypes: []
   })
+  
   const [fileConfig, setFileConfig] = useState<FileManagementConfig>({
     maxFileSize: '50MB',
     allowedExtensions: ['jpg', 'png', 'pdf', 'zip', 'rar', 'xlsx', 'kml'],
     autoCleanup: true,
     retentionDays: 30,
     totalStorage: '0GB',
-    usedStorage: '0GB'
+    usedStorage: '0GB',
+    allowedMimeTypes: ['image/jpeg', 'image/png', 'application/pdf', 'application/zip'],
+    virusScanEnabled: false
+  })
+
+  const [securityConfig, setSecurityConfig] = useState<SecurityConfig>({
+    jwtSecret: '',
+    jwtExpirationTime: '1h',
+    refreshTokenExpiration: '7d',
+    rateLimitEnabled: true,
+    rateLimitRequests: 100,
+    rateLimitWindow: 15,
+    corsEnabled: true,
+    corsOrigins: [],
+    passwordMinLength: 8,
+    sessionTimeout: 1800,
+    bruteForceProtection: true,
+    twoFactorEnabled: false
   })
 
   const tabs = [
@@ -141,7 +203,10 @@ export function Settings() {
         polling: true, // TODO: get from bot config
         lastActivity: statsResponse.data.lastActivity || 'Never',
         totalUsers: usersResponse.data.length || 0,
-        activeFeatures: featuresResponse.data.filter((f: any) => f.isActive).length || 0
+        activeFeatures: featuresResponse.data.filter((f: any) => f.isActive).length || 0,
+        apiServer: 'http://localhost:8081',
+        maxFileSize: '50MB',
+        allowedMimeTypes: []
       })
     } catch (err) {
       console.error('Failed to fetch bot config:', err)
@@ -160,6 +225,75 @@ export function Settings() {
       }))
     } catch (err) {
       console.error('Failed to fetch file config:', err)
+    }
+  }
+
+  const fetchDatabaseConfig = async () => {
+    try {
+      const response = await api.get('/settings/database')
+      const { config, status } = response.data
+      
+      if (config) {
+        setDbConfig(prev => ({
+          ...prev,
+          ...config,
+          isConnected: status?.connected || false,
+          lastConnectionTest: status?.lastTest || 'Never'
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch database config:', err)
+    }
+  }
+
+  const fetchSecurityConfig = async () => {
+    try {
+      const response = await api.get('/settings/security')
+      const { settings } = response.data
+      
+      if (settings) {
+        setSecurityConfig(prev => ({
+          ...prev,
+          ...settings
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to fetch security config:', err)
+    }
+  }
+
+  const testDatabaseConnection = async () => {
+    try {
+      // Send only the necessary config data for testing
+      const testConfig = {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        database: dbConfig.database,
+        username: dbConfig.username,
+        password: dbConfig.password,
+        ssl: dbConfig.ssl,
+        maxConnections: dbConfig.maxConnections,
+        connectionTimeout: dbConfig.connectionTimeout
+      }
+      
+      const response = await api.post('/settings/database/test', testConfig)
+      const { success, message } = response.data
+      
+      setDbConfig(prev => ({
+        ...prev,
+        isConnected: success,
+        lastConnectionTest: new Date().toLocaleString()
+      }))
+
+      alert(success ? message : `Connection failed: ${message}`)
+    } catch (err: any) {
+      console.error('Database connection test failed:', err)
+      setDbConfig(prev => ({
+        ...prev,
+        isConnected: false,
+        lastConnectionTest: new Date().toLocaleString()
+      }))
+      alert('Connection test failed: ' + (err.response?.data?.message || err.message))
     }
   }
 
@@ -210,15 +344,36 @@ export function Settings() {
         // Bot settings
         'bot.polling': botConfig.polling,
         'bot.webhook': botConfig.webhookMode,
+        'bot.apiServer': botConfig.apiServer,
+        'bot.maxFileSize': botConfig.maxFileSize,
         
         // File settings
         'files.maxSize': fileConfig.maxFileSize,
         'files.retentionDays': fileConfig.retentionDays,
         'files.autoCleanup': fileConfig.autoCleanup,
+        'files.virusScanEnabled': fileConfig.virusScanEnabled,
+        'files.allowedExtensions': fileConfig.allowedExtensions.join(','),
+        
+        // Security settings
+        'security.rateLimitEnabled': securityConfig.rateLimitEnabled,
+        'security.rateLimitRequests': securityConfig.rateLimitRequests,
+        'security.rateLimitWindow': securityConfig.rateLimitWindow,
+        'security.passwordMinLength': securityConfig.passwordMinLength,
+        'security.sessionTimeout': securityConfig.sessionTimeout,
+        'security.bruteForceProtection': securityConfig.bruteForceProtection,
+        'security.twoFactorEnabled': securityConfig.twoFactorEnabled,
         
         // Environment settings (for reference, these stay in .env)
         // 'env.publicIp': envConfig.publicIp,
         // 'env.corsOrigin': envConfig.corsOrigin,
+      }
+
+      // Save database config separately
+      if (activeTab === 'database') {
+        await api.post('/settings/database', {
+          config: dbConfig,
+          updatedBy: 'admin-web'
+        })
       }
 
       await api.post('/settings', {
@@ -242,7 +397,9 @@ export function Settings() {
         fetchSystemInfo(),
         fetchBotConfig(),
         fetchFileConfig(),
-        fetchAppSettings()
+        fetchAppSettings(),
+        fetchDatabaseConfig(),
+        fetchSecurityConfig()
       ])
     } catch (err) {
       console.error('Failed to refresh data:', err)
@@ -254,6 +411,38 @@ export function Settings() {
   useEffect(() => {
     handleRefresh()
   }, [])
+
+  const addFileExtension = (ext: string) => {
+    if (ext && !fileConfig.allowedExtensions.includes(ext.toLowerCase())) {
+      setFileConfig(prev => ({
+        ...prev,
+        allowedExtensions: [...prev.allowedExtensions, ext.toLowerCase()]
+      }))
+    }
+  }
+
+  const removeFileExtension = (ext: string) => {
+    setFileConfig(prev => ({
+      ...prev,
+      allowedExtensions: prev.allowedExtensions.filter(e => e !== ext)
+    }))
+  }
+
+  const addCorsOrigin = (origin: string) => {
+    if (origin && !securityConfig.corsOrigins.includes(origin.toLowerCase())) {
+      setSecurityConfig(prev => ({
+        ...prev,
+        corsOrigins: [...prev.corsOrigins, origin.toLowerCase()]
+      }))
+    }
+  }
+
+  const removeCorsOrigin = (origin: string) => {
+    setSecurityConfig(prev => ({
+      ...prev,
+      corsOrigins: prev.corsOrigins.filter(o => o !== origin)
+    }))
+  }
 
   const renderSystemInfo = () => (
     <div className="space-y-6">
@@ -300,6 +489,18 @@ export function Settings() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Environment Configuration</h3>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+          <div className="flex">
+            <AlertTriangle className="h-5 w-5 text-yellow-400" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">Environment Variables</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>These settings are read from environment variables. Changes here are for reference only and require server restart to take effect.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Backend Port</label>
@@ -308,6 +509,7 @@ export function Settings() {
               value={envConfig.backendPort}
               onChange={(e) => setEnvConfig(prev => ({ ...prev, backendPort: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
             />
           </div>
           <div>
@@ -317,6 +519,7 @@ export function Settings() {
               value={envConfig.frontendPort}
               onChange={(e) => setEnvConfig(prev => ({ ...prev, frontendPort: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
             />
           </div>
           <div>
@@ -327,6 +530,7 @@ export function Settings() {
               onChange={(e) => setEnvConfig(prev => ({ ...prev, publicIp: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="103.195.190.235"
+              readOnly
             />
           </div>
           <div>
@@ -336,6 +540,25 @@ export function Settings() {
               value={envConfig.serverHost}
               onChange={(e) => setEnvConfig(prev => ({ ...prev, serverHost: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Node Environment</label>
+            <input
+              type="text"
+              value={envConfig.nodeEnv}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Log Level</label>
+            <input
+              type="text"
+              value={envConfig.logLevel}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
             />
           </div>
           <div className="md:col-span-2">
@@ -346,6 +569,7 @@ export function Settings() {
               onChange={(e) => setEnvConfig(prev => ({ ...prev, corsOrigin: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="http://103.195.190.235:3000"
+              readOnly
             />
           </div>
           <div className="md:col-span-2">
@@ -355,6 +579,7 @@ export function Settings() {
               value={envConfig.botApiServer}
               onChange={(e) => setEnvConfig(prev => ({ ...prev, botApiServer: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
             />
           </div>
           <div className="md:col-span-2">
@@ -364,8 +589,128 @@ export function Settings() {
               value={envConfig.dataPath}
               onChange={(e) => setEnvConfig(prev => ({ ...prev, dataPath: e.target.value }))}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              readOnly
             />
           </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderDatabaseConfig = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Database Configuration</h3>
+        
+        {/* Connection Status */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-6">
+          <div>
+            <h4 className="text-sm font-medium text-gray-900">Database Connection</h4>
+            <p className="text-sm text-gray-500">Last tested: {dbConfig.lastConnectionTest}</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            {dbConfig.isConnected ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+            )}
+            <span className={`text-sm font-medium ${dbConfig.isConnected ? 'text-green-700' : 'text-red-700'}`}>
+              {dbConfig.isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+            <button
+              onClick={testDatabaseConnection}
+              className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Test Connection
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Host</label>
+            <input
+              type="text"
+              value={dbConfig.host}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, host: e.target.value }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Port</label>
+            <input
+              type="text"
+              value={dbConfig.port}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, port: e.target.value }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Database Name</label>
+            <input
+              type="text"
+              value={dbConfig.database}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, database: e.target.value }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Username</label>
+            <input
+              type="text"
+              value={dbConfig.username}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, username: e.target.value }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <div className="relative">
+              <input
+                type={showPasswords ? "text" : "password"}
+                value={dbConfig.password}
+                onChange={(e) => setDbConfig(prev => ({ ...prev, password: e.target.value }))}
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswords(!showPasswords)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showPasswords ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Max Connections</label>
+            <input
+              type="number"
+              value={dbConfig.maxConnections}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, maxConnections: parseInt(e.target.value) }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Connection Timeout (ms)</label>
+            <input
+              type="number"
+              value={dbConfig.connectionTimeout}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, connectionTimeout: parseInt(e.target.value) }))}
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={dbConfig.ssl}
+              onChange={(e) => setDbConfig(prev => ({ ...prev, ssl: e.target.checked }))}
+              className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+            />
+            <span className="ml-2 text-sm text-gray-900">Enable SSL Connection</span>
+          </label>
         </div>
       </div>
     </div>
@@ -404,28 +749,68 @@ export function Settings() {
             </div>
           </div>
 
-          <div>
-            <label className="flex items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Bot API Server</label>
               <input
-                type="checkbox"
-                checked={botConfig.polling}
-                onChange={(e) => setBotConfig(prev => ({ ...prev, polling: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                type="text"
+                value={botConfig.apiServer}
+                onChange={(e) => setBotConfig(prev => ({ ...prev, apiServer: e.target.value }))}
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               />
-              <span className="ml-2 text-sm text-gray-900">Enable Polling Mode</span>
-            </label>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Max File Size</label>
+              <input
+                type="text"
+                value={botConfig.maxFileSize}
+                onChange={(e) => setBotConfig(prev => ({ ...prev, maxFileSize: e.target.value }))}
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                placeholder="50MB"
+              />
+            </div>
           </div>
-          
+
+          <div className="space-y-3">
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={botConfig.polling}
+                  onChange={(e) => setBotConfig(prev => ({ ...prev, polling: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                />
+                <span className="ml-2 text-sm text-gray-900">Enable Polling Mode</span>
+              </label>
+              <p className="ml-6 text-xs text-gray-500">Bot will continuously poll for new messages</p>
+            </div>
+            
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={botConfig.webhookMode}
+                  onChange={(e) => setBotConfig(prev => ({ ...prev, webhookMode: e.target.checked }))}
+                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                />
+                <span className="ml-2 text-sm text-gray-900">Enable Webhook Mode</span>
+              </label>
+              <p className="ml-6 text-xs text-gray-500">Bot will receive messages via webhook (recommended for production)</p>
+            </div>
+          </div>
+
           <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={botConfig.webhookMode}
-                onChange={(e) => setBotConfig(prev => ({ ...prev, webhookMode: e.target.checked }))}
-                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              <span className="ml-2 text-sm text-gray-900">Enable Webhook Mode</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Allowed MIME Types</label>
+            <div className="flex flex-wrap gap-2">
+              {botConfig.allowedMimeTypes.map((type, index) => (
+                <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {type}
+                </span>
+              ))}
+              {botConfig.allowedMimeTypes.length === 0 && (
+                <span className="text-sm text-gray-500">No MIME types configured</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -482,11 +867,76 @@ export function Settings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Allowed File Extensions</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {fileConfig.allowedExtensions.map((ext, index) => (
-                <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  .{ext}
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={fileConfig.virusScanEnabled}
+                onChange={(e) => setFileConfig(prev => ({ ...prev, virusScanEnabled: e.target.checked }))}
+                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+              />
+              <span className="ml-2 text-sm text-gray-900">Enable Virus Scanning</span>
+            </label>
+            <p className="ml-6 text-xs text-gray-500">Scan uploaded files for malware (requires ClamAV)</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Allowed File Extensions</label>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {fileConfig.allowedExtensions.map((ext, index) => (
+                  <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    .{ext}
+                    <button
+                      onClick={() => removeFileExtension(ext)}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  placeholder="Add extension (e.g. pdf)"
+                  className="flex-1 text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      const input = e.target as HTMLInputElement
+                      const ext = input.value.replace('.', '').toLowerCase()
+                      if (ext) {
+                        addFileExtension(ext)
+                        input.value = ''
+                      }
+                    }
+                  }}
+                />
+                <button
+                  onClick={(e) => {
+                    const input = (e.target as HTMLElement).parentElement?.querySelector('input')
+                    if (input) {
+                      const ext = input.value.replace('.', '').toLowerCase()
+                      if (ext) {
+                        addFileExtension(ext)
+                        input.value = ''
+                      }
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Allowed MIME Types</label>
+            <div className="flex flex-wrap gap-2">
+              {fileConfig.allowedMimeTypes.map((type, index) => (
+                <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {type}
                 </span>
               ))}
             </div>
@@ -500,35 +950,241 @@ export function Settings() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
+        
+        {/* JWT Configuration */}
         <div className="space-y-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <div className="flex">
-              <AlertTriangle className="h-5 w-5 text-yellow-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-yellow-800">Security Configuration</h3>
-                <div className="mt-2 text-sm text-yellow-700">
-                  <p>Security settings will be available in future updates. Currently managed through environment variables.</p>
-                </div>
+          <div className="border-b border-gray-200 pb-4">
+            <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
+              <Key className="h-4 w-4 mr-2" />
+              JWT Authentication
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">JWT Expiration Time</label>
+                <select
+                  value={securityConfig.jwtExpirationTime}
+                  onChange={(e) => setSecurityConfig(prev => ({ ...prev, jwtExpirationTime: e.target.value }))}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="15m">15 minutes</option>
+                  <option value="30m">30 minutes</option>
+                  <option value="1h">1 hour</option>
+                  <option value="2h">2 hours</option>
+                  <option value="24h">24 hours</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Refresh Token Expiration</label>
+                <select
+                  value={securityConfig.refreshTokenExpiration}
+                  onChange={(e) => setSecurityConfig(prev => ({ ...prev, refreshTokenExpiration: e.target.value }))}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="1d">1 day</option>
+                  <option value="7d">7 days</option>
+                  <option value="30d">30 days</option>
+                  <option value="90d">90 days</option>
+                </select>
               </div>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <dt className="text-sm font-medium text-gray-500">Authentication</dt>
-              <dd className="mt-1 text-sm text-gray-900">JWT with refresh tokens</dd>
+
+          {/* Rate Limiting */}
+          <div className="border-b border-gray-200 pb-4">
+            <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
+              <Shield className="h-4 w-4 mr-2" />
+              Rate Limiting
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={securityConfig.rateLimitEnabled}
+                    onChange={(e) => setSecurityConfig(prev => ({ ...prev, rateLimitEnabled: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Enable Rate Limiting</span>
+                </label>
+              </div>
+              {securityConfig.rateLimitEnabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Max Requests</label>
+                    <input
+                      type="number"
+                      value={securityConfig.rateLimitRequests}
+                      onChange={(e) => setSecurityConfig(prev => ({ ...prev, rateLimitRequests: parseInt(e.target.value) }))}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Time Window (minutes)</label>
+                    <input
+                      type="number"
+                      value={securityConfig.rateLimitWindow}
+                      onChange={(e) => setSecurityConfig(prev => ({ ...prev, rateLimitWindow: parseInt(e.target.value) }))}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <dt className="text-sm font-medium text-gray-500">Password Hashing</dt>
-              <dd className="mt-1 text-sm text-gray-900">SHA256</dd>
+          </div>
+
+          {/* CORS Configuration */}
+          <div className="border-b border-gray-200 pb-4">
+            <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
+              <Lock className="h-4 w-4 mr-2" />
+              CORS Configuration
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={securityConfig.corsEnabled}
+                    onChange={(e) => setSecurityConfig(prev => ({ ...prev, corsEnabled: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Enable CORS</span>
+                </label>
+              </div>
+              {securityConfig.corsEnabled && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Allowed Origins</label>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {securityConfig.corsOrigins.map((origin, index) => (
+                        <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {origin}
+                          <button
+                            onClick={() => removeCorsOrigin(origin)}
+                            className="ml-1 text-purple-600 hover:text-purple-800"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Add origin (e.g. https://example.com)"
+                        className="flex-1 text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            const input = e.target as HTMLInputElement
+                            const origin = input.value.trim()
+                            if (origin) {
+                              addCorsOrigin(origin)
+                              input.value = ''
+                            }
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={(e) => {
+                          const input = (e.target as HTMLElement).parentElement?.querySelector('input')
+                          if (input) {
+                            const origin = input.value.trim()
+                            if (origin) {
+                              addCorsOrigin(origin)
+                              input.value = ''
+                            }
+                          }
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <dt className="text-sm font-medium text-gray-500">CORS</dt>
-              <dd className="mt-1 text-sm text-gray-900">Configured</dd>
+          </div>
+
+          {/* Additional Security Settings */}
+          <div>
+            <h4 className="text-md font-medium text-gray-900 mb-3">Additional Security</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password Min Length</label>
+                <input
+                  type="number"
+                  value={securityConfig.passwordMinLength}
+                  onChange={(e) => setSecurityConfig(prev => ({ ...prev, passwordMinLength: parseInt(e.target.value) }))}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  min="6"
+                  max="32"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Session Timeout (seconds)</label>
+                <input
+                  type="number"
+                  value={securityConfig.sessionTimeout}
+                  onChange={(e) => setSecurityConfig(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <dt className="text-sm font-medium text-gray-500">Rate Limiting</dt>
-              <dd className="mt-1 text-sm text-gray-900">Coming Soon</dd>
+            
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={securityConfig.bruteForceProtection}
+                    onChange={(e) => setSecurityConfig(prev => ({ ...prev, bruteForceProtection: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Enable Brute Force Protection</span>
+                </label>
+                <p className="ml-6 text-xs text-gray-500">Block IP addresses after multiple failed login attempts</p>
+              </div>
+              
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={securityConfig.twoFactorEnabled}
+                    onChange={(e) => setSecurityConfig(prev => ({ ...prev, twoFactorEnabled: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">Enable Two-Factor Authentication</span>
+                </label>
+                <p className="ml-6 text-xs text-gray-500">Require 2FA for admin accounts (coming soon)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Current Security Status */}
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Current Security Status</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Authentication</span>
+                <span className="text-sm text-gray-900">JWT with refresh tokens</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Password Hashing</span>
+                <span className="text-sm text-gray-900">SHA256</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">CORS</span>
+                <span className={`text-sm ${securityConfig.corsEnabled ? 'text-green-600' : 'text-red-600'}`}>
+                  {securityConfig.corsEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-500">Rate Limiting</span>
+                <span className={`text-sm ${securityConfig.rateLimitEnabled ? 'text-green-600' : 'text-red-600'}`}>
+                  {securityConfig.rateLimitEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -595,13 +1251,7 @@ export function Settings() {
       <div className="bg-white shadow rounded-lg p-6">
         {activeTab === 'system' && renderSystemInfo()}
         {activeTab === 'environment' && renderEnvironmentConfig()}
-        {activeTab === 'database' && (
-          <div className="text-center py-8">
-            <Database className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Database Configuration</h3>
-            <p className="mt-1 text-sm text-gray-500">Coming soon</p>
-          </div>
-        )}
+        {activeTab === 'database' && renderDatabaseConfig()}
         {activeTab === 'bot' && renderBotConfig()}
         {activeTab === 'files' && renderFileConfig()}
         {activeTab === 'security' && renderSecurity()}
