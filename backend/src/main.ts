@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { SettingsService } from './settings/settings.service';
 
 async function seedAdminUser(app: any, configService: ConfigService, logger: Logger) {
   const prisma = app.get(PrismaService);
@@ -80,8 +81,14 @@ async function bootstrap() {
   );
 
   // CORS configuration
+  const corsOrigins = [
+    configService.get('CORS_ORIGIN', 'http://localhost:3000'),
+    `http://${configService.get('PUBLIC_IP')}:3000`,
+    `http://${configService.get('PUBLIC_IP')}:5173`, // Vite dev server
+  ].filter(Boolean);
+  
   app.enableCors({
-    origin: configService.get('CORS_ORIGIN', 'http://localhost:3000'),
+    origin: corsOrigins,
     credentials: true,
   });
 
@@ -102,11 +109,17 @@ async function bootstrap() {
   // Seed admin user
   await seedAdminUser(app, configService, logger);
 
+  // Initialize default settings
+  const settingsService = app.get(SettingsService);
+  await settingsService.initializeDefaultSettings();
+
   const port = configService.get('BACKEND_PORT', 3001);
-  await app.listen(port);
+  const host = configService.get('SERVER_HOST', '0.0.0.0');
   
-  logger.log(`🚀 Application is running on: http://localhost:${port}`);
-  logger.log(`📚 API Documentation: http://localhost:${port}/api/docs`);
+  await app.listen(port, host);
+  
+  logger.log(`🚀 Application is running on: http://${host}:${port}`);
+  logger.log(`📚 API Documentation: http://${host}:${port}/api/docs`);
 }
 
 bootstrap();

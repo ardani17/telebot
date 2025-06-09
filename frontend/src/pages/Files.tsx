@@ -20,9 +20,7 @@ import {
 import { api } from '@/lib/api'
 import { 
   UserFilesystem, 
-  StorageStats,
-  AllUserDirectoriesResponse,
-  UserDirectory
+  StorageStats
 } from '@/types/file'
 import { User as UserType } from '@/types/user'
 import { useAuth } from '@/hooks/useAuth'
@@ -362,7 +360,7 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
 export function Files() {
   const { user } = useAuth()
   const [users, setUsers] = useState<UserType[]>([])
-  const [allUserDirectories, setAllUserDirectories] = useState<AllUserDirectoriesResponse | null>(null)
+  // const [allUserDirectories, setAllUserDirectories] = useState<AllUserDirectoriesResponse | null>(null)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
   const [filesystem, setFilesystem] = useState<UserFilesystem | null>(null)
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null)
@@ -400,16 +398,16 @@ export function Files() {
     }
   }
 
-  const fetchAllUserDirectories = async () => {
-    if (!isAdmin) return
-    
-    try {
-      const response = await api.get('/files/filesystem/all')
-      setAllUserDirectories(response.data)
-    } catch (err: any) {
-      console.error('Failed to load all user directories:', err)
-    }
-  }
+  // const fetchAllUserDirectories = async () => {
+  //   if (!isAdmin) return
+  //   
+  //   try {
+  //     const response = await api.get('/files/filesystem/all')
+  //     setAllUserDirectories(response.data)
+  //   } catch (err: any) {
+  //     console.error('Failed to load all user directories:', err)
+  //   }
+  // }
 
   const fetchFilesystem = async (telegramId: string) => {
     try {
@@ -438,7 +436,7 @@ export function Files() {
     if (user) {
       fetchUsers()
       fetchStorageStats()
-      fetchAllUserDirectories()
+      // fetchAllUserDirectories()
     }
   }, [user, isAdmin])
 

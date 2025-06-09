@@ -50,7 +50,7 @@ function getUserFeatureDirPath(baseDir, userId, featureName) {
 }
 exports.AVAILABLE_FEATURES = [
     'ocr',
-    'rar',
+    'archive',
     'location',
     'geotags',
     'kml',

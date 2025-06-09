@@ -14,8 +14,8 @@ import { KmlHandler } from './handlers/kml.handler';
 import { ArchiveHandler } from './handlers/archive.handler';
 import { AdminHandler } from './handlers/admin.handler';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: '../.env' });
 
 // Configure logger
 const logger = winston.createLogger({

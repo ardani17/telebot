@@ -163,6 +163,21 @@ model SystemConfig {
   @@map("system_config")
 }
 
+model AppSettings {
+  id          String          @id @default(uuid())
+  key         String          @unique
+  value       String
+  category    SettingCategory
+  type        ConfigType      @default(STRING)
+  description String?
+  isEditable  Boolean         @default(true) @map("is_editable")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  updatedBy   String?         @map("updated_by")
+
+  @@map("app_settings")
+}
+
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
@@ -198,4 +213,15 @@ enum ConfigType {
   NUMBER
   BOOLEAN
   JSON
+}
+
+enum SettingCategory {
+  BOT
+  FILES
+  SECURITY
+  EMAIL
+  RATE_LIMIT
+  CORS
+  WEBHOOK
+  SYSTEM
 }

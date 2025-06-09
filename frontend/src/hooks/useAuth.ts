@@ -121,55 +121,7 @@ export function useAuth() {
     }
   }, [getTokens, setTokens, removeTokens])
 
-  // Verify current user
-  const verifyUser = useCallback(async () => {
-    try {
-      const { accessToken } = getTokens()
-      if (!accessToken) {
-        throw new Error('No access token available')
-      }
-
-      const response = await api.get('/auth/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-
-      setAuthState({
-        user: response.data,
-        isAuthenticated: true,
-        isLoading: false,
-      })
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        // Try to refresh token
-        try {
-          const newAccessToken = await refreshAccessToken()
-          const response = await api.get('/auth/me', {
-            headers: { Authorization: `Bearer ${newAccessToken}` },
-          })
-
-          setAuthState({
-            user: response.data,
-            isAuthenticated: true,
-            isLoading: false,
-          })
-        } catch (refreshError) {
-          removeTokens()
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          })
-        }
-      } else {
-        removeTokens()
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        })
-      }
-    }
-  }, [getTokens, refreshAccessToken, removeTokens])
+  // Verify current user - removed unused function
 
   // Initialize auth on mount
   useEffect(() => {

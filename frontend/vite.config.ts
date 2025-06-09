@@ -17,12 +17,13 @@ export default defineConfig({
       "@teleweb/shared": path.resolve(__dirname, "../shared/src"),
     },
   },
+  envDir: '../', // Load .env from root directory
   server: {
     port: 3000,
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://103.195.190.235:3001',
         changeOrigin: true,
       },
     },

@@ -272,6 +272,80 @@ npm run test:cov
 - Different log levels per environment
 - Daily log rotation
 
+## 🏗️ VPS Migration Guide
+
+### Ketika Mengganti VPS, Update Konfigurasi Berikut:
+
+#### 1. Environment Variables (.env)
+```bash
+# Update IP public VPS yang baru
+PUBLIC_IP=NEW_VPS_IP_ADDRESS
+
+# Update server host configuration
+SERVER_HOST=0.0.0.0
+
+# Update CORS origin jika perlu
+CORS_ORIGIN=http://NEW_VPS_IP_ADDRESS:3000
+
+# Update Telegram Bot API jika menggunakan local server
+BOT_API_SERVER=http://localhost:8081
+```
+
+#### 2. Frontend Configuration (teleweb/frontend/vite.config.ts)
+```typescript
+// Update proxy target di vite config
+proxy: {
+  '/api': {
+    target: 'http://NEW_VPS_IP_ADDRESS:3001',
+    changeOrigin: true,
+  },
+}
+```
+
+#### 3. Backend Configuration (teleweb/backend/src/main.ts)
+Backend sudah dikonfigurasi untuk membaca SERVER_HOST dari environment, tapi pastikan:
+```typescript
+// Di main.ts sudah ada:
+const host = configService.get('SERVER_HOST', '0.0.0.0');
+await app.listen(port, host);
+```
+
+#### 4. Bot Configuration (jika ada hardcoded URLs)
+Check file bot configuration untuk referensi IP lama dan update ke IP baru.
+
+#### 5. Database & Redis
+Jika menggunakan external database/Redis server, update connection strings:
+```bash
+DATABASE_URL=postgresql://user:password@NEW_DB_HOST:5432/teleweb
+REDIS_URL=redis://NEW_REDIS_HOST:6379
+```
+
+#### 6. Firewall & Security
+Pastikan ports yang diperlukan terbuka di VPS baru:
+- Port 3000 (Frontend)
+- Port 3001 (Backend API)
+- Port 5432 (PostgreSQL, jika external)
+- Port 6379 (Redis, jika external)
+- Port 8081 (Bot API Server, jika local)
+
+#### 7. DNS & Domain (jika menggunakan custom domain)
+Update DNS records untuk point ke IP VPS yang baru.
+
+#### 8. SSL Certificates (jika menggunakan HTTPS)
+Setup ulang SSL certificates untuk IP/domain yang baru.
+
+### Checklist VPS Migration:
+- [ ] Update PUBLIC_IP di .env
+- [ ] Update Vite proxy target
+- [ ] Restart backend dengan host 0.0.0.0
+- [ ] Restart frontend development server
+- [ ] Test API connectivity dengan curl
+- [ ] Test frontend login functionality
+- [ ] Test bot webhook/polling connection
+- [ ] Verify file management download/delete works
+- [ ] Update firewall rules
+- [ ] Update monitoring scripts
+
 ## 🔧 Troubleshooting
 
 ### Common Issues
@@ -290,6 +364,17 @@ npm run test:cov
    - Clear node_modules dan reinstall
    - Check TypeScript errors
    - Verify path aliases
+
+4. **Network Error saat Login**
+   - Check PUBLIC_IP di .env sudah benar
+   - Pastikan backend listen di 0.0.0.0 bukan localhost
+   - Update Vite proxy target di vite.config.ts
+   - Restart frontend development server setelah ubah .env
+
+5. **Download/Delete File Tidak Bekerja**
+   - Pastikan API base URL sudah benar
+   - Check CORS configuration di backend
+   - Verify file permissions di VPS
 
 ## 📚 API Documentation
 

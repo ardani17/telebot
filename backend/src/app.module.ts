@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { ActivityModule } from './activity/activity.module';
 import { AdminModule } from './admin/admin.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ActivityModule,
     AdminModule,
     DashboardModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}
