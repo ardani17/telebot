@@ -21,13 +21,13 @@ export class FilesService {
     folders: string[];
   }) {
     const { telegramId, userId, mediaFolderPath, folders } = data;
-    
+
     try {
       this.logger.log('Starting workbook Excel generation', {
         telegramId,
         userId,
         mediaFolderPath,
-        foldersCount: folders.length
+        foldersCount: folders.length,
       });
 
       // Read folders if not provided
@@ -36,7 +36,7 @@ export class FilesService {
         if (await fs.pathExists(mediaFolderPath)) {
           const allFiles = await fs.readdir(mediaFolderPath);
           folderList = [];
-          
+
           for (const file of allFiles) {
             const filePath = path.join(mediaFolderPath, file);
             if ((await fs.lstat(filePath)).isDirectory()) {
@@ -60,16 +60,14 @@ export class FilesService {
       // Process each folder as a sheet
       for (const folderName of folderList) {
         const folderPath = path.join(mediaFolderPath, folderName);
-        
+
         if (!(await fs.pathExists(folderPath))) {
           this.logger.warn(`Folder not found: ${folderPath}`);
           continue;
         }
 
         const files = await fs.readdir(folderPath);
-        const imageFiles = files
-          .filter(file => /\.(jpg|jpeg|png|gif|bmp)$/i.test(file))
-          .sort(); // Sort for consistent ordering
+        const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif|bmp)$/i.test(file)).sort(); // Sort for consistent ordering
 
         if (imageFiles.length === 0) {
           this.logger.warn(`No images found in folder: ${folderPath}`);
@@ -78,7 +76,7 @@ export class FilesService {
 
         // Create worksheet for this folder
         const worksheet = workbook.addWorksheet(folderName);
-        
+
         // Set column widths with spacing - alternating image columns and spacing columns
         // Columns 1,3,5,7,9 for images, columns 2,4,6,8 for spacing
         for (let col = 1; col <= 9; col++) {
@@ -96,11 +94,11 @@ export class FilesService {
 
         for (const imageFile of imageFiles) {
           const imagePath = path.join(folderPath, imageFile);
-          
+
           try {
             // Calculate column position with spacing: 1,3,5,7,9
             const currentCol = (imageCount % 5) * 2 + 1;
-            
+
             // Add image to worksheet
             const imageId = workbook.addImage({
               filename: imagePath,
@@ -109,7 +107,7 @@ export class FilesService {
 
             worksheet.addImage(imageId, {
               tl: { col: currentCol - 1, row: currentRow - 1 },
-              ext: { width: 150, height: 150 }
+              ext: { width: 150, height: 150 },
             });
 
             // Set row height to accommodate image
@@ -121,10 +119,9 @@ export class FilesService {
               // After 5 images, move to next row
               currentRow++;
             }
-
           } catch (imageError) {
             this.logger.warn(`Failed to add image: ${imagePath}`, {
-              error: (imageError as Error).message
+              error: (imageError as Error).message,
             });
           }
         }
@@ -152,22 +149,21 @@ export class FilesService {
         userId,
         filename,
         fileSizeInMB,
-        sheetsCount: folderList.length
+        sheetsCount: folderList.length,
       });
 
       return {
         excelFilePath: outputPath,
         filename,
         fileSizeInMB: parseFloat(fileSizeInMB),
-        sheetsCount: folderList.length
+        sheetsCount: folderList.length,
       };
-
     } catch (error) {
       this.logger.error('Error generating workbook Excel', {
         error: (error as Error).message,
         telegramId,
         userId,
-        mediaFolderPath
+        mediaFolderPath,
       });
       throw error;
     }
@@ -200,25 +196,25 @@ export class FilesService {
     limit?: number;
   }) {
     const { userId, telegramId, mode, processed, page = 1, limit = 50 } = options;
-    
+
     const skip = (page - 1) * limit;
-    
+
     const where: any = {};
-    
+
     if (userId) {
       where.userId = userId;
     }
-    
+
     if (telegramId) {
       where.user = {
-        telegramId: telegramId
+        telegramId: telegramId,
       };
     }
-    
+
     if (mode) {
       where.mode = mode;
     }
-    
+
     if (processed !== undefined) {
       where.processed = processed;
     }
@@ -232,17 +228,17 @@ export class FilesService {
               id: true,
               telegramId: true,
               name: true,
-              username: true
-            }
-          }
+              username: true,
+            },
+          },
         },
         orderBy: {
-          createdAt: 'desc'
+          createdAt: 'desc',
         },
         skip,
         take: limit,
       }),
-      this.prisma.fileMetadata.count({ where })
+      this.prisma.fileMetadata.count({ where }),
     ]);
 
     return {
@@ -251,8 +247,8 @@ export class FilesService {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -261,7 +257,7 @@ export class FilesService {
    */
   async getUserFiles(telegramId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { telegramId }
+      where: { telegramId },
     });
 
     if (!user) {
@@ -270,7 +266,7 @@ export class FilesService {
 
     const files = await this.prisma.fileMetadata.findMany({
       where: {
-        userId: user.id
+        userId: user.id,
       },
       include: {
         user: {
@@ -278,13 +274,13 @@ export class FilesService {
             id: true,
             telegramId: true,
             name: true,
-            username: true
-          }
-        }
+            username: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     });
 
     return { user, files };
@@ -294,19 +290,20 @@ export class FilesService {
    * Get all user directories (admin only)
    */
   async getAllUserDirectories() {
-    const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+    const botApiDataPath =
+      process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
 
     this.logger.log('Scanning all user directories', {
       botApiDataPath,
-      envVar: process.env.BOT_API_DATA_PATH
+      envVar: process.env.BOT_API_DATA_PATH,
     });
 
-    if (!await fs.pathExists(botApiDataPath)) {
+    if (!(await fs.pathExists(botApiDataPath))) {
       this.logger.warn('Bot API data path does not exist', { botApiDataPath });
       return {
         dataPath: botApiDataPath,
         exists: false,
-        users: []
+        users: [],
       };
     }
 
@@ -317,7 +314,7 @@ export class FilesService {
       for (const item of items) {
         const itemPath = path.join(botApiDataPath, item);
         const stats = await fs.stat(itemPath);
-        
+
         if (stats.isDirectory() && !item.startsWith('.') && item !== 'temp') {
           // Count files and folders
           let totalFiles = 0;
@@ -329,13 +326,13 @@ export class FilesService {
             for (const subItem of subItems) {
               const subPath = path.join(itemPath, subItem);
               const subStats = await fs.stat(subPath);
-              
+
               if (subStats.isDirectory()) {
                 const folderFiles = await this.countFilesInDirectory(subPath);
                 folders.push({
                   name: subItem,
                   fileCount: folderFiles.count,
-                  size: folderFiles.size
+                  size: folderFiles.size,
                 });
                 totalFiles += folderFiles.count;
                 totalSize += folderFiles.size;
@@ -345,7 +342,10 @@ export class FilesService {
               }
             }
           } catch (error) {
-            this.logger.warn('Error scanning user directory', { userPath: itemPath, error: error.message });
+            this.logger.warn('Error scanning user directory', {
+              userPath: itemPath,
+              error: error.message,
+            });
           }
 
           users.push({
@@ -354,7 +354,7 @@ export class FilesService {
             totalFiles,
             totalSize,
             folders,
-            lastModified: stats.mtime
+            lastModified: stats.mtime,
           });
         }
       }
@@ -362,11 +362,13 @@ export class FilesService {
       return {
         dataPath: botApiDataPath,
         exists: true,
-        users: users.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime())
+        users: users.sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime()),
       };
-
     } catch (error) {
-      this.logger.error('Error scanning data directory', { error: error.message, path: botApiDataPath });
+      this.logger.error('Error scanning data directory', {
+        error: error.message,
+        path: botApiDataPath,
+      });
       throw new Error('Failed to scan data directory');
     }
   }
@@ -375,7 +377,8 @@ export class FilesService {
    * Get user filesystem (real folders and files)
    */
   async getUserFilesystem(telegramId: string) {
-    const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+    const botApiDataPath =
+      process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
     const userDataPath = path.join(botApiDataPath, telegramId);
 
     // Debug logging
@@ -392,7 +395,7 @@ export class FilesService {
       userDataPath,
       envVar: process.env.BOT_API_DATA_PATH,
       cwd: process.cwd(),
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
     });
 
     // Check if path exists
@@ -400,21 +403,21 @@ export class FilesService {
     this.logger.log('Path existence check', {
       userDataPath,
       pathExists,
-      telegramId
+      telegramId,
     });
 
     if (!pathExists) {
-      this.logger.warn('User data path does not exist', { 
+      this.logger.warn('User data path does not exist', {
         userDataPath,
         telegramId,
         botApiDataPath: process.env.BOT_API_DATA_PATH,
-        resolvedPath: path.resolve(userDataPath)
+        resolvedPath: path.resolve(userDataPath),
       });
       return {
         userPath: userDataPath,
         exists: false,
         folders: [],
-        files: []
+        files: [],
       };
     }
 
@@ -423,12 +426,12 @@ export class FilesService {
 
     const scanDirectory = async (dirPath: string, relativePath: string = '') => {
       const items = await fs.readdir(dirPath);
-      
+
       for (const item of items) {
         const itemPath = path.join(dirPath, item);
         const itemRelativePath = path.join(relativePath, item);
         const stats = await fs.stat(itemPath);
-        
+
         if (stats.isDirectory()) {
           const subFolder = {
             name: item,
@@ -439,17 +442,17 @@ export class FilesService {
             createdAt: stats.birthtime,
             modifiedAt: stats.mtime,
             files: [],
-            folders: [] // Add nested folders
+            folders: [], // Add nested folders
           };
-          
+
           // Recursively scan this folder for both files and subfolders
           try {
             const subItems = await fs.readdir(itemPath);
-            
+
             for (const subItem of subItems) {
               const subItemPath = path.join(itemPath, subItem);
               const subItemStats = await fs.stat(subItemPath);
-              
+
               if (subItemStats.isFile()) {
                 // Add file to current folder
                 const fileObj = {
@@ -459,7 +462,7 @@ export class FilesService {
                   size: subItemStats.size,
                   mimeType: this.getMimeType(subItem),
                   createdAt: subItemStats.birthtime,
-                  modifiedAt: subItemStats.mtime
+                  modifiedAt: subItemStats.mtime,
                 };
                 subFolder.files.push(fileObj);
                 subFolder.size += subItemStats.size;
@@ -475,12 +478,16 @@ export class FilesService {
                   createdAt: subItemStats.birthtime,
                   modifiedAt: subItemStats.mtime,
                   files: [],
-                  folders: []
+                  folders: [],
                 };
-                
+
                 // Recursive call to scan nested folder
-                await this.scanFolderRecursive(subItemPath, path.join(itemRelativePath, subItem), nestedFolder);
-                
+                await this.scanFolderRecursive(
+                  subItemPath,
+                  path.join(itemRelativePath, subItem),
+                  nestedFolder
+                );
+
                 // Add nested folder to current folder
                 subFolder.folders.push(nestedFolder);
                 subFolder.size += nestedFolder.size;
@@ -488,9 +495,12 @@ export class FilesService {
               }
             }
           } catch (error) {
-            this.logger.warn('Error scanning subfolder', { error: error.message, folder: itemPath });
+            this.logger.warn('Error scanning subfolder', {
+              error: error.message,
+              folder: itemPath,
+            });
           }
-          
+
           folders.push(subFolder);
         } else {
           // Root level file
@@ -501,26 +511,26 @@ export class FilesService {
             size: stats.size,
             mimeType: this.getMimeType(item),
             createdAt: stats.birthtime,
-            modifiedAt: stats.mtime
+            modifiedAt: stats.mtime,
           });
         }
       }
-    }
+    };
 
     try {
       this.logger.log('Starting directory scan', { userDataPath });
       await scanDirectory(userDataPath);
-      this.logger.log('Directory scan completed successfully', { 
-        userDataPath, 
-        folderCount: folders.length, 
-        fileCount: files.length 
+      this.logger.log('Directory scan completed successfully', {
+        userDataPath,
+        folderCount: folders.length,
+        fileCount: files.length,
       });
     } catch (error) {
-      this.logger.error('Error scanning user directory', { 
-        error: error.message, 
+      this.logger.error('Error scanning user directory', {
+        error: error.message,
         stack: error.stack,
         path: userDataPath,
-        telegramId 
+        telegramId,
       });
       throw new Error(`Failed to scan user directory: ${error.message}`);
     }
@@ -530,7 +540,7 @@ export class FilesService {
       exists: true,
       folders,
       files,
-      totalSize: [...folders, ...files].reduce((acc, item) => acc + item.size, 0)
+      totalSize: [...folders, ...files].reduce((acc, item) => acc + item.size, 0),
     };
   }
 
@@ -546,10 +556,10 @@ export class FilesService {
             id: true,
             telegramId: true,
             name: true,
-            username: true
-          }
-        }
-      }
+            username: true,
+          },
+        },
+      },
     });
 
     return file;
@@ -559,19 +569,20 @@ export class FilesService {
    * Download file by path
    */
   async downloadFileByPath(telegramId: string, filePath: string) {
-    const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+    const botApiDataPath =
+      process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
     const userDataPath = path.join(botApiDataPath, telegramId);
     const fullPath = path.join(userDataPath, filePath);
 
     // Security check: ensure path is within user directory
     const resolvedPath = path.resolve(fullPath);
     const resolvedUserPath = path.resolve(userDataPath);
-    
+
     if (!resolvedPath.startsWith(resolvedUserPath)) {
       throw new NotFoundException('File path not allowed');
     }
 
-    if (!await fs.pathExists(fullPath)) {
+    if (!(await fs.pathExists(fullPath))) {
       throw new NotFoundException('File not found');
     }
 
@@ -584,7 +595,7 @@ export class FilesService {
       fullPath,
       fileName: path.basename(filePath),
       mimeType: this.getMimeType(path.basename(filePath)),
-      size: stats.size
+      size: stats.size,
     };
   }
 
@@ -593,7 +604,7 @@ export class FilesService {
    */
   async deleteFile(fileId: string) {
     const file = await this.prisma.fileMetadata.findUnique({
-      where: { id: fileId }
+      where: { id: fileId },
     });
 
     if (!file) {
@@ -606,15 +617,15 @@ export class FilesService {
         await fs.remove(file.filePath);
       }
     } catch (error) {
-      this.logger.warn('Failed to delete file from filesystem', { 
-        error: error.message, 
-        filePath: file.filePath 
+      this.logger.warn('Failed to delete file from filesystem', {
+        error: error.message,
+        filePath: file.filePath,
       });
     }
 
     // Delete from database
     await this.prisma.fileMetadata.delete({
-      where: { id: fileId }
+      where: { id: fileId },
     });
 
     return { success: true };
@@ -624,19 +635,20 @@ export class FilesService {
    * Delete file by path from filesystem
    */
   async deleteFileByPath(telegramId: string, filePath: string) {
-    const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+    const botApiDataPath =
+      process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
     const userDataPath = path.join(botApiDataPath, telegramId);
     const fullPath = path.join(userDataPath, filePath);
 
     // Security check: ensure path is within user directory
     const resolvedPath = path.resolve(fullPath);
     const resolvedUserPath = path.resolve(userDataPath);
-    
+
     if (!resolvedPath.startsWith(resolvedUserPath)) {
       throw new NotFoundException('File path not allowed');
     }
 
-    if (!await fs.pathExists(fullPath)) {
+    if (!(await fs.pathExists(fullPath))) {
       throw new NotFoundException('File not found');
     }
 
@@ -646,8 +658,8 @@ export class FilesService {
     try {
       await this.prisma.fileMetadata.deleteMany({
         where: {
-          filePath: fullPath
-        }
+          filePath: fullPath,
+        },
       });
     } catch (error) {
       this.logger.warn('File not found in database', { filePath: fullPath });
@@ -660,8 +672,9 @@ export class FilesService {
    * Get storage statistics
    */
   async getStorageStats() {
-    const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
-    
+    const botApiDataPath =
+      process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+
     let totalSize = 0;
     let fileCount = 0;
     let userCount = 0;
@@ -672,9 +685,9 @@ export class FilesService {
         this.prisma.fileMetadata.count(),
         this.prisma.fileMetadata.aggregate({
           _sum: {
-            fileSize: true
-          }
-        })
+            fileSize: true,
+          },
+        }),
       ]);
 
       // Get filesystem stats
@@ -686,17 +699,24 @@ export class FilesService {
           for (const user of users) {
             const userPath = path.join(botApiDataPath, user);
             const stats = await fs.stat(userPath);
-            
+
             if (stats.isDirectory()) {
               try {
-                const sizeResult = execSync(`du -sb "${userPath}" 2>/dev/null | cut -f1`, { encoding: 'utf8' }).trim();
+                const sizeResult = execSync(`du -sb "${userPath}" 2>/dev/null | cut -f1`, {
+                  encoding: 'utf8',
+                }).trim();
                 const size = parseInt(sizeResult, 10) || 0;
                 totalSize += size;
 
-                const fileCountResult = execSync(`find "${userPath}" -type f | wc -l`, { encoding: 'utf8' }).trim();
+                const fileCountResult = execSync(`find "${userPath}" -type f | wc -l`, {
+                  encoding: 'utf8',
+                }).trim();
                 fileCount += parseInt(fileCountResult, 10) || 0;
               } catch (error) {
-                this.logger.warn('Failed to get stats for user directory', { user, error: error.message });
+                this.logger.warn('Failed to get stats for user directory', {
+                  user,
+                  error: error.message,
+                });
               }
             }
           }
@@ -708,18 +728,18 @@ export class FilesService {
       return {
         database: {
           fileCount: dbFileCount,
-          totalSize: dbTotalSize._sum.fileSize || 0
+          totalSize: dbTotalSize._sum.fileSize || 0,
         },
         filesystem: {
           totalSize,
           fileCount,
           userCount,
-          dataPath: botApiDataPath
+          dataPath: botApiDataPath,
         },
         formatted: {
           totalSizeFormatted: this.formatBytes(totalSize),
-          dbSizeFormatted: this.formatBytes(dbTotalSize._sum.fileSize || 0)
-        }
+          dbSizeFormatted: this.formatBytes(dbTotalSize._sum.fileSize || 0),
+        },
       };
     } catch (error) {
       this.logger.error('Error getting storage stats', { error: error.message });
@@ -761,7 +781,7 @@ export class FilesService {
       '.gz': 'application/gzip',
       '.json': 'application/json',
       '.xml': 'application/xml',
-      '.csv': 'text/csv'
+      '.csv': 'text/csv',
     };
 
     return mimeTypes[ext] || 'application/octet-stream';
@@ -783,15 +803,19 @@ export class FilesService {
   /**
    * Recursively scan folder and populate folder structure
    */
-  private async scanFolderRecursive(dirPath: string, relativePath: string, folderObj: any): Promise<void> {
+  private async scanFolderRecursive(
+    dirPath: string,
+    relativePath: string,
+    folderObj: any
+  ): Promise<void> {
     try {
       const items = await fs.readdir(dirPath);
-      
+
       for (const item of items) {
         const itemPath = path.join(dirPath, item);
         const itemRelativePath = path.join(relativePath, item);
         const stats = await fs.stat(itemPath);
-        
+
         if (stats.isFile()) {
           // Add file to current folder
           const fileObj = {
@@ -801,7 +825,7 @@ export class FilesService {
             size: stats.size,
             mimeType: this.getMimeType(item),
             createdAt: stats.birthtime,
-            modifiedAt: stats.mtime
+            modifiedAt: stats.mtime,
           };
           folderObj.files.push(fileObj);
           folderObj.size += stats.size;
@@ -817,12 +841,12 @@ export class FilesService {
             createdAt: stats.birthtime,
             modifiedAt: stats.mtime,
             files: [],
-            folders: []
+            folders: [],
           };
-          
+
           // Recursively scan the nested folder
           await this.scanFolderRecursive(itemPath, itemRelativePath, nestedFolder);
-          
+
           // Add nested folder to current folder
           folderObj.folders.push(nestedFolder);
           folderObj.size += nestedFolder.size;
@@ -830,10 +854,10 @@ export class FilesService {
         }
       }
     } catch (error) {
-      this.logger.warn('Error in recursive folder scan', { 
-        dirPath, 
-        relativePath, 
-        error: error.message 
+      this.logger.warn('Error in recursive folder scan', {
+        dirPath,
+        relativePath,
+        error: error.message,
       });
     }
   }
@@ -847,11 +871,11 @@ export class FilesService {
 
     try {
       const items = await fs.readdir(dirPath);
-      
+
       for (const item of items) {
         const itemPath = path.join(dirPath, item);
         const stats = await fs.stat(itemPath);
-        
+
         if (stats.isFile()) {
           count++;
           size += stats.size;
@@ -867,4 +891,4 @@ export class FilesService {
 
     return { count, size };
   }
-} 
+}

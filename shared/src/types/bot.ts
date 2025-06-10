@@ -14,7 +14,7 @@ export enum BotMode {
   LOCATION = 'location',
   GEOTAGS = 'geotags',
   KML = 'kml',
-  WORKBOOK = 'workbook'
+  WORKBOOK = 'workbook',
 }
 
 export interface BotActivity {
@@ -113,7 +113,7 @@ export enum BotEventType {
   FILE_UPLOADED = 'file_uploaded',
   FILE_PROCESSED = 'file_processed',
   COMMAND_EXECUTED = 'command_executed',
-  ERROR_OCCURRED = 'error_occurred'
+  ERROR_OCCURRED = 'error_occurred',
 }
 
 // API responses

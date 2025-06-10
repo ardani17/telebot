@@ -7,9 +7,12 @@ Kumpulan script untuk mengelola TeleWeb - Telegram Bot Web Integration project.
 ### 🔧 Development Scripts
 
 #### `setup-once.sh`
-Script setup awal yang hanya dijalankan sekali untuk konfigurasi lengkap environment development.
+
+Script setup awal yang hanya dijalankan sekali untuk konfigurasi lengkap
+environment development.
 
 **Fungsi:**
+
 - Install dan konfigurasi PostgreSQL & Redis
 - Setup database, migrations, dan features
 - Install dependencies dan build projects
@@ -17,68 +20,82 @@ Script setup awal yang hanya dijalankan sekali untuk konfigurasi lengkap environ
 - Create admin user dan grant feature access
 
 **Usage:**
+
 ```bash
 sudo ./scripts/setup-once.sh
 ```
 
 **Requirements:**
+
 - File .env sudah dikonfigurasi
 - Root/sudo privileges
 - Internet connection
 
 **Output:**
+
 - PostgreSQL dan Redis berjalan
 - Database teleweb dengan features lengkap
 - PM2 terinstall dan terkonfigurasi
 - File .setup_completed sebagai marker
 
 #### `dev-start.sh`
+
 Script untuk menjalankan development sehari-hari menggunakan PM2.
 
 **Fungsi:**
+
 - Check services (PostgreSQL, Redis)
 - Start Telegram API Server
 - Start semua services dengan PM2 (Backend, Frontend, Bot)
 - Show status dan useful commands
 
 **Usage:**
+
 ```bash
 ./scripts/dev-start.sh
 ```
 
 **Requirements:**
+
 - Setup-once sudah dijalankan (file .setup_completed exist)
 - PM2 terinstall
 
 **Output:**
+
 - Semua services berjalan dengan PM2
 - Real-time monitoring dengan pm2 monit
 - Logs terorganisir per service
 
 #### `dev-stop.sh`
+
 Script untuk menghentikan semua development services.
 
 **Fungsi:**
+
 - Stop semua PM2 processes
 - Stop Telegram API Server
 - Cleanup ports (3000, 3001, 8081)
 - Show final status
 
 **Usage:**
+
 ```bash
 ./scripts/dev-stop.sh
 ```
 
 #### `telegram-api-server.sh`
+
 Script khusus untuk menjalankan Telegram Bot API Server lokal.
 
 **Fungsi:**
+
 - Start local Telegram Bot API server
 - Update BOT_API_SERVER di .env
 - Support systemd service (production)
 - Create PID file untuk monitoring
 
 **Usage:**
+
 ```bash
 # Development (background)
 ./scripts/telegram-api-server.sh
@@ -88,9 +105,11 @@ Script khusus untuk menjalankan Telegram Bot API Server lokal.
 ```
 
 #### `fix-postgresql.sh`
+
 Script untuk install dan konfigurasi PostgreSQL untuk native development.
 
 **Fungsi:**
+
 - Install PostgreSQL dan postgresql-contrib
 - Membuat user 'root' dengan password dari .env
 - Membuat database 'teleweb'
@@ -99,42 +118,52 @@ Script untuk install dan konfigurasi PostgreSQL untuk native development.
 - Update DATABASE_URL di .env jika perlu
 
 **Usage:**
+
 ```bash
 sudo ./scripts/fix-postgresql.sh
 ```
 
 **Requirements:**
+
 - File .env dengan POSTGRES_PASSWORD configured
 - Root/sudo privileges untuk install PostgreSQL
 
 **Output:**
+
 - PostgreSQL installed dan running
 - Database 'teleweb' siap digunakan
 - User 'root' dengan privileges yang benar
 
 #### `install-deps.sh`
-Script untuk install semua dependencies dengan kompatibilitas NPM yang lebih baik.
+
+Script untuk install semua dependencies dengan kompatibilitas NPM yang lebih
+baik.
 
 **Fungsi:**
+
 - Install dependencies untuk semua packages (shared, backend, frontend, bot)
 - Build shared package
 - Menggunakan `--legacy-peer-deps` untuk kompatibilitas NPM versi lama
 - Error handling untuk setiap step
 
 **Usage:**
+
 ```bash
 ./scripts/install-deps.sh
 ```
 
 **Benefits:**
+
 - Mengatasi masalah workspace protocol pada NPM versi lama
 - Install dependencies dalam urutan yang benar
 - Comprehensive error handling
 
 #### `dev-start.sh`
+
 Script untuk memulai environment development lengkap.
 
 **Fungsi:**
+
 - Install semua dependencies menggunakan `install-deps.sh`
 - Generate Prisma client
 - Start Docker services (PostgreSQL, Redis)
@@ -142,25 +171,30 @@ Script untuk memulai environment development lengkap.
 - Start semua services (Backend, Frontend, Bot) dalam mode development
 
 **Usage:**
+
 ```bash
 ./scripts/dev-start.sh
 ```
 
 **Output:**
+
 - Backend API: http://localhost:3001
 - Frontend: http://localhost:3000
 - API Docs: http://localhost:3001/api/docs
 - Logs tersimpan di `logs/` directory
 
 #### `dev-stop.sh`
+
 Script untuk menghentikan semua services development.
 
 **Fungsi:**
+
 - Stop semua running processes
 - Cleanup PID files
 - Stop Docker services
 
 **Usage:**
+
 ```bash
 ./scripts/dev-stop.sh
 ```
@@ -168,9 +202,11 @@ Script untuk menghentikan semua services development.
 ### 🚀 Production Scripts
 
 #### `prod-start.sh`
+
 Script untuk deploy dan menjalankan environment production.
 
 **Fungsi:**
+
 - Install production dependencies
 - Build semua services
 - Generate Prisma client
@@ -179,16 +215,19 @@ Script untuk deploy dan menjalankan environment production.
 - Start services dengan PM2
 
 **Usage:**
+
 ```bash
 ./scripts/prod-start.sh
 ```
 
 **Requirements:**
+
 - PM2 installed globally: `npm install -g pm2`
 - Production environment variables configured
 - Docker dan Docker Compose installed
 
 **Output:**
+
 - Backend API managed by PM2
 - Bot managed by PM2
 - Frontend static files di `frontend/dist`
@@ -197,32 +236,39 @@ Script untuk deploy dan menjalankan environment production.
 ### 🤖 Bot Management Scripts
 
 #### `bot-logout.sh`
+
 Script untuk logout bot dari Telegram servers.
 
 **Fungsi:**
+
 - Logout bot dari Telegram API
 - Berguna saat switching antara bot instances
 - Stops webhook/polling updates
 
 **Usage:**
+
 ```bash
 ./scripts/bot-logout.sh
 ```
 
 **Environment Variables Required:**
+
 - `BOT_TOKEN`: Telegram bot token
 - `BOT_API_SERVER` (optional): Custom API server URL
 
 #### `telegram-api-server.sh`
+
 Script untuk menjalankan local Telegram Bot API server.
 
 **Fungsi:**
+
 - Start local Telegram Bot API server
 - Support untuk systemd service
 - Automatic directory creation
 - Health checks
 
 **Usage:**
+
 ```bash
 # Run directly (development)
 ./scripts/telegram-api-server.sh
@@ -232,6 +278,7 @@ Script untuk menjalankan local Telegram Bot API server.
 ```
 
 **Environment Variables Required:**
+
 - `TELEGRAM_API_ID`: API ID dari my.telegram.org
 - `TELEGRAM_API_HASH`: API Hash dari my.telegram.org
 - `HTTP_PORT` (optional): Port untuk API server (default: 8081)
@@ -239,6 +286,7 @@ Script untuk menjalankan local Telegram Bot API server.
 - `DATA_DIR` (optional): Base data directory
 
 **Benefits:**
+
 - Faster file downloads
 - No file size limits
 - Better performance
@@ -247,6 +295,7 @@ Script untuk menjalankan local Telegram Bot API server.
 ## 🔧 Setup Instructions
 
 ### 1. Prerequisites
+
 ```bash
 # Install Node.js 18+
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -265,6 +314,7 @@ sudo npm install -g pm2
 ```
 
 ### 2. Environment Setup
+
 ```bash
 # Copy environment template
 cp .env.example .env
@@ -274,21 +324,26 @@ nano .env
 ```
 
 ### 3. Make Scripts Executable
+
 ```bash
 chmod +x scripts/*.sh
 ```
 
 ## 🔐 Admin User Auto-Setup
 
-Semua startup scripts (`dev-start.sh`, `dev-start-native.sh`, `prod-start.sh`) sekarang **secara otomatis menambahkan admin user** ke database setiap kali dijalankan.
+Semua startup scripts (`dev-start.sh`, `dev-start-native.sh`, `prod-start.sh`)
+sekarang **secara otomatis menambahkan admin user** ke database setiap kali
+dijalankan.
 
 **Fitur:**
+
 - Membuat admin user baru jika belum ada
 - Update admin user yang sudah ada (memastikan role ADMIN dan status aktif)
 - Memberikan akses ke semua features yang tersedia
 - Menggunakan konfigurasi dari environment variables
 
 **Environment Variables untuk Admin User:**
+
 ```bash
 ADMIN_TELEGRAM_ID=your-telegram-id     # Required
 ADMIN_NAME="Nama Admin"                # Optional (default: "Admin")
@@ -296,6 +351,7 @@ ADMIN_USERNAME="username_admin"        # Optional (default: "admin")
 ```
 
 **Contoh Output saat Script Dijalankan:**
+
 ```bash
 🔍 Adding admin user to database...
 ✅ Admin user already exists: Ardani (731289973)
@@ -304,6 +360,7 @@ ADMIN_USERNAME="username_admin"        # Optional (default: "admin")
 ```
 
 **Keunggulan:**
+
 - Tidak perlu setup manual admin user setelah fresh database
 - Konsisten di semua environment (development, production)
 - Self-healing: admin user selalu dalam kondisi yang benar
@@ -312,30 +369,37 @@ ADMIN_USERNAME="username_admin"        # Optional (default: "admin")
 ## 👥 User Management Scripts
 
 #### `grant-ocr-access.sh`
+
 Script untuk memberikan akses fitur OCR ke user dengan Telegram ID 731289973.
 
 **Fungsi:**
+
 - Menambahkan user ke database jika belum ada
 - Memberikan akses fitur OCR
 - Verifikasi status user dan feature access
 - Auto-seed database jika features belum ada
 
 **Usage:**
+
 ```bash
 chmod +x scripts/grant-ocr-access.sh
 ./scripts/grant-ocr-access.sh
 ```
 
 **Output:**
+
 - User 731289973 ditambahkan ke database
 - Akses OCR diberikan ke user
 - Verifikasi final status user
 - Instruksi cara test fitur OCR
 
 #### `add-user-ocr.sh`
-Script alternatif untuk menambahkan user dan memberikan akses OCR menggunakan inline Node.js.
+
+Script alternatif untuk menambahkan user dan memberikan akses OCR menggunakan
+inline Node.js.
 
 **Usage:**
+
 ```bash
 chmod +x scripts/add-user-ocr.sh
 ./scripts/add-user-ocr.sh
@@ -344,6 +408,7 @@ chmod +x scripts/add-user-ocr.sh
 ## 📝 Environment Variables
 
 ### Required Variables
+
 ```bash
 # Bot Configuration
 BOT_TOKEN=your-telegram-bot-token-here
@@ -359,6 +424,7 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key
 ```
 
 ### Optional Variables (for Local Bot API)
+
 ```bash
 TELEGRAM_API_ID=your-api-id
 TELEGRAM_API_HASH=your-api-hash
@@ -369,6 +435,7 @@ BOT_API_DATA_PATH=/var/lib/telegram-bot-api
 ## 🚦 Development Workflow
 
 ### 🆕 First Time Setup (Run Once)
+
 ```bash
 # 1. Setup environment
 cp .env.example .env
@@ -382,6 +449,7 @@ sudo ./scripts/setup-once.sh
 ```
 
 ### 🔄 Daily Development
+
 ```bash
 # Start all services
 ./scripts/dev-start.sh
@@ -402,6 +470,7 @@ pm2 restart teleweb-backend-dev
 ```
 
 ### 🔧 Useful PM2 Commands
+
 ```bash
 pm2 status                    # Check all services status
 pm2 logs                      # View all logs
@@ -414,6 +483,7 @@ pm2 monit                    # Real-time monitoring dashboard
 ```
 
 ### 📊 Port Information
+
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:3001
 - **API Docs:** http://localhost:3001/api/docs
@@ -422,6 +492,7 @@ pm2 monit                    # Real-time monitoring dashboard
 ## 🚦 Usage Examples
 
 ### Development Workflow
+
 ```bash
 # 1. Setup environment
 cp .env.example .env
@@ -437,6 +508,7 @@ cp .env.example .env
 ```
 
 ### Production Deployment
+
 ```bash
 # 1. Setup production environment
 cp .env.example .env
@@ -457,6 +529,7 @@ pm2 logs
 ```
 
 ### Bot Management
+
 ```bash
 # Logout bot from Telegram
 ./scripts/bot-logout.sh
@@ -473,11 +546,13 @@ curl -X GET "https://api.telegram.org/bot$BOT_TOKEN/getMe"
 ### Common Issues
 
 #### 1. Permission Denied
+
 ```bash
 chmod +x scripts/*.sh
 ```
 
 #### 2. Port Already in Use
+
 ```bash
 # Check what's using the port
 sudo netstat -tulpn | grep :3001
@@ -487,6 +562,7 @@ sudo kill -9 <PID>
 ```
 
 #### 3. Docker Permission Issues
+
 ```bash
 # Add user to docker group
 sudo usermod -aG docker $USER
@@ -494,6 +570,7 @@ sudo usermod -aG docker $USER
 ```
 
 #### 4. Database Connection Issues
+
 ```bash
 # Check if PostgreSQL is running
 docker ps | grep postgres
@@ -503,6 +580,7 @@ docker logs teleweb-postgres-dev
 ```
 
 #### 5. Bot Not Responding
+
 ```bash
 # Check bot token
 curl -X GET "https://api.telegram.org/bot$BOT_TOKEN/getMe"
@@ -514,11 +592,13 @@ tail -f logs/bot.log
 ### Log Locations
 
 #### Development
+
 - Backend: `logs/backend.log`
 - Frontend: `logs/frontend.log`
 - Bot: `logs/bot.log`
 
 #### Production
+
 - Backend: `pm2 logs teleweb-backend`
 - Bot: `pm2 logs teleweb-bot`
 - Telegram API: `sudo journalctl -u telegram-bot-api -f`
@@ -542,7 +622,8 @@ tail -f logs/bot.log
 
 ---
 
-**TeleWeb Scripts** - Automated deployment and management for Telegram Bot Web Integration.
+**TeleWeb Scripts** - Automated deployment and management for Telegram Bot Web
+Integration.
 
 # TeleWeb Development Scripts
 
@@ -551,6 +632,7 @@ Scripts untuk memudahkan development TeleWeb bot tanpa menggunakan Docker.
 ## 📋 Daftar Scripts
 
 ### 🚀 `dev-setup.sh` - Setup Awal
+
 Script untuk setup environment development pertama kali.
 
 ```bash
@@ -558,6 +640,7 @@ Script untuk setup environment development pertama kali.
 ```
 
 **Fungsi:**
+
 - ✅ Check system requirements (Node.js, npm)
 - 📦 Install semua dependencies (root, shared, backend, bot)
 - ⚙️ Setup file .env
@@ -570,6 +653,7 @@ Script untuk setup environment development pertama kali.
 ---
 
 ### ▶️ `dev-start.sh` - Start Development Services
+
 Script untuk menjalankan semua services development.
 
 ```bash
@@ -577,6 +661,7 @@ Script untuk menjalankan semua services development.
 ```
 
 **Fungsi:**
+
 - 🔍 Check dependencies & environment
 - 🗄️ Setup database jika diperlukan
 - 🚀 Start Backend API (port 3001)
@@ -585,6 +670,7 @@ Script untuk menjalankan semua services development.
 - 📝 Optional log monitoring
 
 **Services yang dijalankan:**
+
 - **Backend API**: http://localhost:3001
 - **Swagger UI**: http://localhost:3001/api
 - **Telegram Bot**: Polling mode
@@ -592,6 +678,7 @@ Script untuk menjalankan semua services development.
 ---
 
 ### ⏹️ `dev-stop.sh` - Stop Development Services
+
 Script untuk menghentikan semua services.
 
 ```bash
@@ -599,6 +686,7 @@ Script untuk menghentikan semua services.
 ```
 
 **Fungsi:**
+
 - 🛑 Stop services by PID files
 - 🔪 Kill processes on ports 3001, 3000
 - 🧹 Cleanup remaining Node.js processes
@@ -607,6 +695,7 @@ Script untuk menghentikan semua services.
 ---
 
 ### 📋 `dev-logs.sh` - View & Monitor Logs
+
 Script interaktif untuk melihat logs services.
 
 ```bash
@@ -614,6 +703,7 @@ Script interaktif untuk melihat logs services.
 ```
 
 **Menu Options:**
+
 1. **View all logs (combined)** - Gabungan semua logs
 2. **View backend logs only** - Logs backend saja
 3. **View bot logs only** - Logs bot saja
@@ -628,6 +718,7 @@ Script interaktif untuk melihat logs services.
 ## 🔧 Workflow Development Harian
 
 ### First Time Setup
+
 ```bash
 # 1. Clone repository
 git clone <repository-url>
@@ -643,6 +734,7 @@ cd teleweb
 ```
 
 ### Daily Development
+
 ```bash
 # Start services
 ./scripts/dev-start.sh
@@ -721,6 +813,7 @@ LOG_LEVEL="info"
 ## 🔍 Debugging & Troubleshooting
 
 ### Check Service Status
+
 ```bash
 # Via logs script
 ./scripts/dev-logs.sh
@@ -733,6 +826,7 @@ lsof -i :3000  # Bot port (jika ada)
 ```
 
 ### View Real-time Logs
+
 ```bash
 # All logs combined
 tail -f logs/*.log
@@ -743,6 +837,7 @@ tail -f logs/bot.log
 ```
 
 ### Clean Start
+
 ```bash
 # Stop all services
 ./scripts/dev-stop.sh
@@ -763,6 +858,7 @@ pkill -f "ts-node-dev"
 ## 🚨 Common Issues
 
 ### Port Already in Use
+
 ```bash
 # Check what's using the port
 lsof -i :3001
@@ -775,6 +871,7 @@ kill -9 <PID>
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Check PostgreSQL status
 sudo systemctl status postgresql
@@ -790,6 +887,7 @@ npm run prisma:seed
 ```
 
 ### Dependencies Issues
+
 ```bash
 # Clean install
 rm -rf node_modules backend/node_modules bot/node_modules shared/node_modules
@@ -814,7 +912,8 @@ Setelah services berjalan, test admin commands di bot:
 
 ## 💡 Tips Development
 
-1. **Use log monitoring**: Jalankan `./scripts/dev-logs.sh` untuk monitor real-time
+1. **Use log monitoring**: Jalankan `./scripts/dev-logs.sh` untuk monitor
+   real-time
 2. **Check health**: Backend health endpoint: http://localhost:3001/health
 3. **API Documentation**: Swagger UI di http://localhost:3001/api
 4. **Environment switching**: Copy `.env` ke `.env.local` untuk config lokal

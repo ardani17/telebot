@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 import * as os from 'os';
@@ -13,7 +13,7 @@ export class AdminService {
   async getUsers(isActiveFilter?: boolean) {
     try {
       const where = isActiveFilter !== undefined ? { isActive: isActiveFilter } : {};
-      
+
       const users = await this.prisma.user.findMany({
         where,
         select: {
@@ -30,13 +30,13 @@ export class AdminService {
               feature: {
                 select: {
                   name: true,
-                  isEnabled: true
-                }
-              }
-            }
-          }
+                  isEnabled: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
 
       return users;
@@ -53,10 +53,10 @@ export class AdminService {
         include: {
           featureAccess: {
             include: {
-              feature: true
-            }
-          }
-        }
+              feature: true,
+            },
+          },
+        },
       });
 
       if (!user) {
@@ -80,7 +80,7 @@ export class AdminService {
     try {
       // Check if user already exists
       const existingUser = await this.prisma.user.findUnique({
-        where: { telegramId: userData.telegramId }
+        where: { telegramId: userData.telegramId },
       });
 
       if (existingUser) {
@@ -93,8 +93,8 @@ export class AdminService {
           name: userData.name,
           username: userData.username,
           role: userData.role || 'USER',
-          isActive: userData.isActive !== undefined ? userData.isActive : true
-        }
+          isActive: userData.isActive !== undefined ? userData.isActive : true,
+        },
       });
 
       this.logger.log(`User created: ${user.telegramId} (${user.name})`);
@@ -105,16 +105,19 @@ export class AdminService {
     }
   }
 
-  async updateUser(telegramId: string, updateData: {
-    name?: string;
-    username?: string;
-    role?: 'ADMIN' | 'USER';
-    isActive?: boolean;
-  }) {
+  async updateUser(
+    telegramId: string,
+    updateData: {
+      name?: string;
+      username?: string;
+      role?: 'ADMIN' | 'USER';
+      isActive?: boolean;
+    }
+  ) {
     try {
       const user = await this.prisma.user.update({
         where: { telegramId },
-        data: updateData
+        data: updateData,
       });
 
       this.logger.log(`User updated: ${telegramId}`);
@@ -132,12 +135,12 @@ export class AdminService {
     try {
       // First delete related records
       await this.prisma.userFeatureAccess.deleteMany({
-        where: { user: { telegramId } }
+        where: { user: { telegramId } },
       });
 
       // Then delete the user
       const user = await this.prisma.user.delete({
-        where: { telegramId }
+        where: { telegramId },
       });
 
       this.logger.log(`User deleted: ${telegramId}`);
@@ -162,13 +165,13 @@ export class AdminService {
                 select: {
                   telegramId: true,
                   name: true,
-                  isActive: true
-                }
-              }
-            }
-          }
+                  isActive: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: { name: 'asc' }
+        orderBy: { name: 'asc' },
       });
 
       return features;
@@ -182,7 +185,7 @@ export class AdminService {
     try {
       const feature = await this.prisma.feature.update({
         where: { name: featureName },
-        data: { isEnabled }
+        data: { isEnabled },
       });
 
       this.logger.log(`Feature ${featureName} ${isEnabled ? 'enabled' : 'disabled'}`);
@@ -200,7 +203,7 @@ export class AdminService {
     try {
       // Check if user exists
       const user = await this.prisma.user.findUnique({
-        where: { telegramId }
+        where: { telegramId },
       });
 
       if (!user) {
@@ -209,7 +212,7 @@ export class AdminService {
 
       // Check if feature exists
       const feature = await this.prisma.feature.findUnique({
-        where: { name: featureName }
+        where: { name: featureName },
       });
 
       if (!feature) {
@@ -221,22 +224,24 @@ export class AdminService {
         where: {
           userId_featureId: {
             userId: user.id,
-            featureId: feature.id
-          }
-        }
+            featureId: feature.id,
+          },
+        },
       });
 
       if (existingAccess) {
-        throw new ConflictException(`User ${telegramId} already has access to feature ${featureName}`);
+        throw new ConflictException(
+          `User ${telegramId} already has access to feature ${featureName}`
+        );
       }
 
-      // Grant access  
+      // Grant access
       const access = await this.prisma.userFeatureAccess.create({
         data: {
           userId: user.id,
           featureId: feature.id,
-          grantedBy: user.id
-        }
+          grantedBy: user.id,
+        },
       });
 
       this.logger.log(`Feature access granted: ${telegramId} -> ${featureName}`);
@@ -251,7 +256,7 @@ export class AdminService {
     try {
       // Get user and feature
       const user = await this.prisma.user.findUnique({
-        where: { telegramId }
+        where: { telegramId },
       });
 
       if (!user) {
@@ -259,7 +264,7 @@ export class AdminService {
       }
 
       const feature = await this.prisma.feature.findUnique({
-        where: { name: featureName }
+        where: { name: featureName },
       });
 
       if (!feature) {
@@ -271,16 +276,18 @@ export class AdminService {
         where: {
           userId_featureId: {
             userId: user.id,
-            featureId: feature.id
-          }
-        }
+            featureId: feature.id,
+          },
+        },
       });
 
       this.logger.log(`Feature access revoked: ${telegramId} -> ${featureName}`);
       return access;
     } catch (error) {
       if (error.code === 'P2025') {
-        throw new NotFoundException(`User ${telegramId} does not have access to feature ${featureName}`);
+        throw new NotFoundException(
+          `User ${telegramId} does not have access to feature ${featureName}`
+        );
       }
       this.logger.error(`Failed to revoke feature access: ${telegramId} -> ${featureName}`, error);
       throw error;
@@ -292,21 +299,21 @@ export class AdminService {
     try {
       const totalUsers = await this.prisma.user.count();
       const activeUsers = await this.prisma.user.count({
-        where: { isActive: true }
+        where: { isActive: true },
       });
       const adminUsers = await this.prisma.user.count({
-        where: { role: 'ADMIN' }
+        where: { role: 'ADMIN' },
       });
 
       // New users today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const newUsersToday = await this.prisma.user.count({
-        where: { 
+        where: {
           createdAt: {
-            gte: today
-          }
-        }
+            gte: today,
+          },
+        },
       });
 
       return {
@@ -315,7 +322,7 @@ export class AdminService {
         adminUsers,
         newUsersToday,
         inactiveUsers: totalUsers - activeUsers,
-        regularUsers: totalUsers - adminUsers
+        regularUsers: totalUsers - adminUsers,
       };
     } catch (error) {
       this.logger.error('Failed to get user stats', error);
@@ -327,7 +334,7 @@ export class AdminService {
     try {
       const totalFeatures = await this.prisma.feature.count();
       const activeFeatures = await this.prisma.feature.count({
-        where: { isEnabled: true }
+        where: { isEnabled: true },
       });
 
       // Most used feature (based on user access count)
@@ -335,16 +342,16 @@ export class AdminService {
         include: {
           _count: {
             select: {
-              userAccess: true
-            }
-          }
+              userAccess: true,
+            },
+          },
         },
         orderBy: {
           userAccess: {
-            _count: 'desc'
-          }
+            _count: 'desc',
+          },
         },
-        take: 1
+        take: 1,
       });
 
       const mostUsedFeature = featureUsage.length > 0 ? featureUsage[0].name : null;
@@ -353,7 +360,7 @@ export class AdminService {
         totalFeatures,
         activeFeatures,
         inactiveFeatures: totalFeatures - activeFeatures,
-        mostUsedFeature
+        mostUsedFeature,
       };
     } catch (error) {
       this.logger.error('Failed to get feature stats', error);
@@ -365,39 +372,39 @@ export class AdminService {
     try {
       // For now, return mock data since we don't have activity logging yet
       // In a real implementation, you'd track user activities in a separate table
-      
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      
+
       const monthAgo = new Date(today);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
 
       // For now, we can use user creation as activity proxy
       const todayActivities = await this.prisma.user.count({
-        where: { 
+        where: {
           updatedAt: {
-            gte: today
-          }
-        }
+            gte: today,
+          },
+        },
       });
 
       const weekActivities = await this.prisma.user.count({
-        where: { 
+        where: {
           updatedAt: {
-            gte: weekAgo
-          }
-        }
+            gte: weekAgo,
+          },
+        },
       });
 
       const monthActivities = await this.prisma.user.count({
-        where: { 
+        where: {
           updatedAt: {
-            gte: monthAgo
-          }
-        }
+            gte: monthAgo,
+          },
+        },
       });
 
       return {
@@ -405,7 +412,7 @@ export class AdminService {
         weekActivities,
         monthActivities,
         todaySuccess: Math.floor(todayActivities * 0.9), // Mock success rate
-        successRate: 90 // Mock success rate
+        successRate: 90, // Mock success rate
       };
     } catch (error) {
       this.logger.error('Failed to get activity stats', error);
@@ -417,7 +424,7 @@ export class AdminService {
     try {
       const uptime = process.uptime();
       const uptimeFormatted = this.formatUptime(uptime);
-      
+
       const memoryUsage = process.memoryUsage();
       const memoryUsageFormatted = `${Math.round(memoryUsage.rss / 1024 / 1024)} MB`;
 
@@ -425,7 +432,7 @@ export class AdminService {
       const userCount = await this.prisma.user.count();
       const featureCount = await this.prisma.feature.count();
       const accessCount = await this.prisma.userFeatureAccess.count();
-      
+
       return {
         uptime: uptimeFormatted,
         memoryUsage: memoryUsageFormatted,
@@ -435,7 +442,7 @@ export class AdminService {
         arch: os.arch(),
         cpuCount: os.cpus().length,
         totalMemory: `${Math.round(os.totalmem() / 1024 / 1024)} MB`,
-        freeMemory: `${Math.round(os.freemem() / 1024 / 1024)} MB`
+        freeMemory: `${Math.round(os.freemem() / 1024 / 1024)} MB`,
       };
     } catch (error) {
       this.logger.error('Failed to get system stats', error);
@@ -447,7 +454,7 @@ export class AdminService {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (days > 0) {
       return `${days}d ${hours}h ${minutes}m`;
     } else if (hours > 0) {
@@ -456,4 +463,4 @@ export class AdminService {
       return `${minutes}m`;
     }
   }
-} 
+}

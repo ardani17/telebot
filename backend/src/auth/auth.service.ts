@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService,
+    private configService: ConfigService
   ) {}
 
   async validateUser(telegramId: string, password: string) {
@@ -24,10 +24,10 @@ export class AuthService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -48,7 +48,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: userPassword, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -126,17 +127,18 @@ export class AuthService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: userPassword2, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 }

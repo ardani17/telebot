@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 
 async function seedAdmin() {
   console.log('🌱 Seeding admin user from .env...');
-  
+
   const adminTelegramId = process.env.ADMIN_TELEGRAM_ID;
   const adminName = process.env.ADMIN_NAME;
   const adminUsername = process.env.ADMIN_USERNAME;
@@ -24,7 +24,7 @@ async function seedAdmin() {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { telegramId: adminTelegramId },
-      include: { featureAccess: { include: { feature: true } } }
+      include: { featureAccess: { include: { feature: true } } },
     });
 
     if (existingUser) {
@@ -37,7 +37,7 @@ async function seedAdmin() {
 
     // Create admin user
     console.log(`📝 Creating admin user ${adminTelegramId}...`);
-    
+
     const adminUser = await prisma.user.create({
       data: {
         telegramId: adminTelegramId,
@@ -67,11 +67,11 @@ async function seedAdmin() {
     }
 
     console.log(`🎉 Admin user setup completed!`);
-    
+
     // Verify final state
     const finalUser = await prisma.user.findUnique({
       where: { telegramId: adminTelegramId },
-      include: { featureAccess: { include: { feature: true } } }
+      include: { featureAccess: { include: { feature: true } } },
     });
 
     console.log('\n📊 Final user state:');
@@ -82,13 +82,12 @@ async function seedAdmin() {
     console.log(`   Role: ${finalUser.role}`);
     console.log(`   Active: ${finalUser.isActive}`);
     console.log(`   Features: ${finalUser.featureAccess.length}`);
-    
+
     finalUser.featureAccess.forEach(access => {
       console.log(`     - ${access.feature.name}: ${access.feature.description}`);
     });
 
     return finalUser;
-
   } catch (error) {
     console.error('❌ Error seeding admin user:', error);
     throw error;
@@ -110,4 +109,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { seedAdmin }; 
+module.exports = { seedAdmin };

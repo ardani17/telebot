@@ -1,386 +1,348 @@
-# TeleWeb - Telegram Bot Web Integration
+# TeleWeb - Telegram Bot Web Management System
 
-Sistem terintegrasi antara Telegram Bot dan Web Application menggunakan teknologi modern untuk memproses berbagai jenis file dan data melalui bot Telegram dengan interface web untuk manajemen.
+TeleWeb adalah sistem manajemen bot Telegram yang terintegrasi dengan aplikasi web, memungkinkan administrasi bot dan fitur-fitur canggih melalui antarmuka web yang modern.
 
-## 🏗️ Arsitektur Sistem
+## 🚀 Features
 
+- **Bot Management**: OCR, Archive Processing, Location Services, Geotags, KML, Workbook
+- **Web Admin Panel**: User management, feature access control, file management
+- **Real-time Monitoring**: System logs, bot activities, resource usage
+- **Security**: JWT authentication, role-based access control, rate limiting
+- **High Performance**: Support for high-volume message processing
+
+## 📋 System Requirements
+
+- **OS**: Ubuntu 20.04+ or similar Linux distribution
+- **Node.js**: v18.0.0 or higher
+- **PostgreSQL**: v13 or higher
+- **Redis**: v6 or higher
+- **Nginx**: For production deployment
+- **PM2**: For process management
+- **Telegram Bot API Server** (optional): For local file handling
+
+## 🛠️ Installation Guide for New VPS
+
+### 1. System Update & Basic Tools
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install essential tools
+sudo apt install -y curl wget git build-essential
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │    Backend      │    │   Telegram Bot  │
-│   (React)       │◄──►│   (NestJS)      │◄──►│   (Telegraf)    │
-│   Port: 3000    │    │   Port: 3001    │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         │              │   PostgreSQL    │              │
-         └──────────────►│   Port: 5432    │◄─────────────┘
-                        └─────────────────┘
-                                 │
-                        ┌─────────────────┐
-                        │     Redis       │
-                        │   Port: 6379    │
-                        └─────────────────┘
+
+### 2. Install Node.js
+```bash
+# Install Node.js 18.x
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify installation
+node --version
+npm --version
 ```
 
-## 🚀 Tech Stack
+### 3. Install PostgreSQL
+```bash
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
 
-### Frontend
-- **React 18** - UI Library
-- **Vite** - Build tool dan dev server
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling framework
-- **Shadcn/ui** - Pre-built UI components
-- **TanStack Query** - Server state management
-- **React Hook Form** - Form handling
-- **Zod** - Schema validation
-- **React Router** - Client-side routing
+# Start and enable PostgreSQL
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
 
-### Backend
-- **NestJS** - Node.js framework
-- **TypeScript** - Type safety
-- **Prisma** - ORM dan database toolkit
-- **PostgreSQL** - Primary database
-- **Redis** - Caching dan session storage
-- **JWT** - Authentication tokens
-- **Passport.js** - Authentication strategies
-- **Winston** - Logging library
-- **Zod** - Schema validation
-- **Class Validator** - DTO validation
-- **Swagger/OpenAPI** - API documentation
+# Create database and user
+sudo -u postgres psql << EOF
+CREATE DATABASE teleweb;
+CREATE USER root WITH PASSWORD 'teleweb_password';
+GRANT ALL PRIVILEGES ON DATABASE teleweb TO root;
+EOF
+```
 
-### Bot
-- **Node.js** - Runtime environment
-- **TypeScript** - Type safety
-- **Telegraf** - Telegram bot framework
-- **Local Bot API Server** - https://github.com/tdlib/telegram-bot-api
-- **Winston** - Logging
-- **Zod** - Input validation
+### 4. Install Redis
+```bash
+# Install Redis
+sudo apt install -y redis-server
 
-### DevOps & Infrastructure
-- **Docker** - Containerization
-- **Docker Compose** - Multi-container orchestration
-- **PM2** - Process manager untuk production
+# Configure Redis password
+sudo sed -i 's/# requirepass foobared/requirepass redis_password/g' /etc/redis/redis.conf
+sudo systemctl restart redis-server
+```
 
-## 📁 Struktur Project
+### 5. Install Nginx
+```bash
+# Install Nginx
+sudo apt install -y nginx
+
+# Start and enable Nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+### 6. Install PM2
+```bash
+# Install PM2 globally
+sudo npm install -g pm2
+
+# Setup PM2 startup
+pm2 startup
+# Follow the instructions shown
+```
+
+### 7. Install Telegram Bot API Server (Optional)
+```bash
+# For local file handling (if needed)
+# Download from: https://github.com/tdlib/telegram-bot-api
+# Or build from source
+```
+
+### 8. Clone and Setup TeleWeb
+```bash
+# Clone repository
+cd /home
+git clone https://github.com/yourusername/teleweb.git
+cd teleweb
+
+# Install dependencies
+npm install
+
+# Copy and configure environment
+cp .env.example .env
+nano .env  # Edit with your configuration
+```
+
+### 9. Setup Google Cloud Vision (for OCR)
+```bash
+# Create config directory
+mkdir -p /home/teleweb/config
+
+# Add your Google Cloud key
+nano /home/teleweb/config/google-cloud-key.json
+```
+
+### 10. Build Applications
+```bash
+# Build all applications
+npm run build:all
+
+# Or build individually
+cd backend && npm run build && cd ..
+cd frontend && npm run build && cd ..
+cd bot && npm run build && cd ..
+```
+
+## 🚀 Production Start Guide
+
+### Quick Start (Recommended)
+```bash
+cd /home/teleweb
+./scripts/prod-start-no-docker.sh
+```
+
+This script will:
+- ✅ Check all prerequisites
+- ✅ Install dependencies
+- ✅ Build all applications
+- ✅ Setup database migrations
+- ✅ Configure Nginx
+- ✅ Start Telegram API Server
+- ✅ Start all services with PM2
+
+### Manual Start
+```bash
+# 1. Start Telegram API Server (if using local bot API)
+./scripts/telegram-api-server.sh start
+
+# 2. Start services with PM2
+pm2 start ecosystem.config.js --env production
+
+# 3. Save PM2 configuration
+pm2 save
+```
+
+### Service Management
+```bash
+# Check status
+pm2 status
+
+# View logs
+pm2 logs
+
+# Restart services
+pm2 restart all
+
+# Stop services
+pm2 stop all
+
+# Monitor resources
+pm2 monit
+```
+
+## 🔄 Changing IP Address or Domain
+
+### When Moving to New VPS or Changing Domain
+
+#### Option 1: Using Update Script (Recommended)
+```bash
+cd /home/teleweb
+./scripts/update-env-urls.sh
+```
+
+Select one of the options:
+1. Use current IP address
+2. Use a domain name (with HTTPS support)
+3. Use a different IP address
+4. Use localhost (development)
+
+The script will automatically update:
+- `BACKEND_URL`
+- `BOT_API_SERVER`
+- `CORS_ORIGIN`
+- All related configurations
+
+#### Option 2: Manual Update
+1. Edit `.env` file:
+```bash
+nano /home/teleweb/.env
+```
+
+2. Update these variables:
+```env
+# For IP-based setup
+PUBLIC_IP=YOUR_NEW_IP
+BACKEND_URL=http://YOUR_NEW_IP:3001/api
+BOT_API_SERVER=http://YOUR_NEW_IP:8081
+CORS_ORIGIN=http://YOUR_NEW_IP
+
+# For domain-based setup (with Cloudflare)
+PUBLIC_IP=YOUR_SERVER_IP
+BACKEND_URL=https://yourdomain.com/api
+BOT_API_SERVER=http://YOUR_SERVER_IP:8081  # Bot uses direct IP
+CORS_ORIGIN=https://yourdomain.com
+```
+
+3. Update Nginx configuration:
+```bash
+sudo nano /etc/nginx/sites-enabled/teleweb
+# Change server_name to your domain
+```
+
+4. Restart all services:
+```bash
+pm2 restart all --update-env
+sudo nginx -s reload
+```
+
+### Cloudflare Configuration (If Using Domain)
+1. Add A record pointing to your server IP
+2. Set SSL/TLS mode to "Flexible"
+3. Enable proxy (orange cloud)
+4. Wait for DNS propagation
+
+## 📁 Project Structure
 
 ```
 teleweb/
-├── backend/                 # NestJS Backend API
-│   ├── src/
-│   │   ├── auth/           # Authentication module
-│   │   ├── users/          # User management
-│   │   ├── features/       # Feature management
-│   │   ├── files/          # File handling
-│   │   ├── bot/            # Bot integration
-│   │   ├── websocket/      # Real-time communication
-│   │   ├── prisma/         # Database service
-│   │   └── health/         # Health checks
-│   ├── prisma/             # Database schema & migrations
-│   └── package.json
-├── frontend/               # React Frontend
-│   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   ├── pages/          # Page components
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── lib/            # Utilities
-│   │   └── types/          # Type definitions
-│   └── package.json
-├── bot/                    # Telegram Bot
-│   ├── src/
-│   │   ├── bot/            # Bot manager & handlers
-│   │   ├── features/       # Feature implementations
-│   │   ├── services/       # External services
-│   │   └── utils/          # Utilities
-│   └── package.json
-├── shared/                 # Shared types & utilities
-│   ├── src/
-│   │   ├── types/          # Shared type definitions
-│   │   ├── schemas/        # Zod validation schemas
-│   │   └── utils/          # Shared utilities
-│   └── package.json
-├── docker-compose.yml      # Docker services
-├── .env.example           # Environment variables template
-└── package.json           # Root workspace config
+├── backend/        # NestJS backend API
+├── frontend/       # React web interface
+├── bot/           # Telegram bot
+├── shared/        # Shared types and utilities
+├── scripts/       # Utility scripts
+├── logs/          # Application logs
+└── ecosystem.config.js  # PM2 configuration
 ```
 
-## 🔧 Setup & Installation
+## 🔧 Configuration Files
 
-### Prerequisites
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL (jika tidak menggunakan Docker)
-- Redis (jika tidak menggunakan Docker)
+### Environment Variables (.env)
+Key variables to configure:
+- Database connection
+- Redis connection
+- Telegram bot token
+- API credentials
+- Port configurations
+- Domain/IP settings
 
-### 1. Clone Repository
+### Nginx Configuration
+Default location: `/etc/nginx/sites-enabled/teleweb`
+- Port 80 for web interface
+- Proxy to backend on port 3001
+- Cloudflare real IP support
+
+### PM2 Configuration
+File: `ecosystem.config.js`
+- Auto-restart on failure
+- Log rotation
+- Environment variable loading
+
+## 📊 Monitoring & Logs
+
+### Real-time Logs
 ```bash
-git clone <repository-url>
-cd teleweb
+# All services
+pm2 logs
+
+# Specific service
+pm2 logs teleweb-backend
+pm2 logs teleweb-bot
+
+# Telegram API Server
+tail -f /home/teleweb/logs/telegram-bot-api.log
 ```
 
-### 2. Environment Setup
+### Web Dashboard
+Access system monitoring at: `http://your-domain/dashboard`
+- Real-time system logs
+- Resource usage
+- Bot activities
+- User statistics
+
+## 🛟 Troubleshooting
+
+### Bot Not Responding
 ```bash
-cp .env.example .env
-# Edit .env file dengan konfigurasi yang sesuai
+# Check bot status
+pm2 status teleweb-bot
+
+# Check bot logs
+pm2 logs teleweb-bot --lines 100
+
+# Restart bot
+pm2 restart teleweb-bot
 ```
 
-### 3. Install Dependencies
+### Web Interface Not Accessible
 ```bash
-# Install root dependencies
-npm install
+# Check nginx
+sudo systemctl status nginx
+sudo nginx -t
 
-# Install workspace dependencies
-npm run install:all
+# Check backend
+pm2 status teleweb-backend
+curl http://localhost:3001/api/health
 ```
 
-### 4. Database Setup
+### Database Connection Issues
 ```bash
-# Start database services
-docker-compose up -d postgres redis
-
-# Generate Prisma client
-cd backend
-npx prisma generate
+# Check PostgreSQL
+sudo systemctl status postgresql
+sudo -u postgres psql -c "SELECT 1;"
 
 # Run migrations
-npx prisma migrate dev
-
-# Seed database
-npx prisma db seed
+cd backend && npx prisma migrate deploy
 ```
 
-### 5. Start Development
-```bash
-# Start all services in development mode
-npm run dev
+## 🔒 Security Notes
 
-# Atau start individual services:
-npm run dev:backend    # Backend API (port 3001)
-npm run dev:frontend   # Frontend (port 3000)
-npm run dev:bot        # Telegram Bot
-```
+1. Always use strong passwords in production
+2. Configure firewall (ufw) to restrict access
+3. Use HTTPS in production (Let's Encrypt recommended)
+4. Regularly update dependencies
+5. Monitor logs for suspicious activities
 
-## 🤖 Bot Features
+## 📝 License
 
-### Mode-based Processing
-Bot menggunakan sistem mode untuk memproses berbagai jenis file:
-
-1. **OCR Mode** - Ekstraksi teks dari gambar
-2. **Geotags Mode** - Ekstraksi koordinat GPS dari foto
-3. **Archive Mode** - Ekstraksi dan analisis file arsip
-4. **Workbook Mode** - Konversi dan analisis spreadsheet
-5. **KML Mode** - Ekstraksi data dari file KML/KMZ
-6. **Location Mode** - Pemrosesan data koordinat
-
-### User Management
-- Admin-managed user registration
-- Feature-based access control
-- Role-based permissions (ADMIN/USER)
-- Session tracking dan logging
-
-### File Processing
-- Support multiple file formats
-- File size validation
-- Automatic cleanup
-- Metadata storage
-
-## 🌐 Web Interface
-
-### Dashboard
-- Overview statistik sistem
-- Real-time bot activity
-- User dan file metrics
-
-### User Management
-- CRUD operations untuk users
-- Feature assignment
-- Role management
-- Activity monitoring
-
-### File Management
-- File upload history
-- Processing results
-- Download processed files
-- File metadata
-
-### Activity Logs
-- Bot interaction logs
-- User activity tracking
-- Error monitoring
-- Performance metrics
-
-## 🔐 Authentication & Authorization
-
-### Telegram ID Based Auth
-- Primary identifier: Telegram ID (string)
-- Admin-managed registration
-- JWT token authentication untuk web
-- Feature-based access control
-
-### Security Features
-- Input validation dengan Zod
-- Rate limiting
-- CORS configuration
-- Environment-based secrets
-
-## 📊 Database Schema
-
-### Core Tables
-- `users` - User information dan permissions
-- `features` - Available bot features
-- `user_features` - User-feature relationships
-- `files` - File metadata dan processing info
-- `bot_activities` - Bot interaction logs
-- `bot_sessions` - User session tracking
-
-## 🚀 Deployment
-
-### Production Setup
-```bash
-# Build all services
-npm run build
-
-# Start with PM2
-npm run start:prod
-
-# Atau menggunakan Docker
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Environment Variables
-Lihat `.env.example` untuk daftar lengkap environment variables yang diperlukan.
-
-## 📝 Development Guidelines
-
-### Code Style
-- TypeScript strict mode
-- ESLint + Prettier
-- Conventional commits
-- Feature-based organization
-
-### Testing
-```bash
-# Run tests
-npm run test
-
-# Run tests with coverage
-npm run test:cov
-```
-
-### Logging
-- Structured logging dengan Winston
-- Correlation IDs untuk tracking
-- Different log levels per environment
-- Daily log rotation
-
-## 🏗️ VPS Migration Guide
-
-### Ketika Mengganti VPS, Update Konfigurasi Berikut:
-
-#### 1. Environment Variables (.env)
-```bash
-# Update IP public VPS yang baru
-PUBLIC_IP=NEW_VPS_IP_ADDRESS
-
-# Update server host configuration
-SERVER_HOST=0.0.0.0
-
-# Update CORS origin jika perlu
-CORS_ORIGIN=http://NEW_VPS_IP_ADDRESS:3000
-
-# Update Telegram Bot API jika menggunakan local server
-BOT_API_SERVER=http://localhost:8081
-```
-
-#### 2. Frontend Configuration (teleweb/frontend/vite.config.ts)
-```typescript
-// Update proxy target di vite config
-proxy: {
-  '/api': {
-    target: 'http://NEW_VPS_IP_ADDRESS:3001',
-    changeOrigin: true,
-  },
-}
-```
-
-#### 3. Backend Configuration (teleweb/backend/src/main.ts)
-Backend sudah dikonfigurasi untuk membaca SERVER_HOST dari environment, tapi pastikan:
-```typescript
-// Di main.ts sudah ada:
-const host = configService.get('SERVER_HOST', '0.0.0.0');
-await app.listen(port, host);
-```
-
-#### 4. Bot Configuration (jika ada hardcoded URLs)
-Check file bot configuration untuk referensi IP lama dan update ke IP baru.
-
-#### 5. Database & Redis
-Jika menggunakan external database/Redis server, update connection strings:
-```bash
-DATABASE_URL=postgresql://user:password@NEW_DB_HOST:5432/teleweb
-REDIS_URL=redis://NEW_REDIS_HOST:6379
-```
-
-#### 6. Firewall & Security
-Pastikan ports yang diperlukan terbuka di VPS baru:
-- Port 3000 (Frontend)
-- Port 3001 (Backend API)
-- Port 5432 (PostgreSQL, jika external)
-- Port 6379 (Redis, jika external)
-- Port 8081 (Bot API Server, jika local)
-
-#### 7. DNS & Domain (jika menggunakan custom domain)
-Update DNS records untuk point ke IP VPS yang baru.
-
-#### 8. SSL Certificates (jika menggunakan HTTPS)
-Setup ulang SSL certificates untuk IP/domain yang baru.
-
-### Checklist VPS Migration:
-- [ ] Update PUBLIC_IP di .env
-- [ ] Update Vite proxy target
-- [ ] Restart backend dengan host 0.0.0.0
-- [ ] Restart frontend development server
-- [ ] Test API connectivity dengan curl
-- [ ] Test frontend login functionality
-- [ ] Test bot webhook/polling connection
-- [ ] Verify file management download/delete works
-- [ ] Update firewall rules
-- [ ] Update monitoring scripts
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Database Connection Error**
-   - Check PostgreSQL service status
-   - Verify DATABASE_URL in .env
-   - Ensure database exists
-
-2. **Bot Not Responding**
-   - Verify BOT_TOKEN is correct
-   - Check bot API server status
-   - Review bot logs for errors
-
-3. **Frontend Build Errors**
-   - Clear node_modules dan reinstall
-   - Check TypeScript errors
-   - Verify path aliases
-
-4. **Network Error saat Login**
-   - Check PUBLIC_IP di .env sudah benar
-   - Pastikan backend listen di 0.0.0.0 bukan localhost
-   - Update Vite proxy target di vite.config.ts
-   - Restart frontend development server setelah ubah .env
-
-5. **Download/Delete File Tidak Bekerja**
-   - Pastikan API base URL sudah benar
-   - Check CORS configuration di backend
-   - Verify file permissions di VPS
-
-## 📚 API Documentation
-
-API documentation tersedia di:
-- Development: http://localhost:3001/api/docs
-- Production: https://your-domain.com/api/docs
+This project is licensed under the MIT License.
 
 ## 🤝 Contributing
 
@@ -390,16 +352,14 @@ API documentation tersedia di:
 4. Push to branch
 5. Create Pull Request
 
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
 ## 📞 Support
 
 Untuk pertanyaan atau dukungan, hubungi:
+
 - Email: your-email@domain.com
 - Telegram: @your-username
 
 ---
 
-**TeleWeb** - Bridging Telegram Bot and Web Application for seamless file processing and management.
+**TeleWeb** - Bridging Telegram Bot and Web Application for seamless file
+processing and management.

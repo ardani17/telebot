@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -37,13 +47,16 @@ export class AdminController {
   @ApiOperation({ summary: 'Create new user (Bot access)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @UseGuards(BotAuthGuard)
-  async createBotUser(@Body() userData: {
-    telegramId: string;
-    name: string;
-    username?: string;
-    role?: 'ADMIN' | 'USER';
-    isActive?: boolean;
-  }) {
+  async createBotUser(
+    @Body()
+    userData: {
+      telegramId: string;
+      name: string;
+      username?: string;
+      role?: 'ADMIN' | 'USER';
+      isActive?: boolean;
+    }
+  ) {
     return this.adminService.createUser(userData);
   }
 
@@ -55,7 +68,8 @@ export class AdminController {
   @UseGuards(BotAuthGuard)
   async updateBotUser(
     @Param('telegramId') telegramId: string,
-    @Body() updateData: {
+    @Body()
+    updateData: {
       name?: string;
       username?: string;
       role?: 'ADMIN' | 'USER';
@@ -104,10 +118,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Grant feature access to user (Bot access)' })
   @ApiResponse({ status: 200, description: 'Feature access granted' })
   @UseGuards(BotAuthGuard)
-  async grantBotFeatureAccess(@Body() grantData: {
-    telegramId: string;
-    featureName: string;
-  }) {
+  async grantBotFeatureAccess(@Body() grantData: { telegramId: string; featureName: string }) {
     return this.adminService.grantFeatureAccess(grantData.telegramId, grantData.featureName);
   }
 
@@ -117,10 +128,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Revoke feature access from user (Bot access)' })
   @ApiResponse({ status: 200, description: 'Feature access revoked' })
   @UseGuards(BotAuthGuard)
-  async revokeBotFeatureAccess(@Body() revokeData: {
-    telegramId: string;
-    featureName: string;
-  }) {
+  async revokeBotFeatureAccess(@Body() revokeData: { telegramId: string; featureName: string }) {
     return this.adminService.revokeFeatureAccess(revokeData.telegramId, revokeData.featureName);
   }
 
@@ -192,13 +200,16 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiOperation({ summary: 'Create new user' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
-  async createUser(@Body() userData: {
-    telegramId: string;
-    name: string;
-    username?: string;
-    role?: 'ADMIN' | 'USER';
-    isActive?: boolean;
-  }) {
+  async createUser(
+    @Body()
+    userData: {
+      telegramId: string;
+      name: string;
+      username?: string;
+      role?: 'ADMIN' | 'USER';
+      isActive?: boolean;
+    }
+  ) {
     return this.adminService.createUser(userData);
   }
 
@@ -210,7 +221,8 @@ export class AdminController {
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   async updateUser(
     @Param('telegramId') telegramId: string,
-    @Body() updateData: {
+    @Body()
+    updateData: {
       name?: string;
       username?: string;
       role?: 'ADMIN' | 'USER';
@@ -260,10 +272,7 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiOperation({ summary: 'Grant feature access to user' })
   @ApiResponse({ status: 200, description: 'Feature access granted' })
-  async grantFeatureAccess(@Body() grantData: {
-    telegramId: string;
-    featureName: string;
-  }) {
+  async grantFeatureAccess(@Body() grantData: { telegramId: string; featureName: string }) {
     return this.adminService.grantFeatureAccess(grantData.telegramId, grantData.featureName);
   }
 
@@ -273,10 +282,7 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiOperation({ summary: 'Revoke feature access from user' })
   @ApiResponse({ status: 200, description: 'Feature access revoked' })
-  async revokeFeatureAccess(@Body() revokeData: {
-    telegramId: string;
-    featureName: string;
-  }) {
+  async revokeFeatureAccess(@Body() revokeData: { telegramId: string; featureName: string }) {
     return this.adminService.revokeFeatureAccess(revokeData.telegramId, revokeData.featureName);
   }
 
@@ -320,4 +326,4 @@ export class AdminController {
   async getSystemStats() {
     return this.adminService.getSystemStats();
   }
-} 
+}

@@ -1,4 +1,5 @@
 import { Context, Middleware } from 'telegraf';
+import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
 import { ApiClient, User } from '../services/api-client';
 import { SessionManager, UserMode } from '../services/session-manager';
 import { UserDirectoryService } from '../services/user-directory.service';
@@ -28,11 +29,19 @@ export interface AuthMiddlewareOptions {
  * Authentication middleware to validate users against the database
  */
 export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware<AuthContext> {
-  const { apiClient, logger, sessionManager, userDirectoryService, allowUnregistered = false, adminOnly = false, requiredFeature } = options;
+  const {
+    apiClient,
+    logger,
+    sessionManager,
+    userDirectoryService,
+    allowUnregistered = false,
+    adminOnly = false,
+    requiredFeature,
+  } = options;
 
   return async (ctx, next) => {
     const telegramId = ctx.from?.id?.toString();
-    
+
     if (!telegramId) {
       logger.warn('No Telegram ID found in context');
       await ctx.reply('❌ Error: Tidak dapat mengidentifikasi pengguna.');
@@ -42,7 +51,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
     try {
       // Validate user
       const userResponse = await apiClient.validateUser(telegramId);
-      
+
       if (!userResponse.success) {
         if (allowUnregistered) {
           logger.info('Unregistered user interaction', { telegramId });
@@ -52,8 +61,8 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
           logger.warn('Unauthorized user attempt', { telegramId });
           await ctx.reply(
             '🚫 Akses ditolak!\n\n' +
-            'Anda belum terdaftar dalam sistem. Hubungi administrator untuk mendapatkan akses.\n\n' +
-            `Telegram ID Anda: \`${telegramId}\``
+              'Anda belum terdaftar dalam sistem. Hubungi administrator untuk mendapatkan akses.\n\n' +
+              `Telegram ID Anda: \`${telegramId}\``
           );
           return;
         }
@@ -66,7 +75,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
         logger.warn('Inactive user attempt', { telegramId, userId: user.id });
         await ctx.reply(
           '⚠️ Akun Anda sedang tidak aktif.\n\n' +
-          'Hubungi administrator untuk mengaktifkan kembali akun Anda.'
+            'Hubungi administrator untuk mengaktifkan kembali akun Anda.'
         );
         return;
       }
@@ -76,7 +85,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
         logger.warn('Non-admin user attempting admin action', { telegramId, userId: user.id });
         await ctx.reply(
           '🔒 Fitur ini hanya tersedia untuk administrator.\n\n' +
-          'Hubungi administrator jika Anda memerlukan akses khusus.'
+            'Hubungi administrator jika Anda memerlukan akses khusus.'
         );
         return;
       }
@@ -85,14 +94,14 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
       if (requiredFeature) {
         const hasAccess = await apiClient.checkFeatureAccess(telegramId, requiredFeature);
         if (!hasAccess) {
-          logger.warn('User lacks feature access', { 
-            telegramId, 
-            userId: user.id, 
-            feature: requiredFeature 
+          logger.warn('User lacks feature access', {
+            telegramId,
+            userId: user.id,
+            feature: requiredFeature,
           });
           await ctx.reply(
             `🚫 Anda tidak memiliki akses ke fitur "${requiredFeature}".\n\n` +
-            'Hubungi administrator untuk mendapatkan akses ke fitur ini.'
+              'Hubungi administrator untuk mendapatkan akses ke fitur ini.'
           );
           return;
         }
@@ -100,7 +109,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
 
       // Add user to context
       ctx.user = user;
-      
+
       // Add feature access helper
       ctx.hasFeatureAccess = async (featureName: string) => {
         return await apiClient.checkFeatureAccess(telegramId, featureName);
@@ -110,7 +119,8 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
       ctx.sessionManager = sessionManager;
       ctx.userDirectoryService = userDirectoryService;
       ctx.getUserMode = () => sessionManager.getUserMode(telegramId);
-      ctx.setUserMode = (mode: UserMode, data?: any) => sessionManager.setUserMode(telegramId, mode, data);
+      ctx.setUserMode = (mode: UserMode, data?: any) =>
+        sessionManager.setUserMode(telegramId, mode, data);
       ctx.clearUserMode = () => sessionManager.clearUserMode(telegramId);
 
       // Initialize user directories if this is first time
@@ -120,7 +130,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
         // Log but don't fail authentication for directory creation errors
         logger.warn('Failed to initialize user directories', {
           telegramId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? getErrorMessage(error) : 'Unknown error',
         });
       }
 
@@ -136,17 +146,16 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
       });
 
       return await next();
-      
     } catch (error) {
       logger.error('Authentication middleware error', {
         telegramId,
-        error: error.message,
-        stack: error.stack,
+        error: getErrorMessage(error),
+        stack: getErrorStack(error),
       });
-      
+
       await ctx.reply(
         '❌ Terjadi kesalahan sistem saat validasi pengguna.\n\n' +
-        'Silakan coba lagi nanti atau hubungi administrator.'
+          'Silakan coba lagi nanti atau hubungi administrator.'
       );
     }
   };
@@ -156,8 +165,8 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions): Middleware
  * Quick middleware for basic user validation
  */
 export function requireAuth(
-  apiClient: ApiClient, 
-  logger: winston.Logger, 
+  apiClient: ApiClient,
+  logger: winston.Logger,
   sessionManager: SessionManager,
   userDirectoryService: UserDirectoryService
 ): Middleware<AuthContext> {
@@ -174,8 +183,8 @@ export function requireAuth(
  * Quick middleware for admin-only commands
  */
 export function requireAdmin(
-  apiClient: ApiClient, 
-  logger: winston.Logger, 
+  apiClient: ApiClient,
+  logger: winston.Logger,
   sessionManager: SessionManager,
   userDirectoryService: UserDirectoryService
 ): Middleware<AuthContext> {
@@ -213,8 +222,8 @@ export function requireFeature(
  * Middleware that allows unregistered users but still loads user context if available
  */
 export function optionalAuth(
-  apiClient: ApiClient, 
-  logger: winston.Logger, 
+  apiClient: ApiClient,
+  logger: winston.Logger,
   sessionManager: SessionManager,
   userDirectoryService: UserDirectoryService
 ): Middleware<AuthContext> {
@@ -225,4 +234,4 @@ export function optionalAuth(
     userDirectoryService,
     allowUnregistered: true,
   });
-} 
+}

@@ -24,14 +24,11 @@ export class UserService {
    */
   async getUserByTelegramId(telegramId: string): Promise<User | null> {
     try {
-      const response = await axios.get(
-        `${this.backendUrl}/api/users/telegram/${telegramId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-        }
-      );
+      const response = await axios.get(`${this.backendUrl}/api/users/telegram/${telegramId}`, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+      });
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -69,16 +66,12 @@ export class UserService {
     errorMessage?: string;
   }): Promise<void> {
     try {
-      await axios.post(
-        `${this.backendUrl}/api/bot/activities`,
-        data,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      await axios.post(`${this.backendUrl}/api/bot/activities`, data, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
     } catch (error) {
       console.error('Error logging activity:', error);
     }
@@ -97,16 +90,12 @@ export class UserService {
     mode: string;
   }): Promise<void> {
     try {
-      await axios.post(
-        `${this.backendUrl}/api/files`,
-        data,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      await axios.post(`${this.backendUrl}/api/files`, data, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
     } catch (error) {
       console.error('Error saving file metadata:', error);
     }
@@ -115,22 +104,14 @@ export class UserService {
   /**
    * Update bot session
    */
-  async updateSession(data: {
-    telegramId: string;
-    mode?: string;
-    state: any;
-  }): Promise<void> {
+  async updateSession(data: { telegramId: string; mode?: string; state: any }): Promise<void> {
     try {
-      await axios.post(
-        `${this.backendUrl}/api/bot/sessions`,
-        data,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      await axios.post(`${this.backendUrl}/api/bot/sessions`, data, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
     } catch (error) {
       console.error('Error updating session:', error);
     }

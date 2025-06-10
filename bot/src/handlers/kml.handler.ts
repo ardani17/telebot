@@ -4,6 +4,8 @@ import * as path from 'path';
 import axios from 'axios';
 import { AuthContext } from '../types/auth';
 import { createUserFeatureDir } from '../../../shared/src/utils/file-utils';
+import { Telegraf } from 'telegraf';
+import { SessionManager } from '../services/session-manager';
 
 interface KmlContext extends AuthContext {}
 
@@ -38,10 +40,19 @@ export class KmlHandler {
   private backendUrl: string;
   private userKmlDataMap = new Map<string, UserKmlData>();
   private nextPointNameMap = new Map<string, string>();
+  private bot: Telegraf;
+  private sessionManager: SessionManager;
+  private uploadDir: string;
 
-  constructor(logger: winston.Logger) {
-    this.logger = logger;
-    this.backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  constructor(bot: Telegraf, logger: winston.Logger) {
+    this.bot = bot;
+    this.logger = logger.child({ module: 'KMLHandler' });
+    this.backendUrl = process.env.BACKEND_URL || 'http://localhost:3001/api';
+    this.sessionManager = new SessionManager(this.logger);
+    this.uploadDir = '/tmp/kml-uploads';
+    if (!fs.existsSync(this.uploadDir)) {
+      fs.mkdirSync(this.uploadDir, { recursive: true });
+    }
   }
 
   async handleKmlCommand(ctx: KmlContext) {
@@ -54,21 +65,21 @@ export class KmlHandler {
 
       await ctx.reply(
         '🗺️ **Mode KML Diaktifkan**\n\n' +
-        '**Perintah yang tersedia:**\n\n' +
-        '📍 **Titik Individual:**\n' +
-        '• Kirim **Lokasi** (via attachment) - Menambahkan titik\n' +
-        '• `/add <lat> <lon> [nama_titik]` - Menambahkan titik via teks\n' +
-        '• `/addpoint <nama_titik>` - Menetapkan nama untuk satu titik berikutnya\n' +
-        '• `/alwayspoint [nama_titik]` - Menetapkan nama default tetap\n\n' +
-        '〰️ **Garis/Jalur:**\n' +
-        '• `/startline [nama_garis]` - Memulai pembuatan garis\n' +
-        '• `/endline` - Menyimpan garis aktif\n' +
-        '• `/cancelline` - Membatalkan garis aktif\n\n' +
-        '💾 **Data & KML:**\n' +
-        '• `/mydata` - Menampilkan semua data tersimpan\n' +
-        '• `/createkml [nama_dokumen]` - Membuat file KML\n' +
-        '• `/cleardata` - Menghapus SEMUA data Anda\n\n' +
-        'Ketik `/menu` untuk kembali ke menu utama.',
+          '**Perintah yang tersedia:**\n\n' +
+          '📍 **Titik Individual:**\n' +
+          '• Kirim **Lokasi** (via attachment) - Menambahkan titik\n' +
+          '• `/add <lat> <lon> [nama_titik]` - Menambahkan titik via teks\n' +
+          '• `/addpoint <nama_titik>` - Menetapkan nama untuk satu titik berikutnya\n' +
+          '• `/alwayspoint [nama_titik]` - Menetapkan nama default tetap\n\n' +
+          '〰️ **Garis/Jalur:**\n' +
+          '• `/startline [nama_garis]` - Memulai pembuatan garis\n' +
+          '• `/endline` - Menyimpan garis aktif\n' +
+          '• `/cancelline` - Membatalkan garis aktif\n\n' +
+          '💾 **Data & KML:**\n' +
+          '• `/mydata` - Menampilkan semua data tersimpan\n' +
+          '• `/createkml [nama_dokumen]` - Membuat file KML\n' +
+          '• `/cleardata` - Menghapus SEMUA data Anda\n\n' +
+          'Ketik `/menu` untuk kembali ke menu utama.',
         { parse_mode: 'Markdown' }
       );
 
@@ -79,7 +90,6 @@ export class KmlHandler {
         mode: 'kml',
         success: true,
       });
-
     } catch (error) {
       this.logger.error('KML command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat mengaktifkan mode KML.');
@@ -95,16 +105,24 @@ export class KmlHandler {
       if (userMode !== 'kml') return;
 
       if (!lat || !lon) {
-        await ctx.reply('Silakan masukkan koordinat yang valid.\nContoh: `/add -7.250445 112.768845 Rumah Saya`', { parse_mode: 'Markdown' });
+        await ctx.reply(
+          'Silakan masukkan koordinat yang valid.\nContoh: `/add -7.250445 112.768845 Rumah Saya`',
+          { parse_mode: 'Markdown' }
+        );
         return;
       }
 
       const latitude = parseFloat(lat);
       const longitude = parseFloat(lon);
 
-      if (isNaN(latitude) || isNaN(longitude) || 
-          latitude < -90 || latitude > 90 || 
-          longitude < -180 || longitude > 180) {
+      if (
+        isNaN(latitude) ||
+        isNaN(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
         await ctx.reply('❌ Koordinat tidak valid atau di luar jangkauan.');
         return;
       }
@@ -114,22 +132,22 @@ export class KmlHandler {
       if (userData.activeLine) {
         userData.activeLine.points.push({ latitude, longitude });
         this.saveUserKmlData(telegramId, userData);
-        
+
         let messageText = `↪️ Titik (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) via teks ditambahkan ke garis "${this.escapeXml(userData.activeLine.name)}". Total ${userData.activeLine.points.length} titik.`;
-        
+
         if (name) {
           messageText += ` (Nama "${this.escapeXml(name)}" dari perintah /add diabaikan).`;
         }
-        
+
         await ctx.reply(messageText);
       } else {
         let finalPointName: string;
-        
+
         if (name) {
           finalPointName = name;
         } else {
           const pointNameFromMap = this.nextPointNameMap.get(telegramId);
-          
+
           if (pointNameFromMap) {
             finalPointName = pointNameFromMap;
             this.nextPointNameMap.delete(telegramId);
@@ -139,17 +157,19 @@ export class KmlHandler {
             finalPointName = `Koordinat Manual ${userData.placemarks.length + 1}`;
           }
         }
-        
-        userData.placemarks.push({ 
-          latitude, 
-          longitude, 
-          name: finalPointName, 
-          timestamp: Date.now() 
+
+        userData.placemarks.push({
+          latitude,
+          longitude,
+          name: finalPointName,
+          timestamp: Date.now(),
         });
-        
+
         this.saveUserKmlData(telegramId, userData);
-        
-        await ctx.reply(`📍 Titik individual "${this.escapeXml(finalPointName)}" (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) via teks telah disimpan!`);
+
+        await ctx.reply(
+          `📍 Titik individual "${this.escapeXml(finalPointName)}" (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) via teks telah disimpan!`
+        );
       }
 
       await this.recordActivity({
@@ -160,7 +180,6 @@ export class KmlHandler {
         details: { latitude, longitude, name, isActiveLine: !!userData.activeLine },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Add command failed', { error, lat, lon, name });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /add.');
@@ -181,7 +200,10 @@ export class KmlHandler {
       }
 
       this.nextPointNameMap.set(telegramId, pointName);
-      await ctx.reply(`📝 Nama "${this.escapeXml(pointName)}" akan digunakan untuk **titik individual berikutnya** (jika tidak ada garis aktif & tidak ada nama di /add).`, { parse_mode: 'Markdown' });
+      await ctx.reply(
+        `📝 Nama "${this.escapeXml(pointName)}" akan digunakan untuk **titik individual berikutnya** (jika tidak ada garis aktif & tidak ada nama di /add).`,
+        { parse_mode: 'Markdown' }
+      );
 
       await this.recordActivity({
         userId: ctx.user.id,
@@ -191,7 +213,6 @@ export class KmlHandler {
         details: { pointName },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('AddPoint command failed', { error, pointName });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /addpoint.');
@@ -207,7 +228,7 @@ export class KmlHandler {
       if (userMode !== 'kml') return;
 
       const userData = this.loadUserKmlData(telegramId);
-      
+
       if (!persistentName) {
         userData.persistentPointName = null;
         this.saveUserKmlData(telegramId, userData);
@@ -215,7 +236,10 @@ export class KmlHandler {
       } else {
         userData.persistentPointName = persistentName;
         this.saveUserKmlData(telegramId, userData);
-        await ctx.reply(`🔗 Nama "${this.escapeXml(persistentName)}" ditetapkan sebagai **nama default tetap** untuk semua titik individual (jika tidak ada nama dari /add atau /addpoint).`, { parse_mode: 'Markdown' });
+        await ctx.reply(
+          `🔗 Nama "${this.escapeXml(persistentName)}" ditetapkan sebagai **nama default tetap** untuk semua titik individual (jika tidak ada nama dari /add atau /addpoint).`,
+          { parse_mode: 'Markdown' }
+        );
       }
 
       await this.recordActivity({
@@ -226,7 +250,6 @@ export class KmlHandler {
         details: { persistentName },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('AlwaysPoint command failed', { error, persistentName });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /alwayspoint.');
@@ -242,21 +265,25 @@ export class KmlHandler {
       if (userMode !== 'kml') return;
 
       const userData = this.loadUserKmlData(telegramId);
-      
+
       if (userData.activeLine) {
-        await ctx.reply(`⚠️ Anda sudah memiliki garis aktif: "${this.escapeXml(userData.activeLine.name)}". Selesaikan atau batalkan terlebih dahulu.`);
+        await ctx.reply(
+          `⚠️ Anda sudah memiliki garis aktif: "${this.escapeXml(userData.activeLine.name)}". Selesaikan atau batalkan terlebih dahulu.`
+        );
         return;
       }
 
       const finalLineName = lineName || `Garis ${userData.lines.length + 1}`;
       userData.activeLine = {
         name: finalLineName,
-        points: []
+        points: [],
       };
-      
+
       this.saveUserKmlData(telegramId, userData);
-      
-      await ctx.reply(`🆕 Garis "${this.escapeXml(finalLineName)}" dimulai! Kirim lokasi atau gunakan /add untuk menambahkan titik-titik ke garis.`);
+
+      await ctx.reply(
+        `🆕 Garis "${this.escapeXml(finalLineName)}" dimulai! Kirim lokasi atau gunakan /add untuk menambahkan titik-titik ke garis.`
+      );
 
       await this.recordActivity({
         userId: ctx.user.id,
@@ -266,7 +293,6 @@ export class KmlHandler {
         details: { lineName: finalLineName },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('StartLine command failed', { error, lineName });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /startline.');
@@ -282,30 +308,34 @@ export class KmlHandler {
       if (userMode !== 'kml') return;
 
       const userData = this.loadUserKmlData(telegramId);
-      
+
       if (!userData.activeLine) {
         await ctx.reply('❌ Tidak ada garis aktif. Gunakan /startline terlebih dahulu.');
         return;
       }
 
       if (userData.activeLine.points.length < 2) {
-        await ctx.reply(`❌ Garis "${this.escapeXml(userData.activeLine.name)}" hanya memiliki ${userData.activeLine.points.length} titik. Minimal 2 titik diperlukan untuk menyimpan garis.`);
+        await ctx.reply(
+          `❌ Garis "${this.escapeXml(userData.activeLine.name)}" hanya memiliki ${userData.activeLine.points.length} titik. Minimal 2 titik diperlukan untuk menyimpan garis.`
+        );
         return;
       }
 
       userData.lines.push({
         name: userData.activeLine.name,
         coordinates: [...userData.activeLine.points],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       const savedLineName = userData.activeLine.name;
       const pointCount = userData.activeLine.points.length;
       userData.activeLine = null;
-      
+
       this.saveUserKmlData(telegramId, userData);
-      
-      await ctx.reply(`✅ Garis "${this.escapeXml(savedLineName)}" dengan ${pointCount} titik telah disimpan!`);
+
+      await ctx.reply(
+        `✅ Garis "${this.escapeXml(savedLineName)}" dengan ${pointCount} titik telah disimpan!`
+      );
 
       await this.recordActivity({
         userId: ctx.user.id,
@@ -315,7 +345,6 @@ export class KmlHandler {
         details: { lineName: savedLineName, pointCount },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('EndLine command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /endline.');
@@ -331,7 +360,7 @@ export class KmlHandler {
       if (userMode !== 'kml') return;
 
       const userData = this.loadUserKmlData(telegramId);
-      
+
       if (!userData.activeLine) {
         await ctx.reply('❌ Tidak ada garis aktif untuk dibatalkan.');
         return;
@@ -340,10 +369,12 @@ export class KmlHandler {
       const canceledLineName = userData.activeLine.name;
       const pointCount = userData.activeLine.points.length;
       userData.activeLine = null;
-      
+
       this.saveUserKmlData(telegramId, userData);
-      
-      await ctx.reply(`🗑️ Garis aktif "${this.escapeXml(canceledLineName)}" dengan ${pointCount} titik telah dibatalkan/dihapus.`);
+
+      await ctx.reply(
+        `🗑️ Garis aktif "${this.escapeXml(canceledLineName)}" dengan ${pointCount} titik telah dibatalkan/dihapus.`
+      );
 
       await this.recordActivity({
         userId: ctx.user.id,
@@ -353,7 +384,6 @@ export class KmlHandler {
         details: { lineName: canceledLineName, pointCount },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('CancelLine command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /cancelline.');
@@ -402,7 +432,7 @@ export class KmlHandler {
       if (!hasData) {
         response += 'Anda belum menyimpan data apapun atau mengatur nama default tetap.';
       }
-      
+
       await ctx.reply(response, { parse_mode: 'Markdown' });
 
       await this.recordActivity({
@@ -412,7 +442,6 @@ export class KmlHandler {
         mode: 'kml',
         success: true,
       });
-
     } catch (error) {
       this.logger.error('MyData command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /mydata.');
@@ -435,7 +464,9 @@ export class KmlHandler {
       const hasActiveValidLine = userData.activeLine && userData.activeLine.points.length >= 2;
 
       if (!hasPlacemarks && !hasLines && !hasActiveValidLine) {
-        await ctx.reply('Anda belum menyimpan data (titik atau garis yang valid) untuk dibuat KML.');
+        await ctx.reply(
+          'Anda belum menyimpan data (titik atau garis yang valid) untuk dibuat KML.'
+        );
         return;
       }
 
@@ -444,21 +475,31 @@ export class KmlHandler {
 
       const baseDir = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
       const userDir = await createUserFeatureDir(baseDir, telegramId, 'kml');
-      
+
       // Gunakan nama dari parameter untuk nama file, sanitasi untuk nama file yang aman
-      const sanitizedName = docName ? 
-        docName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').toLowerCase() : 
-        `kml_data_${userFirstName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').toLowerCase()}`;
+      const sanitizedName = docName
+        ? docName
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase()
+        : `kml_data_${userFirstName
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase()}`;
       const fileName = `${sanitizedName}_${Date.now()}.kml`;
       const filePath = path.join(userDir, fileName);
 
       await fs.writeFile(filePath, kmlContent);
-      
-      await ctx.replyWithDocument({ source: filePath }, {
-        caption: `📄 File KML "${this.escapeXml(finalDocName)}" berhasil dibuat, ${userFirstName}!\n\n` +
-                 `📂 Nama file: \`${fileName}\``
-      });
-      
+
+      await ctx.replyWithDocument(
+        { source: filePath },
+        {
+          caption:
+            `📄 File KML "${this.escapeXml(finalDocName)}" berhasil dibuat, ${userFirstName}!\n\n` +
+            `📂 Nama file: \`${fileName}\``,
+        }
+      );
+
       await fs.unlink(filePath);
 
       await this.recordActivity({
@@ -466,16 +507,15 @@ export class KmlHandler {
         telegramId,
         action: 'create_kml',
         mode: 'kml',
-        details: { 
+        details: {
           docName: finalDocName,
           fileName,
           placemarksCount: userData.placemarks.length,
           linesCount: userData.lines.length,
-          hasActiveLine: !!userData.activeLine
+          hasActiveLine: !!userData.activeLine,
         },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('CreateKml command failed', { error, docName });
       await ctx.reply('❌ Terjadi kesalahan saat membuat atau mengirim file KML.');
@@ -492,8 +532,10 @@ export class KmlHandler {
 
       this.saveUserKmlData(telegramId, this.defaultUserKmlData());
       this.nextPointNameMap.delete(telegramId);
-      
-      await ctx.reply('🗑️ Semua data KML Anda (titik, garis, sesi garis aktif, dan nama default tetap) telah dihapus.');
+
+      await ctx.reply(
+        '🗑️ Semua data KML Anda (titik, garis, sesi garis aktif, dan nama default tetap) telah dihapus.'
+      );
 
       await this.recordActivity({
         userId: ctx.user.id,
@@ -502,7 +544,6 @@ export class KmlHandler {
         mode: 'kml',
         success: true,
       });
-
     } catch (error) {
       this.logger.error('ClearData command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses perintah /cleardata.');
@@ -526,8 +567,10 @@ export class KmlHandler {
       if (userData.activeLine) {
         userData.activeLine.points.push({ latitude, longitude });
         this.saveUserKmlData(telegramId, userData);
-        
-        await ctx.reply(`↪️ Titik (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) ditambahkan ke garis "${this.escapeXml(userData.activeLine.name)}". Total ${userData.activeLine.points.length} titik.`);
+
+        await ctx.reply(
+          `↪️ Titik (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) ditambahkan ke garis "${this.escapeXml(userData.activeLine.name)}". Total ${userData.activeLine.points.length} titik.`
+        );
       } else {
         let pointName: string;
         const pointNameFromMap = this.nextPointNameMap.get(telegramId);
@@ -540,17 +583,19 @@ export class KmlHandler {
         } else {
           pointName = `Titik Terlampir ${userData.placemarks.length + 1}`;
         }
-        
-        userData.placemarks.push({ 
-          latitude, 
-          longitude, 
-          name: pointName, 
-          timestamp: Date.now() 
+
+        userData.placemarks.push({
+          latitude,
+          longitude,
+          name: pointName,
+          timestamp: Date.now(),
         });
-        
+
         this.saveUserKmlData(telegramId, userData);
-        
-        await ctx.reply(`📍 Lokasi individual "${this.escapeXml(pointName)}" (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) telah disimpan!`);
+
+        await ctx.reply(
+          `📍 Lokasi individual "${this.escapeXml(pointName)}" (Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}) telah disimpan!`
+        );
       }
 
       await this.recordActivity({
@@ -561,7 +606,6 @@ export class KmlHandler {
         details: { latitude, longitude, isActiveLine: !!userData.activeLine },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Location handling failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses lokasi.');
@@ -595,10 +639,10 @@ export class KmlHandler {
 
       const data = fs.readFileSync(storagePath, 'utf-8');
       const userData: UserKmlData = JSON.parse(data);
-      
+
       const completeUserData = { ...this.defaultUserKmlData(), ...userData };
       this.userKmlDataMap.set(telegramId, completeUserData);
-      
+
       return completeUserData;
     } catch (error) {
       this.logger.error('Failed to load KML data', { error, telegramId });
@@ -611,12 +655,12 @@ export class KmlHandler {
   private saveUserKmlData(telegramId: string, kmlData: UserKmlData): void {
     try {
       this.userKmlDataMap.set(telegramId, kmlData);
-      
+
       const baseDir = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
       const userDir = path.join(baseDir, telegramId, 'kml');
-      
+
       fs.ensureDirSync(userDir);
-      
+
       const storagePath = path.join(userDir, 'kml_data.json');
       fs.writeFileSync(storagePath, JSON.stringify(kmlData, null, 2));
     } catch (error) {
@@ -628,14 +672,20 @@ export class KmlHandler {
     if (typeof unsafe !== 'string') {
       return '';
     }
-    return unsafe.replace(/[<>&'"]/g, (c) => {
+    return unsafe.replace(/[<>&'"]/g, c => {
       switch (c) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case '\'': return '&apos;';
-        case '"': return '&quot;';
-        default: return c;
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        case '&':
+          return '&amp;';
+        case "'":
+          return '&apos;';
+        case '"':
+          return '&quot;';
+        default:
+          return c;
       }
     });
   }
@@ -650,7 +700,7 @@ export class KmlHandler {
 
     // Add individual placemarks
     if (userData.placemarks && userData.placemarks.length > 0) {
-      userData.placemarks.forEach((placemark) => {
+      userData.placemarks.forEach(placemark => {
         kmlContent += `    <Placemark>
       <name>${this.escapeXml(placemark.name)}</name>
       <Point>
@@ -663,11 +713,11 @@ export class KmlHandler {
 
     // Add saved lines
     if (userData.lines && userData.lines.length > 0) {
-      userData.lines.forEach((line) => {
+      userData.lines.forEach(line => {
         const coordinatesString = line.coordinates
           .map(coord => `${coord.longitude},${coord.latitude},0`)
           .join(' ');
-        
+
         kmlContent += `    <Placemark>
       <name>${this.escapeXml(line.name)}</name>
       <LineString>
@@ -683,7 +733,7 @@ export class KmlHandler {
       const coordinatesString = userData.activeLine.points
         .map(coord => `${coord.longitude},${coord.latitude},0`)
         .join(' ');
-      
+
       kmlContent += `    <Placemark>
       <name>${this.escapeXml(userData.activeLine.name)} (Garis Aktif)</name>
       <LineString>

@@ -16,11 +16,14 @@ export class SessionManager {
 
   constructor(logger: winston.Logger) {
     this.logger = logger;
-    
+
     // Clean up expired sessions every 30 minutes
-    setInterval(() => {
-      this.cleanupExpiredSessions();
-    }, 30 * 60 * 1000);
+    setInterval(
+      () => {
+        this.cleanupExpiredSessions();
+      },
+      30 * 60 * 1000
+    );
   }
 
   /**
@@ -32,15 +35,15 @@ export class SessionManager {
       mode,
       data,
       startedAt: new Date(),
-      lastActivity: new Date()
+      lastActivity: new Date(),
     };
-    
+
     this.sessions.set(telegramId, session);
-    
+
     this.logger.info('User mode set', {
       telegramId,
       mode,
-      hasData: !!data
+      hasData: !!data,
     });
   }
 
@@ -74,9 +77,9 @@ export class SessionManager {
    */
   clearUserMode(telegramId: string): void {
     this.sessions.delete(telegramId);
-    
+
     this.logger.info('User mode cleared', {
-      telegramId
+      telegramId,
     });
   }
 
@@ -122,7 +125,7 @@ export class SessionManager {
     if (cleanedCount > 0) {
       this.logger.info('Cleaned up expired sessions', {
         cleanedCount,
-        remainingSessions: this.sessions.size
+        remainingSessions: this.sessions.size,
       });
     }
   }
@@ -139,7 +142,7 @@ export class SessionManager {
       location: 0,
       geotags: 0,
       kml: 0,
-      workbook: 0
+      workbook: 0,
     };
 
     sessions.forEach(session => {
@@ -148,7 +151,7 @@ export class SessionManager {
 
     return {
       totalSessions: sessions.length,
-      modeDistribution
+      modeDistribution,
     };
   }
-} 
+}

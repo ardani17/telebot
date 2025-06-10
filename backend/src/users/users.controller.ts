@@ -31,24 +31,31 @@ export class UsersController {
   }
 
   @Post()
-  createUser(@Body() userData: {
-    telegramId: string;
-    name: string;
-    username?: string;
-    password?: string;
-    role?: 'USER' | 'ADMIN';
-  }) {
+  createUser(
+    @Body()
+    userData: {
+      telegramId: string;
+      name: string;
+      username?: string;
+      password?: string;
+      role?: 'USER' | 'ADMIN';
+    }
+  ) {
     return this.usersService.createUser(userData);
   }
 
   @Patch(':id')
-  updateUser(@Param('id') id: string, @Body() userData: {
-    name?: string;
-    username?: string;
-    password?: string;
-    role?: 'USER' | 'ADMIN';
-    isActive?: boolean;
-  }) {
+  updateUser(
+    @Param('id') id: string,
+    @Body()
+    userData: {
+      name?: string;
+      username?: string;
+      password?: string;
+      role?: 'USER' | 'ADMIN';
+      isActive?: boolean;
+    }
+  ) {
     return this.usersService.updateUser(id, userData);
   }
 

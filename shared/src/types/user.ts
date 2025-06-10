@@ -11,7 +11,7 @@ export interface User {
 
 export enum UserRole {
   ADMIN = 'ADMIN',
-  USER = 'USER'
+  USER = 'USER',
 }
 
 export interface UserFeatureAccess {

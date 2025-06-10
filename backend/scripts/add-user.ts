@@ -24,10 +24,10 @@ async function addUser() {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (existingUser) {
@@ -39,7 +39,7 @@ async function addUser() {
       console.log(`   Active: ${existingUser.isActive}`);
       console.log(`   Created: ${existingUser.createdAt}`);
       console.log(`   Feature Access: ${existingUser.featureAccess.length} features`);
-      
+
       existingUser.featureAccess.forEach(access => {
         console.log(`     - ${access.feature.name}: ${access.feature.description}`);
       });
@@ -78,7 +78,7 @@ async function addUser() {
     // Grant access to all features if admin
     if (role === UserRole.ADMIN) {
       const features = await prisma.feature.findMany();
-      
+
       for (const feature of features) {
         await prisma.userFeatureAccess.create({
           data: {
@@ -92,7 +92,6 @@ async function addUser() {
     }
 
     return newUser;
-
   } catch (error) {
     console.error('❌ Error adding user:', error);
     throw error;
@@ -104,12 +103,12 @@ async function addUser() {
 async function checkDatabase() {
   try {
     console.log('\n📊 Database Status Check:');
-    
+
     const userCount = await prisma.user.count();
     const featureCount = await prisma.feature.count();
     const configCount = await prisma.systemConfig.count();
     const botConfigCount = await prisma.botConfig.count();
-    
+
     console.log(`   👥 Total Users: ${userCount}`);
     console.log(`   🎯 Total Features: ${featureCount}`);
     console.log(`   ⚙️  System Configs: ${configCount}`);
@@ -120,15 +119,17 @@ async function checkDatabase() {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     console.log('\n👥 All Users:');
     users.forEach(user => {
-      console.log(`   - ${user.name} (${user.telegramId}) - ${user.role} - Features: ${user.featureAccess.length}`);
+      console.log(
+        `   - ${user.name} (${user.telegramId}) - ${user.role} - Features: ${user.featureAccess.length}`
+      );
     });
 
     // List all features
@@ -137,7 +138,6 @@ async function checkDatabase() {
     features.forEach(feature => {
       console.log(`   - ${feature.name}: ${feature.description} (Enabled: ${feature.isEnabled})`);
     });
-
   } catch (error) {
     console.error('❌ Error checking database:', error);
   }
@@ -146,11 +146,11 @@ async function checkDatabase() {
 // Main execution
 async function main() {
   console.log('🚀 TeleWeb User Management Script\n');
-  
+
   await checkDatabase();
   await addUser();
-  
+
   console.log('\n🎉 Script completed successfully!');
 }
 
-main().catch(console.error); 
+main().catch(console.error);

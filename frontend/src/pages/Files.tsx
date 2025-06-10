@@ -463,7 +463,9 @@ export function Files() {
 
     try {
       setActionLoading(true);
-      const response = await api.get(`/files/download/path/${selectedUser}/${filePath}`, {
+      // Properly encode the file path for URL
+      const encodedPath = encodeURIComponent(filePath);
+      const response = await api.get(`/files/download/path/${selectedUser}/${encodedPath}`, {
         responseType: 'blob',
       });
 
@@ -491,7 +493,9 @@ export function Files() {
 
     try {
       setActionLoading(true);
-      await api.delete(`/files/path/${selectedUser}/${filePath}`);
+      // Properly encode the file path for URL
+      const encodedPath = encodeURIComponent(filePath);
+      await api.delete(`/files/path/${selectedUser}/${encodedPath}`);
       // Refresh filesystem
       await fetchFilesystem(selectedUser);
       await fetchStorageStats();

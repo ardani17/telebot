@@ -34,10 +34,10 @@ export class AdminHandler {
         return;
       }
 
-      this.logger.info('Admin panel accessed', { 
-        telegramId, 
+      this.logger.info('Admin panel accessed', {
+        telegramId,
         userId: ctx.user.id,
-        username: ctx.user.username 
+        username: ctx.user.username,
       });
 
       const adminText = `
@@ -63,13 +63,12 @@ export class AdminHandler {
 • Ketik \`/stats quick\` untuk statistik ringkas
 • Ketik \`/features status\` untuk status fitur
       `;
-      
-      await ctx.reply(adminText, { parse_mode: 'Markdown' });
 
+      await ctx.reply(adminText, { parse_mode: 'Markdown' });
     } catch (error) {
-      this.logger.error('Admin panel command failed', { 
-        error: (error as Error).message, 
-        telegramId: ctx.from!.id 
+      this.logger.error('Admin panel command failed', {
+        error: (error as Error).message,
+        telegramId: ctx.from!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengakses panel admin.');
     }
@@ -107,7 +106,7 @@ export class AdminHandler {
 \`/users add 123456789 John Doe\`
 \`/users role 123456789 ADMIN\`
         `;
-        
+
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
         return;
       }
@@ -161,13 +160,12 @@ export class AdminHandler {
         default:
           await ctx.reply('❌ Sub-command tidak dikenal. Ketik `/users` untuk bantuan.');
       }
-
     } catch (error) {
-      this.logger.error('Users command failed', { 
-        error: (error as Error).message, 
+      this.logger.error('Users command failed', {
+        error: (error as Error).message,
         telegramId: ctx.from!.id,
         subCommand,
-        args
+        args,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengelola pengguna.');
     }
@@ -205,7 +203,7 @@ export class AdminHandler {
 \`/features enable ocr\`
 \`/features grant 123456789 archive\`
         `;
-        
+
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
         return;
       }
@@ -253,13 +251,12 @@ export class AdminHandler {
         default:
           await ctx.reply('❌ Sub-command tidak dikenal. Ketik `/features` untuk bantuan.');
       }
-
     } catch (error) {
-      this.logger.error('Features command failed', { 
-        error: (error as Error).message, 
+      this.logger.error('Features command failed', {
+        error: (error as Error).message,
         telegramId: ctx.from!.id,
         subCommand,
-        args
+        args,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengelola fitur.');
     }
@@ -286,11 +283,10 @@ export class AdminHandler {
       } else {
         await this.handleStatsDetailed(ctx);
       }
-
     } catch (error) {
-      this.logger.error('Stats command failed', { 
-        error: (error as Error).message, 
-        telegramId: ctx.from!.id 
+      this.logger.error('Stats command failed', {
+        error: (error as Error).message,
+        telegramId: ctx.from!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik.');
     }
@@ -325,18 +321,17 @@ export class AdminHandler {
 • Pastikan pesan sudah benar sebelum mengirim
 • Proses pengiriman mungkin membutuhkan waktu
         `;
-        
+
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
         return;
       }
 
       const message = messageParts.join(' ');
       await this.handleBroadcastSend(ctx, message);
-
     } catch (error) {
-      this.logger.error('Broadcast command failed', { 
-        error: (error as Error).message, 
-        telegramId: ctx.from!.id 
+      this.logger.error('Broadcast command failed', {
+        error: (error as Error).message,
+        telegramId: ctx.from!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengirim broadcast.');
     }
@@ -373,11 +368,10 @@ Ketik \`/admin\` untuk kembali ke menu.
       `;
 
       await ctx.reply(confirmText, { parse_mode: 'Markdown' });
-
     } catch (error) {
-      this.logger.error('Reset data bot command failed', { 
-        error: (error as Error).message, 
-        telegramId: ctx.from!.id 
+      this.logger.error('Reset data bot command failed', {
+        error: (error as Error).message,
+        telegramId: ctx.from!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat memproses reset data bot.');
     }
@@ -414,7 +408,7 @@ Ketik \`/admin\` untuk kembali ke menu.
 • Operasi akan menghapus seluruh folder pengguna
 • File binlog dan sistem lainnya tetap aman
         `;
-        
+
         await ctx.reply(helpText, { parse_mode: 'Markdown' });
         return;
       }
@@ -423,9 +417,11 @@ Ketik \`/admin\` untuk kembali ke menu.
 🗑️ *Reset Data Pengguna*
 
 ⚠️ **PERINGATAN**: Operasi ini akan menghapus:
-${targetUserId === 'all' 
-  ? '• **SEMUA** folder pengguna di BOT_API_DATA_PATH' 
-  : `• Folder pengguna: \`${targetUserId}/\``}
+${
+  targetUserId === 'all'
+    ? '• **SEMUA** folder pengguna di BOT_API_DATA_PATH'
+    : `• Folder pengguna: \`${targetUserId}/\``
+}
 
 📂 Lokasi: \`BOT_API_DATA_PATH/${targetUserId === 'all' ? '<telegram-id>' : targetUserId}/\`
 
@@ -436,18 +432,17 @@ Ketik \`/admin\` untuk kembali ke menu.
       `;
 
       await ctx.reply(confirmText, { parse_mode: 'Markdown' });
-
     } catch (error) {
-      this.logger.error('Reset data user command failed', { 
-        error: (error as Error).message, 
-        telegramId: ctx.from!.id 
+      this.logger.error('Reset data user command failed', {
+        error: (error as Error).message,
+        telegramId: ctx.from!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat memproses reset data pengguna.');
     }
   }
 
   // Helper methods implementation
-  
+
   private async handleUsersList(ctx: AdminContext) {
     try {
       const response = await this.apiClient.request('GET', '/admin/bot/users');
@@ -463,30 +458,30 @@ Ketik \`/admin\` untuk kembali ke menu.
       }
 
       let userList = '👥 *Daftar Pengguna*\n\n';
-      
+
       // Get features for each user
       for (let index = 0; index < users.length; index++) {
         const user = users[index];
         const status = user.isActive ? '✅' : '❌';
         const role = user.role === 'ADMIN' ? '👑' : '👤';
-        
+
         userList += `${index + 1}. ${role} ${user.name}\n`;
         userList += `   ID: \`${user.telegramId}\`\n`;
         userList += `   Status: ${status} ${user.isActive ? 'Aktif' : 'Non-aktif'}\n`;
         userList += `   Role: ${user.role}\n`;
-        
+
         // Get user features
         if (user.role === 'ADMIN') {
           userList += `   Features: Semua (Admin)\n\n`;
         } else {
           const featuresResponse = await this.apiClient.getUserFeatures(user.telegramId);
           const features = featuresResponse.success ? featuresResponse.data || [] : [];
-          
+
           const activeFeatures = features
             .filter((access: any) => access.feature.isEnabled)
             .map((access: any) => access.feature.name.toLowerCase())
             .join(', ');
-          
+
           userList += `   Features: ${activeFeatures || 'Tidak ada'}\n\n`;
         }
       }
@@ -494,7 +489,6 @@ Ketik \`/admin\` untuk kembali ke menu.
       userList += `📊 Total: ${users.length} pengguna`;
 
       await ctx.reply(userList, { parse_mode: 'Markdown' });
-
     } catch (error) {
       this.logger.error('Failed to get users list', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil daftar pengguna.');
@@ -507,22 +501,25 @@ Ketik \`/admin\` untuk kembali ke menu.
         telegramId,
         name,
         role: 'USER',
-        isActive: true
+        isActive: true,
       });
 
       if (response.success) {
         await ctx.reply(`✅ Pengguna berhasil ditambahkan:\n👤 ${name}\n🆔 ${telegramId}`);
-        this.logger.info('User added via bot', { 
-          adminId: ctx.user!.id, 
-          newUserTelegramId: telegramId, 
-          newUserName: name 
+        this.logger.info('User added via bot', {
+          adminId: ctx.user!.id,
+          newUserTelegramId: telegramId,
+          newUserName: name,
         });
       } else {
         await ctx.reply(`❌ Gagal menambahkan pengguna: ${response.error || 'Unknown error'}`);
       }
-
     } catch (error) {
-      this.logger.error('Failed to add user', { error: (error as Error).message, telegramId, name });
+      this.logger.error('Failed to add user', {
+        error: (error as Error).message,
+        telegramId,
+        name,
+      });
       await ctx.reply('❌ Terjadi kesalahan saat menambahkan pengguna.');
     }
   }
@@ -535,20 +532,27 @@ Ketik \`/admin\` untuk kembali ke menu.
         return;
       }
 
-      const response = await this.apiClient.request('DELETE', `/admin/bot/users/${targetTelegramId}`);
+      const response = await this.apiClient.request(
+        'DELETE',
+        `/admin/bot/users/${targetTelegramId}`
+      );
 
       if (response.success) {
         await ctx.reply(`✅ Pengguna dengan ID ${targetTelegramId} berhasil dihapus.`);
-        this.logger.info('User removed via bot', { 
-          adminId: ctx.user!.id, 
-          removedUserTelegramId: targetTelegramId 
+        this.logger.info('User removed via bot', {
+          adminId: ctx.user!.id,
+          removedUserTelegramId: targetTelegramId,
         });
       } else {
-        await ctx.reply(`❌ Gagal menghapus pengguna: ${response.error || 'Pengguna tidak ditemukan'}`);
+        await ctx.reply(
+          `❌ Gagal menghapus pengguna: ${response.error || 'Pengguna tidak ditemukan'}`
+        );
       }
-
     } catch (error) {
-      this.logger.error('Failed to remove user', { error: (error as Error).message, targetTelegramId });
+      this.logger.error('Failed to remove user', {
+        error: (error as Error).message,
+        targetTelegramId,
+      });
       await ctx.reply('❌ Terjadi kesalahan saat menghapus pengguna.');
     }
   }
@@ -565,11 +569,12 @@ Ketik \`/admin\` untuk kembali ke menu.
       const user = response.data;
       const featuresResponse = await this.apiClient.getUserFeatures(targetTelegramId);
       const features = featuresResponse.success ? featuresResponse.data || [] : [];
-      
-      const activeFeatures = features
-        .filter((access: any) => access.feature.isEnabled)
-        .map((access: any) => access.feature.name)
-        .join(', ') || 'Tidak ada';
+
+      const activeFeatures =
+        features
+          .filter((access: any) => access.feature.isEnabled)
+          .map((access: any) => access.feature.name)
+          .join(', ') || 'Tidak ada';
 
       const userInfo = `
 👤 *Info Pengguna Detail*
@@ -590,14 +595,20 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
       `;
 
       await ctx.reply(userInfo, { parse_mode: 'Markdown' });
-
     } catch (error) {
-      this.logger.error('Failed to get user info', { error: (error as Error).message, targetTelegramId });
+      this.logger.error('Failed to get user info', {
+        error: (error as Error).message,
+        targetTelegramId,
+      });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil info pengguna.');
     }
   }
 
-  private async handleUsersToggleActive(ctx: AdminContext, targetTelegramId: string, isActive: boolean) {
+  private async handleUsersToggleActive(
+    ctx: AdminContext,
+    targetTelegramId: string,
+    isActive: boolean
+  ) {
     try {
       // Prevent self-deactivation
       if (!isActive && targetTelegramId === ctx.from!.id.toString()) {
@@ -605,27 +616,30 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
         return;
       }
 
-      const response = await this.apiClient.request('PATCH', `/admin/bot/users/${targetTelegramId}`, {
-        isActive
-      });
+      const response = await this.apiClient.request(
+        'PATCH',
+        `/admin/bot/users/${targetTelegramId}`,
+        {
+          isActive,
+        }
+      );
 
       if (response.success) {
         const action = isActive ? 'diaktifkan' : 'dinonaktifkan';
         await ctx.reply(`✅ Pengguna dengan ID ${targetTelegramId} berhasil ${action}.`);
-        this.logger.info('User status toggled via bot', { 
-          adminId: ctx.user!.id, 
-          targetTelegramId, 
-          isActive 
+        this.logger.info('User status toggled via bot', {
+          adminId: ctx.user!.id,
+          targetTelegramId,
+          isActive,
         });
       } else {
         await ctx.reply(`❌ Gagal mengubah status pengguna: ${response.error || 'Unknown error'}`);
       }
-
     } catch (error) {
-      this.logger.error('Failed to toggle user status', { 
-        error: (error as Error).message, 
-        targetTelegramId, 
-        isActive 
+      this.logger.error('Failed to toggle user status', {
+        error: (error as Error).message,
+        targetTelegramId,
+        isActive,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengubah status pengguna.');
     }
@@ -645,27 +659,32 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
         return;
       }
 
-      const response = await this.apiClient.request('PATCH', `/admin/bot/users/${targetTelegramId}`, {
-        role
-      });
+      const response = await this.apiClient.request(
+        'PATCH',
+        `/admin/bot/users/${targetTelegramId}`,
+        {
+          role,
+        }
+      );
 
       if (response.success) {
         const roleDisplay = role === 'ADMIN' ? '👑 ADMIN' : '👤 USER';
-        await ctx.reply(`✅ Role pengguna dengan ID ${targetTelegramId} berhasil diubah menjadi ${roleDisplay}.`);
-        this.logger.info('User role changed via bot', { 
-          adminId: ctx.user!.id, 
-          targetTelegramId, 
-          newRole: role 
+        await ctx.reply(
+          `✅ Role pengguna dengan ID ${targetTelegramId} berhasil diubah menjadi ${roleDisplay}.`
+        );
+        this.logger.info('User role changed via bot', {
+          adminId: ctx.user!.id,
+          targetTelegramId,
+          newRole: role,
         });
       } else {
         await ctx.reply(`❌ Gagal mengubah role pengguna: ${response.error || 'Unknown error'}`);
       }
-
     } catch (error) {
-      this.logger.error('Failed to change user role', { 
-        error: (error as Error).message, 
-        targetTelegramId, 
-        newRole 
+      this.logger.error('Failed to change user role', {
+        error: (error as Error).message,
+        targetTelegramId,
+        newRole,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengubah role pengguna.');
     }
@@ -686,11 +705,11 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
       }
 
       let featuresList = '⚙️ *Status Fitur Sistem*\n\n';
-      
+
       features.forEach((feature: any, index: number) => {
         const status = feature.isEnabled ? '✅ Aktif' : '❌ Non-aktif';
         const icon = this.getFeatureIcon(feature.name);
-        
+
         featuresList += `${index + 1}. ${icon} **${feature.name.toUpperCase()}**\n`;
         featuresList += `   Status: ${status}\n`;
         featuresList += `   Deskripsi: ${feature.description}\n`;
@@ -701,7 +720,6 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
       });
 
       await ctx.reply(featuresList, { parse_mode: 'Markdown' });
-
     } catch (error) {
       this.logger.error('Failed to get features list', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil daftar fitur.');
@@ -711,60 +729,70 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
   private async handleFeaturesToggle(ctx: AdminContext, featureName: string, isEnabled: boolean) {
     try {
       const response = await this.apiClient.request('PATCH', `/admin/bot/features/${featureName}`, {
-        isEnabled
+        isEnabled,
       });
 
       if (response.success) {
         const action = isEnabled ? 'diaktifkan' : 'dinonaktifkan';
         const icon = this.getFeatureIcon(featureName);
-        await ctx.reply(`✅ Fitur ${icon} **${featureName.toUpperCase()}** berhasil ${action}.`, { parse_mode: 'Markdown' });
-        this.logger.info('Feature toggled via bot', { 
-          adminId: ctx.user!.id, 
-          featureName, 
-          isEnabled 
+        await ctx.reply(`✅ Fitur ${icon} **${featureName.toUpperCase()}** berhasil ${action}.`, {
+          parse_mode: 'Markdown',
+        });
+        this.logger.info('Feature toggled via bot', {
+          adminId: ctx.user!.id,
+          featureName,
+          isEnabled,
         });
       } else {
-        await ctx.reply(`❌ Gagal mengubah status fitur: ${response.error || 'Fitur tidak ditemukan'}`);
+        await ctx.reply(
+          `❌ Gagal mengubah status fitur: ${response.error || 'Fitur tidak ditemukan'}`
+        );
       }
-
     } catch (error) {
-      this.logger.error('Failed to toggle feature', { 
-        error: (error as Error).message, 
-        featureName, 
-        isEnabled 
+      this.logger.error('Failed to toggle feature', {
+        error: (error as Error).message,
+        featureName,
+        isEnabled,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengubah status fitur.');
     }
   }
 
-  private async handleFeaturesGrant(ctx: AdminContext, telegramId: string, featureName: string, grant: boolean) {
+  private async handleFeaturesGrant(
+    ctx: AdminContext,
+    telegramId: string,
+    featureName: string,
+    grant: boolean
+  ) {
     try {
       const endpoint = grant ? 'grant' : 'revoke';
       const response = await this.apiClient.request('POST', `/admin/bot/features/${endpoint}`, {
         telegramId,
-        featureName
+        featureName,
       });
 
       if (response.success) {
         const action = grant ? 'diberikan' : 'dicabut';
         const icon = this.getFeatureIcon(featureName);
-        await ctx.reply(`✅ Akses fitur ${icon} **${featureName.toUpperCase()}** berhasil ${action} untuk pengguna ${telegramId}.`, { parse_mode: 'Markdown' });
-        this.logger.info('Feature access changed via bot', { 
-          adminId: ctx.user!.id, 
-          telegramId, 
-          featureName, 
-          grant 
+        await ctx.reply(
+          `✅ Akses fitur ${icon} **${featureName.toUpperCase()}** berhasil ${action} untuk pengguna ${telegramId}.`,
+          { parse_mode: 'Markdown' }
+        );
+        this.logger.info('Feature access changed via bot', {
+          adminId: ctx.user!.id,
+          telegramId,
+          featureName,
+          grant,
         });
       } else {
         await ctx.reply(`❌ Gagal mengubah akses fitur: ${response.error || 'Unknown error'}`);
       }
-
     } catch (error) {
-      this.logger.error('Failed to change feature access', { 
-        error: (error as Error).message, 
-        telegramId, 
-        featureName, 
-        grant 
+      this.logger.error('Failed to change feature access', {
+        error: (error as Error).message,
+        telegramId,
+        featureName,
+        grant,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mengubah akses fitur.');
     }
@@ -785,20 +813,22 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
       }
 
       let userFeatures = `👤 *Fitur Pengguna ${telegramId}*\n\n`;
-      
+
       features.forEach((access: any, index: number) => {
         const status = access.feature.isEnabled ? '✅' : '❌';
         const icon = this.getFeatureIcon(access.feature.name);
-        
+
         userFeatures += `${index + 1}. ${icon} **${access.feature.name.toUpperCase()}**\n`;
         userFeatures += `   Status Fitur: ${status} ${access.feature.isEnabled ? 'Aktif' : 'Non-aktif'}\n`;
         userFeatures += `   Diberikan: ${new Date(access.grantedAt).toLocaleDateString('id-ID')}\n\n`;
       });
 
       await ctx.reply(userFeatures, { parse_mode: 'Markdown' });
-
     } catch (error) {
-      this.logger.error('Failed to get user features', { error: (error as Error).message, telegramId });
+      this.logger.error('Failed to get user features', {
+        error: (error as Error).message,
+        telegramId,
+      });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil fitur pengguna.');
     }
   }
@@ -808,7 +838,7 @@ Update Terakhir: ${new Date(user.updatedAt).toLocaleDateString('id-ID')}
       const [usersResponse, featuresResponse, activitiesResponse] = await Promise.all([
         this.apiClient.request('GET', '/admin/bot/stats/users'),
         this.apiClient.request('GET', '/admin/bot/stats/features'),
-        this.apiClient.request('GET', '/admin/bot/stats/activities')
+        this.apiClient.request('GET', '/admin/bot/stats/activities'),
       ]);
 
       const userStats = usersResponse.data || {};
@@ -835,7 +865,6 @@ Berhasil: ${activityStats.todaySuccess || 0}
       `;
 
       await ctx.reply(quickStats, { parse_mode: 'Markdown' });
-
     } catch (error) {
       this.logger.error('Failed to get quick stats', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik ringkas.');
@@ -844,18 +873,19 @@ Berhasil: ${activityStats.todaySuccess || 0}
 
   private async handleStatsDetailed(ctx: AdminContext) {
     try {
-      const [usersResponse, featuresResponse, activitiesResponse, systemResponse] = await Promise.all([
-        this.apiClient.request('GET', '/admin/bot/stats/users'),
-        this.apiClient.request('GET', '/admin/bot/stats/features'),
-        this.apiClient.request('GET', '/admin/bot/stats/activities'),
-        this.apiClient.request('GET', '/admin/bot/stats/system')
-      ]);
+      const [usersResponse, featuresResponse, activitiesResponse, systemResponse] =
+        await Promise.all([
+          this.apiClient.request('GET', '/admin/bot/stats/users'),
+          this.apiClient.request('GET', '/admin/bot/stats/features'),
+          this.apiClient.request('GET', '/admin/bot/stats/activities'),
+          this.apiClient.request('GET', '/admin/bot/stats/system'),
+        ]);
 
       const userStats = usersResponse.data || {};
       const featureStats = featuresResponse.data || {};
       const activityStats = activitiesResponse.data || {};
       const systemStats = systemResponse.data || {};
-      
+
       // Get storage information
       const storageInfo = this.getStorageInfo();
 
@@ -897,7 +927,6 @@ Ketik \`/stats storage\` untuk detail penyimpanan.
       `;
 
       await ctx.reply(detailedStats, { parse_mode: 'Markdown' });
-
     } catch (error) {
       this.logger.error('Failed to get detailed stats', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik detail.');
@@ -935,7 +964,6 @@ Gunakan \`/stats\` untuk statistik lengkap.
       `;
 
       await ctx.reply(storageStats, { parse_mode: 'Markdown' });
-
     } catch (error) {
       this.logger.error('Failed to get storage stats', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mengambil statistik storage.');
@@ -974,17 +1002,18 @@ TeleWeb Bot System
       // Send to all users (in batches to avoid rate limiting)
       for (const user of activeUsers) {
         try {
-          await ctx.telegram.sendMessage(parseInt(user.telegramId), broadcastMessage, { parse_mode: 'Markdown' });
+          await ctx.telegram.sendMessage(parseInt(user.telegramId), broadcastMessage, {
+            parse_mode: 'Markdown',
+          });
           successCount++;
-          
+
           // Small delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 100));
-          
         } catch (sendError) {
           failCount++;
-          this.logger.warn('Failed to send broadcast to user', { 
-            userId: user.telegramId, 
-            error: (sendError as Error).message 
+          this.logger.warn('Failed to send broadcast to user', {
+            userId: user.telegramId,
+            error: (sendError as Error).message,
           });
         }
       }
@@ -1008,9 +1037,8 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
         message,
         successCount,
         failCount,
-        totalUsers: activeUsers.length
+        totalUsers: activeUsers.length,
       });
-
     } catch (error) {
       this.logger.error('Failed to send broadcast', { error: (error as Error).message, message });
       await ctx.reply('❌ Terjadi kesalahan saat mengirim broadcast.');
@@ -1019,12 +1047,12 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
 
   private getFeatureIcon(featureName: string): string {
     const icons: { [key: string]: string } = {
-      'ocr': '📄',
-      'archive': '📦',
-      'location': '📍',
-      'geotags': '🏷️',
-      'kml': '🗺️',
-      'workbook': '📊'
+      ocr: '📄',
+      archive: '📦',
+      location: '📍',
+      geotags: '🏷️',
+      kml: '🗺️',
+      workbook: '📊',
     };
     return icons[featureName.toLowerCase()] || '⚙️';
   }
@@ -1032,19 +1060,20 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
   /**
    * Get storage information for monitoring disk usage
    */
-  private getStorageInfo(): { 
-    botApiDataPath: string; 
-    botApiDataSize: string; 
-    botUserDataPath: string; 
+  private getStorageInfo(): {
+    botApiDataPath: string;
+    botApiDataSize: string;
+    botUserDataPath: string;
     botUserDataSize: string;
     totalStorageUsed: string;
     diskUsage: string;
   } {
     try {
       // Get BOT_API_DATA_PATH from environment or use default
-      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+      const botApiDataPath =
+        process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
       const botUserDataPath = path.join(process.cwd(), 'data-bot-user');
-      
+
       // Get directory sizes
       let botApiDataSize = 'N/A';
       let botUserDataSize = 'N/A';
@@ -1053,37 +1082,57 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
 
       try {
         // Get BOT_API_DATA_PATH size
-        const botApiSizeResult = execSync(`du -sh "${botApiDataPath}" 2>/dev/null | cut -f1`, { encoding: 'utf8' }).trim();
+        const botApiSizeResult = execSync(`du -sh "${botApiDataPath}" 2>/dev/null | cut -f1`, {
+          encoding: 'utf8',
+        }).trim();
         botApiDataSize = botApiSizeResult || '0B';
       } catch (error) {
-        this.logger.warn('Failed to get BOT_API_DATA_PATH size', { path: botApiDataPath, error: (error as Error).message });
+        this.logger.warn('Failed to get BOT_API_DATA_PATH size', {
+          path: botApiDataPath,
+          error: (error as Error).message,
+        });
       }
 
       try {
         // Get bot user data size
-        const botUserSizeResult = execSync(`du -sh "${botUserDataPath}" 2>/dev/null | cut -f1`, { encoding: 'utf8' }).trim();
+        const botUserSizeResult = execSync(`du -sh "${botUserDataPath}" 2>/dev/null | cut -f1`, {
+          encoding: 'utf8',
+        }).trim();
         botUserDataSize = botUserSizeResult || '0B';
       } catch (error) {
-        this.logger.warn('Failed to get bot user data size', { path: botUserDataPath, error: (error as Error).message });
+        this.logger.warn('Failed to get bot user data size', {
+          path: botUserDataPath,
+          error: (error as Error).message,
+        });
       }
 
       try {
         // Calculate total storage used by both directories
-        const totalBytes = execSync(`du -sb "${botApiDataPath}" "${botUserDataPath}" 2>/dev/null | awk '{sum += $1} END {print sum}' | numfmt --to=iec-i --suffix=B --format="%.1f"`, { encoding: 'utf8' }).trim();
+        const totalBytes = execSync(
+          `du -sb "${botApiDataPath}" "${botUserDataPath}" 2>/dev/null | awk '{sum += $1} END {print sum}' | numfmt --to=iec-i --suffix=B --format="%.1f"`,
+          { encoding: 'utf8' }
+        ).trim();
         totalStorageUsed = totalBytes || 'N/A';
       } catch (error) {
         // Fallback calculation
         try {
-          const total = execSync(`(du -sb "${botApiDataPath}" 2>/dev/null; du -sb "${botUserDataPath}" 2>/dev/null) | awk '{sum += $1} END {printf "%.1fMB", sum/1024/1024}'`, { encoding: 'utf8' }).trim();
+          const total = execSync(
+            `(du -sb "${botApiDataPath}" 2>/dev/null; du -sb "${botUserDataPath}" 2>/dev/null) | awk '{sum += $1} END {printf "%.1fMB", sum/1024/1024}'`,
+            { encoding: 'utf8' }
+          ).trim();
           totalStorageUsed = total || 'N/A';
         } catch (fallbackError) {
-          this.logger.warn('Failed to calculate total storage', { error: (fallbackError as Error).message });
+          this.logger.warn('Failed to calculate total storage', {
+            error: (fallbackError as Error).message,
+          });
         }
       }
 
       try {
         // Get disk usage for the current directory
-        const diskResult = execSync(`df -h . | awk 'NR==2 {print $3 "/" $2 " (" $5 ")"}'`, { encoding: 'utf8' }).trim();
+        const diskResult = execSync(`df -h . | awk 'NR==2 {print $3 "/" $2 " (" $5 ")"}'`, {
+          encoding: 'utf8',
+        }).trim();
         diskUsage = diskResult || 'N/A';
       } catch (error) {
         this.logger.warn('Failed to get disk usage', { error: (error as Error).message });
@@ -1095,9 +1144,8 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
         botUserDataPath,
         botUserDataSize,
         totalStorageUsed,
-        diskUsage
+        diskUsage,
       };
-
     } catch (error) {
       this.logger.error('Failed to get storage info', { error: (error as Error).message });
       return {
@@ -1106,7 +1154,7 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
         botUserDataPath: 'N/A',
         botUserDataSize: 'N/A',
         totalStorageUsed: 'N/A',
-        diskUsage: 'N/A'
+        diskUsage: 'N/A',
       };
     }
   }
@@ -1117,7 +1165,8 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
   async executeResetDataBot(ctx: AdminContext) {
     try {
       const botToken = process.env.BOT_TOKEN || '';
-      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+      const botApiDataPath =
+        process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
       const botDataDir = path.join(botApiDataPath, botToken);
 
       if (!fs.existsSync(botDataDir)) {
@@ -1133,7 +1182,7 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
 
       for (const folder of foldersToDelete) {
         const folderPath = path.join(botDataDir, folder);
-        
+
         try {
           if (fs.existsSync(folderPath)) {
             // Use rm -rf for thorough deletion
@@ -1145,9 +1194,9 @@ ${failCount > 0 ? '\n⚠️ Beberapa pengguna mungkin tidak menerima pesan (akun
           }
         } catch (error) {
           errorCount++;
-          this.logger.error('Failed to reset bot data folder', { 
-            folder: folderPath, 
-            error: (error as Error).message 
+          this.logger.error('Failed to reset bot data folder', {
+            folder: folderPath,
+            error: (error as Error).message,
           });
         }
       }
@@ -1173,13 +1222,12 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail
         adminId: ctx.user!.id,
         deletedCount,
         errorCount,
-        botDataDir
+        botDataDir,
       });
-
     } catch (error) {
-      this.logger.error('Failed to execute bot data reset', { 
+      this.logger.error('Failed to execute bot data reset', {
         error: (error as Error).message,
-        adminId: ctx.user!.id 
+        adminId: ctx.user!.id,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mereset data bot.');
     }
@@ -1190,7 +1238,8 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail
    */
   async executeResetDataUser(ctx: AdminContext, targetUserId: string) {
     try {
-      const botApiDataPath = process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
+      const botApiDataPath =
+        process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
 
       if (targetUserId === 'all') {
         // Reset all user data
@@ -1199,12 +1248,11 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail
         // Reset specific user data
         await this.resetSpecificUserData(ctx, botApiDataPath, targetUserId);
       }
-
     } catch (error) {
-      this.logger.error('Failed to execute user data reset', { 
+      this.logger.error('Failed to execute user data reset', {
         error: (error as Error).message,
         adminId: ctx.user!.id,
-        targetUserId
+        targetUserId,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mereset data pengguna.');
     }
@@ -1213,7 +1261,7 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail
   private async resetAllUserData(ctx: AdminContext, botApiDataPath: string) {
     try {
       const botToken = process.env.BOT_TOKEN || '';
-      
+
       if (!fs.existsSync(botApiDataPath)) {
         await ctx.reply('❌ Direktori BOT_API_DATA_PATH tidak ditemukan.');
         return;
@@ -1228,17 +1276,17 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal direset. Cek log untuk detail
       for (const entry of entries) {
         if (entry.isDirectory() && entry.name !== botToken && /^\d+$/.test(entry.name)) {
           const userDir = path.join(botApiDataPath, entry.name);
-          
+
           try {
             execSync(`rm -rf "${userDir}"`, { encoding: 'utf8' });
             deletedCount++;
             this.logger.info('User data folder deleted', { userId: entry.name, path: userDir });
           } catch (error) {
             errorCount++;
-            this.logger.error('Failed to delete user data folder', { 
-              userId: entry.name, 
-              path: userDir, 
-              error: (error as Error).message 
+            this.logger.error('Failed to delete user data folder', {
+              userId: entry.name,
+              path: userDir,
+              error: (error as Error).message,
             });
           }
         }
@@ -1261,9 +1309,8 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal dihapus. Cek log untuk detail
       this.logger.info('All user data reset completed', {
         adminId: ctx.user!.id,
         deletedCount,
-        errorCount
+        errorCount,
       });
-
     } catch (error) {
       this.logger.error('Failed to reset all user data', { error: (error as Error).message });
       await ctx.reply('❌ Terjadi kesalahan saat mereset data semua pengguna.');
@@ -1300,24 +1347,22 @@ ${errorCount > 0 ? '\n⚠️ Beberapa folder gagal dihapus. Cek log untuk detail
         this.logger.info('User data reset completed', {
           adminId: ctx.user!.id,
           targetUserId: userId,
-          deletedPath: userDir
+          deletedPath: userDir,
         });
-
       } catch (error) {
         await ctx.reply(`❌ Gagal menghapus data pengguna ${userId}: ${(error as Error).message}`);
-        this.logger.error('Failed to delete user data', { 
-          userId, 
-          path: userDir, 
-          error: (error as Error).message 
+        this.logger.error('Failed to delete user data', {
+          userId,
+          path: userDir,
+          error: (error as Error).message,
         });
       }
-
     } catch (error) {
-      this.logger.error('Failed to reset specific user data', { 
+      this.logger.error('Failed to reset specific user data', {
         error: (error as Error).message,
-        userId 
+        userId,
       });
       await ctx.reply('❌ Terjadi kesalahan saat mereset data pengguna.');
     }
   }
-} 
+}

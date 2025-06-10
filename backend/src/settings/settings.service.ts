@@ -20,36 +20,36 @@ export class SettingsService {
 
   async getSettings(category?: SettingCategory) {
     const where = category ? { category } : {};
-    
+
     const settings = await this.prisma.appSettings.findMany({
       where,
-      orderBy: [
-        { category: 'asc' },
-        { key: 'asc' }
-      ]
+      orderBy: [{ category: 'asc' }, { key: 'asc' }],
     });
 
     // Group by category
-    const grouped = settings.reduce((acc, setting) => {
-      if (!acc[setting.category]) {
-        acc[setting.category] = [];
-      }
-      acc[setting.category].push(setting);
-      return acc;
-    }, {} as Record<string, typeof settings>);
+    const grouped = settings.reduce(
+      (acc, setting) => {
+        if (!acc[setting.category]) {
+          acc[setting.category] = [];
+        }
+        acc[setting.category].push(setting);
+        return acc;
+      },
+      {} as Record<string, typeof settings>
+    );
 
     return {
       settings: grouped,
-      total: settings.length
+      total: settings.length,
     };
   }
 
   async updateSettings(updateDto: UpdateSettingsDto) {
     const updatedSettings = [];
-    
+
     for (const [key, value] of Object.entries(updateDto.settings)) {
       const existingSetting = await this.prisma.appSettings.findUnique({
-        where: { key }
+        where: { key },
       });
 
       if (existingSetting && existingSetting.isEditable) {
@@ -57,18 +57,20 @@ export class SettingsService {
           where: { key },
           data: {
             value: String(value),
-            updatedBy: updateDto.updatedBy || 'system'
-          }
+            updatedBy: updateDto.updatedBy || 'system',
+          },
         });
         updatedSettings.push(updated);
-        
-        this.logger.log(`Setting '${key}' updated to '${value}' by ${updateDto.updatedBy || 'system'}`);
+
+        this.logger.log(
+          `Setting '${key}' updated to '${value}' by ${updateDto.updatedBy || 'system'}`
+        );
       }
     }
 
     return {
       message: `${updatedSettings.length} settings updated successfully`,
-      updated: updatedSettings
+      updated: updatedSettings,
     };
   }
 
@@ -76,13 +78,13 @@ export class SettingsService {
     const categories = await this.prisma.appSettings.groupBy({
       by: ['category'],
       _count: {
-        category: true
-      }
+        category: true,
+      },
     });
 
     return categories.map(cat => ({
       category: cat.category,
-      count: cat._count.category
+      count: cat._count.category,
     }));
   }
 
@@ -96,17 +98,17 @@ export class SettingsService {
         create: defaultSetting,
         update: {
           value: defaultSetting.value,
-          updatedBy: 'system-reset'
-        }
+          updatedBy: 'system-reset',
+        },
       });
       resetCount++;
     }
 
     this.logger.log(`Reset ${resetCount} settings to default values`);
-    
+
     return {
       message: `${resetCount} settings reset to default values`,
-      resetCount
+      resetCount,
     };
   }
 
@@ -116,12 +118,12 @@ export class SettingsService {
 
     for (const setting of defaultSettings) {
       const exists = await this.prisma.appSettings.findUnique({
-        where: { key: setting.key }
+        where: { key: setting.key },
       });
 
       if (!exists) {
         await this.prisma.appSettings.create({
-          data: setting
+          data: setting,
         });
         createdCount++;
       }
@@ -143,7 +145,7 @@ export class SettingsService {
         category: SettingCategory.BOT,
         type: ConfigType.BOOLEAN,
         description: 'Enable bot polling mode',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'bot.webhook',
@@ -151,7 +153,7 @@ export class SettingsService {
         category: SettingCategory.BOT,
         type: ConfigType.BOOLEAN,
         description: 'Enable bot webhook mode',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'bot.apiServer',
@@ -159,7 +161,7 @@ export class SettingsService {
         category: SettingCategory.BOT,
         type: ConfigType.STRING,
         description: 'Bot API server URL',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'bot.maxFileSize',
@@ -167,7 +169,7 @@ export class SettingsService {
         category: SettingCategory.BOT,
         type: ConfigType.STRING,
         description: 'Maximum file size for bot uploads',
-        isEditable: true
+        isEditable: true,
       },
 
       // File Settings
@@ -177,7 +179,7 @@ export class SettingsService {
         category: SettingCategory.FILES,
         type: ConfigType.STRING,
         description: 'Maximum file upload size',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'files.retentionDays',
@@ -185,7 +187,7 @@ export class SettingsService {
         category: SettingCategory.FILES,
         type: ConfigType.NUMBER,
         description: 'File retention period in days',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'files.autoCleanup',
@@ -193,7 +195,7 @@ export class SettingsService {
         category: SettingCategory.FILES,
         type: ConfigType.BOOLEAN,
         description: 'Enable automatic file cleanup',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'files.virusScanEnabled',
@@ -201,7 +203,7 @@ export class SettingsService {
         category: SettingCategory.FILES,
         type: ConfigType.BOOLEAN,
         description: 'Enable virus scanning for uploaded files',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'files.allowedExtensions',
@@ -209,7 +211,7 @@ export class SettingsService {
         category: SettingCategory.FILES,
         type: ConfigType.STRING,
         description: 'Allowed file extensions (comma separated)',
-        isEditable: true
+        isEditable: true,
       },
 
       // Security Settings
@@ -219,7 +221,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.STRING,
         description: 'JWT token expiration time',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'jwt.refreshExpiresIn',
@@ -227,7 +229,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.STRING,
         description: 'JWT refresh token expiration time',
-        isEditable: true
+        isEditable: true,
       },
 
       // Rate Limiting
@@ -237,7 +239,7 @@ export class SettingsService {
         category: SettingCategory.RATE_LIMIT,
         type: ConfigType.BOOLEAN,
         description: 'Enable rate limiting',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'rateLimit.windowMs',
@@ -245,7 +247,7 @@ export class SettingsService {
         category: SettingCategory.RATE_LIMIT,
         type: ConfigType.NUMBER,
         description: 'Rate limit window in milliseconds',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'rateLimit.maxRequests',
@@ -253,7 +255,7 @@ export class SettingsService {
         category: SettingCategory.RATE_LIMIT,
         type: ConfigType.NUMBER,
         description: 'Maximum requests per window',
-        isEditable: true
+        isEditable: true,
       },
 
       // Email Settings
@@ -263,7 +265,7 @@ export class SettingsService {
         category: SettingCategory.EMAIL,
         type: ConfigType.STRING,
         description: 'SMTP server host',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'smtp.port',
@@ -271,7 +273,7 @@ export class SettingsService {
         category: SettingCategory.EMAIL,
         type: ConfigType.NUMBER,
         description: 'SMTP server port',
-        isEditable: true
+        isEditable: true,
       },
 
       // CORS Settings
@@ -281,7 +283,7 @@ export class SettingsService {
         category: SettingCategory.CORS,
         type: ConfigType.BOOLEAN,
         description: 'Enable CORS',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'cors.origin',
@@ -289,7 +291,7 @@ export class SettingsService {
         category: SettingCategory.CORS,
         type: ConfigType.STRING,
         description: 'CORS allowed origins (comma separated)',
-        isEditable: true
+        isEditable: true,
       },
 
       // Security Settings
@@ -299,7 +301,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.NUMBER,
         description: 'Session maximum age in milliseconds',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'password.minLength',
@@ -307,7 +309,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.NUMBER,
         description: 'Minimum password length',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'security.bruteForceProtection',
@@ -315,7 +317,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.BOOLEAN,
         description: 'Enable brute force protection',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'security.twoFactorEnabled',
@@ -323,7 +325,7 @@ export class SettingsService {
         category: SettingCategory.SECURITY,
         type: ConfigType.BOOLEAN,
         description: 'Enable two-factor authentication',
-        isEditable: true
+        isEditable: true,
       },
 
       // Email Settings
@@ -333,7 +335,7 @@ export class SettingsService {
         category: SettingCategory.EMAIL,
         type: ConfigType.STRING,
         description: 'SMTP user email',
-        isEditable: true
+        isEditable: true,
       },
       {
         key: 'smtp.from',
@@ -341,7 +343,7 @@ export class SettingsService {
         category: SettingCategory.EMAIL,
         type: ConfigType.STRING,
         description: 'Email from address',
-        isEditable: true
+        isEditable: true,
       },
 
       // Webhook Settings
@@ -351,10 +353,8 @@ export class SettingsService {
         category: SettingCategory.WEBHOOK,
         type: ConfigType.STRING,
         description: 'Webhook URL endpoint',
-        isEditable: true
+        isEditable: true,
       },
-
-
 
       // Webhook Settings
       {
@@ -363,7 +363,7 @@ export class SettingsService {
         category: SettingCategory.WEBHOOK,
         type: ConfigType.STRING,
         description: 'Webhook URL endpoint',
-        isEditable: true
+        isEditable: true,
       },
 
       // System Settings
@@ -373,8 +373,8 @@ export class SettingsService {
         category: SettingCategory.SYSTEM,
         type: ConfigType.STRING,
         description: 'Application log level',
-        isEditable: true
-      }
+        isEditable: true,
+      },
     ];
   }
 
@@ -397,7 +397,7 @@ export class SettingsService {
 
       return {
         config,
-        status
+        status,
       };
     } catch (error) {
       this.logger.error('Failed to get database config:', error);
@@ -410,10 +410,10 @@ export class SettingsService {
       // Note: This would typically update environment variables or a config file
       // For now, we'll just log the attempt and return success
       this.logger.log(`Database config update attempted by ${configDto.updatedBy || 'system'}`);
-      
+
       return {
         message: 'Database configuration updated successfully',
-        note: 'Changes require server restart to take effect'
+        note: 'Changes require server restart to take effect',
       };
     } catch (error) {
       this.logger.error('Failed to update database config:', error);
@@ -426,22 +426,26 @@ export class SettingsService {
       // For security and simplicity, we'll test the current connection
       // In production, you might want to create a temporary connection with the provided config
       this.logger.log(`Testing database connection for host: ${configDto.host}:${configDto.port}`);
-      
+
       const result = await this.testCurrentDatabaseConnection();
-      
-      this.logger.log(`Database connection test result: ${result.connected ? 'SUCCESS' : 'FAILED'}`);
-      
+
+      this.logger.log(
+        `Database connection test result: ${result.connected ? 'SUCCESS' : 'FAILED'}`
+      );
+
       return {
         success: result.connected,
-        message: result.connected ? 'Database connection successful!' : 'Database connection failed. Please check your configuration.',
+        message: result.connected
+          ? 'Database connection successful!'
+          : 'Database connection failed. Please check your configuration.',
         details: {
           host: configDto.host,
           port: configDto.port,
           database: configDto.database,
           ssl: configDto.ssl,
           tested_at: result.lastTest,
-          status: result.connected ? 'Connected' : 'Disconnected'
-        }
+          status: result.connected ? 'Connected' : 'Disconnected',
+        },
       };
     } catch (error) {
       this.logger.error('Database connection test failed:', error);
@@ -455,8 +459,8 @@ export class SettingsService {
           ssl: configDto.ssl,
           tested_at: new Date().toISOString(),
           status: 'Error',
-          error: error.message
-        }
+          error: error.message,
+        },
       };
     }
   }
@@ -467,13 +471,13 @@ export class SettingsService {
       return {
         connected: true,
         lastTest: new Date().toISOString(),
-        message: 'Connection successful'
+        message: 'Connection successful',
       };
     } catch (error) {
       return {
         connected: false,
         lastTest: new Date().toISOString(),
-        message: error.message
+        message: error.message,
       };
     }
   }
@@ -482,35 +486,51 @@ export class SettingsService {
     try {
       const securitySettings = await this.prisma.appSettings.findMany({
         where: {
-          category: SettingCategory.SECURITY
-        }
+          category: SettingCategory.SECURITY,
+        },
       });
 
       const corsSettings = await this.prisma.appSettings.findMany({
         where: {
-          category: SettingCategory.CORS
-        }
+          category: SettingCategory.CORS,
+        },
       });
 
       const rateLimitSettings = await this.prisma.appSettings.findMany({
         where: {
-          category: SettingCategory.RATE_LIMIT
-        }
+          category: SettingCategory.RATE_LIMIT,
+        },
       });
 
       // Convert to SecurityConfig format
       const settings = {
         jwtExpirationTime: this.getSettingValue(securitySettings, 'jwt.expiresIn', '1h'),
-        refreshTokenExpiration: this.getSettingValue(securitySettings, 'jwt.refreshExpiresIn', '7d'),
-        rateLimitEnabled: this.getSettingValue(rateLimitSettings, 'rateLimit.enabled', 'true') === 'true',
-        rateLimitRequests: parseInt(this.getSettingValue(rateLimitSettings, 'rateLimit.maxRequests', '100')),
-        rateLimitWindow: parseInt(this.getSettingValue(rateLimitSettings, 'rateLimit.windowMs', '900000')) / 60000, // Convert to minutes
+        refreshTokenExpiration: this.getSettingValue(
+          securitySettings,
+          'jwt.refreshExpiresIn',
+          '7d'
+        ),
+        rateLimitEnabled:
+          this.getSettingValue(rateLimitSettings, 'rateLimit.enabled', 'true') === 'true',
+        rateLimitRequests: parseInt(
+          this.getSettingValue(rateLimitSettings, 'rateLimit.maxRequests', '100')
+        ),
+        rateLimitWindow:
+          parseInt(this.getSettingValue(rateLimitSettings, 'rateLimit.windowMs', '900000')) / 60000, // Convert to minutes
         corsEnabled: this.getSettingValue(corsSettings, 'cors.enabled', 'true') === 'true',
-        corsOrigins: this.getSettingValue(corsSettings, 'cors.origin', '').split(',').filter(o => o.trim()),
-        passwordMinLength: parseInt(this.getSettingValue(securitySettings, 'password.minLength', '8')),
-        sessionTimeout: parseInt(this.getSettingValue(securitySettings, 'session.maxAge', '86400000')) / 1000, // Convert to seconds
-        bruteForceProtection: this.getSettingValue(securitySettings, 'security.bruteForceProtection', 'true') === 'true',
-        twoFactorEnabled: this.getSettingValue(securitySettings, 'security.twoFactorEnabled', 'false') === 'true',
+        corsOrigins: this.getSettingValue(corsSettings, 'cors.origin', '')
+          .split(',')
+          .filter(o => o.trim()),
+        passwordMinLength: parseInt(
+          this.getSettingValue(securitySettings, 'password.minLength', '8')
+        ),
+        sessionTimeout:
+          parseInt(this.getSettingValue(securitySettings, 'session.maxAge', '86400000')) / 1000, // Convert to seconds
+        bruteForceProtection:
+          this.getSettingValue(securitySettings, 'security.bruteForceProtection', 'true') ===
+          'true',
+        twoFactorEnabled:
+          this.getSettingValue(securitySettings, 'security.twoFactorEnabled', 'false') === 'true',
       };
 
       return { settings };
@@ -538,12 +558,12 @@ export class SettingsService {
 
       const updateResult = await this.updateSettings({
         settings: settingsToUpdate,
-        updatedBy: configDto.updatedBy || 'admin-web'
+        updatedBy: configDto.updatedBy || 'admin-web',
       });
 
       return {
         message: 'Security configuration updated successfully',
-        updated: updateResult.updated
+        updated: updateResult.updated,
       };
     } catch (error) {
       this.logger.error('Failed to update security config:', error);
@@ -555,4 +575,4 @@ export class SettingsService {
     const setting = settings.find(s => s.key === key);
     return setting ? setting.value : defaultValue;
   }
-} 
+}

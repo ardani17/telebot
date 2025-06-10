@@ -30,11 +30,10 @@ export class ConsoleLogger implements Logger {
 
   private formatMessage(level: string, message: string, meta?: any): string {
     const timestamp = new Date().toISOString();
-    const contextStr = Object.keys(this.context).length > 0 
-      ? ` [${JSON.stringify(this.context)}]` 
-      : '';
+    const contextStr =
+      Object.keys(this.context).length > 0 ? ` [${JSON.stringify(this.context)}]` : '';
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-    
+
     return `${timestamp} [${level.toUpperCase()}]${contextStr} ${message}${metaStr}`;
   }
 
@@ -121,8 +120,7 @@ export function logTiming(logger: Logger, operation: string, startTime: number):
  * Create correlation ID for request tracking
  */
 export function createCorrelationId(): string {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 /**

@@ -30,7 +30,10 @@ export function getMimeTypeFromExtension(extension: string): string | undefined 
 /**
  * Validate file size
  */
-export function isValidFileSize(fileSize: number, maxSize: number = FILE_SIZE_LIMITS.MAX_FILE_SIZE): boolean {
+export function isValidFileSize(
+  fileSize: number,
+  maxSize: number = FILE_SIZE_LIMITS.MAX_FILE_SIZE
+): boolean {
   return fileSize > 0 && fileSize <= maxSize;
 }
 
@@ -158,35 +161,38 @@ export function sanitizeUserInput(input: string): string {
 export function validatePagination(page: number, limit: number): { page: number; limit: number } {
   const validPage = Math.max(1, Math.floor(page) || 1);
   const validLimit = Math.min(100, Math.max(1, Math.floor(limit) || 10));
-  
+
   return { page: validPage, limit: validLimit };
 }
 
 /**
  * Validate date range
  */
-export function validateDateRange(dateFrom?: string, dateTo?: string): { dateFrom?: Date; dateTo?: Date } {
+export function validateDateRange(
+  dateFrom?: string,
+  dateTo?: string
+): { dateFrom?: Date; dateTo?: Date } {
   const result: { dateFrom?: Date; dateTo?: Date } = {};
-  
+
   if (dateFrom) {
     const from = new Date(dateFrom);
     if (!isNaN(from.getTime())) {
       result.dateFrom = from;
     }
   }
-  
+
   if (dateTo) {
     const to = new Date(dateTo);
     if (!isNaN(to.getTime())) {
       result.dateTo = to;
     }
   }
-  
+
   // Ensure dateFrom is before dateTo
   if (result.dateFrom && result.dateTo && result.dateFrom > result.dateTo) {
     [result.dateFrom, result.dateTo] = [result.dateTo, result.dateFrom];
   }
-  
+
   return result;
 }
 
@@ -195,11 +201,11 @@ export function validateDateRange(dateFrom?: string, dateTo?: string): { dateFro
  */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -211,7 +217,7 @@ export function formatDuration(ms: number): string {
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   if (days > 0) return `${days}d ${hours % 24}h`;
   if (hours > 0) return `${hours}h ${minutes % 60}m`;
   if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
@@ -240,7 +246,7 @@ export function deepClone<T>(obj: T): T {
   if (typeof obj === 'object') {
     const clonedObj = {} as T;
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         clonedObj[key] = deepClone(obj[key]);
       }
     }
@@ -275,7 +281,7 @@ export function throttle<T extends (...args: any[]) => any>(
     if (!inThrottle) {
       func(...args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => (inThrottle = false), limit);
     }
   };
 }
@@ -289,22 +295,22 @@ export async function retry<T>(
   baseDelay: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (attempt === maxAttempts) {
         throw lastError;
       }
-      
+
       const delay = baseDelay * Math.pow(2, attempt - 1);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError!;
 }
 

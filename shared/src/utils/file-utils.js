@@ -54,7 +54,7 @@ exports.AVAILABLE_FEATURES = [
     'location',
     'geotags',
     'kml',
-    'workbook'
+    'workbook',
 ];
 async function createAllUserFeatureDirs(baseDir, userId) {
     const dirs = {};

@@ -65,6 +65,11 @@ export function useAuth() {
           user: user.name,
         });
 
+        // Redirect to dashboard after successful login
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
+
         return { success: true };
       } catch (error: any) {
         console.error('❌ Login error:', error);
@@ -97,6 +102,11 @@ export function useAuth() {
         isAuthenticated: false,
         isLoading: false,
       });
+
+      // Redirect to login page after logout
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     }
   }, [getTokens, removeTokens]);
 

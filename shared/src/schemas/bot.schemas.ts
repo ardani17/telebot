@@ -81,7 +81,11 @@ export const createFileMetadataSchema = z.object({
   fileName: z.string().min(1, 'File name is required').max(255, 'File name too long'),
   filePath: z.string().min(1, 'File path is required'),
   fileType: z.string().min(1, 'File type is required').max(50, 'File type too long'),
-  fileSize: z.number().int().min(0, 'File size must be non-negative').max(100 * 1024 * 1024, 'File too large'), // 100MB max
+  fileSize: z
+    .number()
+    .int()
+    .min(0, 'File size must be non-negative')
+    .max(100 * 1024 * 1024, 'File too large'), // 100MB max
   mimeType: z.string().max(100, 'MIME type too long').optional(),
   mode: z.nativeEnum(BotMode),
   processed: z.boolean().default(false),
@@ -114,11 +118,13 @@ export const botConfigSchema = z.object({
   isActive: z.boolean(),
   maxFileSize: z.number().int().min(1, 'Max file size must be positive'),
   allowedFileTypes: z.array(z.string()),
-  features: z.array(z.object({
-    feature: z.nativeEnum(BotMode),
-    enabled: z.boolean(),
-    config: z.record(z.any()),
-  })),
+  features: z.array(
+    z.object({
+      feature: z.nativeEnum(BotMode),
+      enabled: z.boolean(),
+      config: z.record(z.any()),
+    })
+  ),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
@@ -130,11 +136,15 @@ export const updateBotConfigSchema = z.object({
   isActive: z.boolean().optional(),
   maxFileSize: z.number().int().min(1, 'Max file size must be positive').optional(),
   allowedFileTypes: z.array(z.string()).optional(),
-  features: z.array(z.object({
-    feature: z.nativeEnum(BotMode),
-    enabled: z.boolean(),
-    config: z.record(z.any()),
-  })).optional(),
+  features: z
+    .array(
+      z.object({
+        feature: z.nativeEnum(BotMode),
+        enabled: z.boolean(),
+        config: z.record(z.any()),
+      })
+    )
+    .optional(),
 });
 
 // Bot event schemas
@@ -155,7 +165,10 @@ export const createBotEventSchema = z.object({
 
 // Bot command schemas
 export const botCommandSchema = z.object({
-  command: z.string().min(1, 'Command is required').regex(/^\/[a-zA-Z0-9_]+$/, 'Invalid command format'),
+  command: z
+    .string()
+    .min(1, 'Command is required')
+    .regex(/^\/[a-zA-Z0-9_]+$/, 'Invalid command format'),
   description: z.string().min(1, 'Description is required').max(200, 'Description too long'),
   mode: z.nativeEnum(BotMode).optional(),
   adminOnly: z.boolean().default(false),
@@ -191,7 +204,11 @@ export const userOcrStateSchema = z.object({
 // File validation schemas
 export const fileUploadSchema = z.object({
   fileName: z.string().min(1, 'File name is required'),
-  fileSize: z.number().int().min(1, 'File size must be positive').max(100 * 1024 * 1024, 'File too large'),
+  fileSize: z
+    .number()
+    .int()
+    .min(1, 'File size must be positive')
+    .max(100 * 1024 * 1024, 'File too large'),
   mimeType: z.string().min(1, 'MIME type is required'),
   mode: z.nativeEnum(BotMode),
 });

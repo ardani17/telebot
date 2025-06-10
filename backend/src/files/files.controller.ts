@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { OcrService, ProcessingStats } from './ocr.service';
+import { OcrService } from './ocr.service';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import * as path from 'path';
@@ -57,17 +57,20 @@ export class FilesController {
           'image/webp',
           'image/tiff',
         ];
-        
+
         if (allowedMimeTypes.includes(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new BadRequestException('File harus berupa gambar (JPEG, PNG, GIF, BMP, WebP, TIFF)'), false);
+          cb(
+            new BadRequestException('File harus berupa gambar (JPEG, PNG, GIF, BMP, WebP, TIFF)'),
+            false
+          );
         }
       },
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB limit
       },
-    }),
+    })
   )
   async processOcr(
     @UploadedFile() file: Express.Multer.File,
@@ -101,9 +104,9 @@ export class FilesController {
       try {
         await fs.remove(file.path);
       } catch (cleanupError) {
-        this.logger.warn('Failed to cleanup uploaded file', { 
-          path: file.path, 
-          error: cleanupError 
+        this.logger.warn('Failed to cleanup uploaded file', {
+          path: file.path,
+          error: cleanupError,
         });
       }
 
@@ -150,9 +153,9 @@ export class FilesController {
         try {
           await fs.remove(file.path);
         } catch (cleanupError) {
-          this.logger.warn('Failed to cleanup file after error', { 
-            path: file.path, 
-            error: cleanupError 
+          this.logger.warn('Failed to cleanup file after error', {
+            path: file.path,
+            error: cleanupError,
           });
         }
       }
@@ -183,11 +186,11 @@ export class FilesController {
       limits: {
         fileSize: 50 * 1024 * 1024, // 50MB limit for batch
       },
-    }),
+    })
   )
   async processBatchOcr(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() body: { userId?: string; telegramId?: string }
+    @UploadedFile() _file: Express.Multer.File,
+    @Body() _body: { userId?: string; telegramId?: string }
   ) {
     // This could be enhanced to handle ZIP files containing multiple images
     // For now, it's a placeholder for future batch processing capability
@@ -235,35 +238,34 @@ export class FilesController {
   async generateWorkbookExcel(@Body() generateDto: any) {
     try {
       const { telegramId, userId, mediaFolderPath, folders } = generateDto;
-      
+
       this.logger.log('Workbook Excel generation request', {
         telegramId,
-        userId, 
+        userId,
         mediaFolderPath,
-        foldersCount: folders?.length
+        foldersCount: folders?.length,
       });
 
       const result = await this.filesService.generateWorkbookExcel({
         telegramId,
         userId,
         mediaFolderPath,
-        folders
+        folders,
       });
 
       return {
         success: true,
-        data: result
+        data: result,
       };
-
     } catch (error) {
       this.logger.error('Error generating workbook Excel', {
         error: (error as Error).message,
-        body: generateDto
+        body: generateDto,
       });
 
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   }
@@ -278,7 +280,7 @@ export class FilesController {
     @Query('mode') mode?: string,
     @Query('processed') processed?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     try {
       return await this.filesService.getFiles({
@@ -314,7 +316,7 @@ export class FilesController {
       if (req.user?.role !== 'ADMIN') {
         throw new BadRequestException('Access denied: Admin role required');
       }
-      
+
       return await this.filesService.getAllUserDirectories();
     } catch (error) {
       this.logger.error('Error getting all user directories', { error: error.message });
@@ -333,34 +335,34 @@ export class FilesController {
       console.log('User role:', req.user?.role);
       console.log('User telegramId:', req.user?.telegramId);
       console.log('Authorization header:', req.headers.authorization);
-      
+
       this.logger.log('Getting user filesystem', {
         telegramId,
         requestedBy: req.user?.telegramId,
         userRole: req.user?.role,
-        userId: req.user?.id
+        userId: req.user?.id,
       });
-      
+
       // Allow admin to access any user, or user to access their own files
       if (req.user?.role !== 'ADMIN' && req.user?.telegramId !== telegramId) {
         this.logger.warn('Access denied', {
           userRole: req.user?.role,
           userTelegramId: req.user?.telegramId,
-          requestedTelegramId: telegramId
+          requestedTelegramId: telegramId,
         });
         throw new BadRequestException('Access denied: Can only access your own files');
       }
-      
+
       return await this.filesService.getUserFilesystem(telegramId);
     } catch (error) {
       console.log('=== CONTROLLER ERROR ===');
       console.log('Error:', error.message);
       console.log('Stack:', error.stack);
-      
-      this.logger.error('Error getting user filesystem', { 
-        error: error.message, 
+
+      this.logger.error('Error getting user filesystem', {
+        error: error.message,
         telegramId,
-        stack: error.stack 
+        stack: error.stack,
       });
       throw new BadRequestException(`Failed to get user filesystem: ${error.message}`);
     }
@@ -376,13 +378,13 @@ export class FilesController {
       }
 
       const filePath = fileInfo.filePath;
-      if (!await fs.pathExists(filePath)) {
+      if (!(await fs.pathExists(filePath))) {
         throw new NotFoundException('File not found on filesystem');
       }
 
       res.setHeader('Content-Disposition', `attachment; filename="${fileInfo.fileName}"`);
       res.setHeader('Content-Type', fileInfo.mimeType || 'application/octet-stream');
-      
+
       return res.sendFile(path.resolve(filePath));
     } catch (error) {
       this.logger.error('Error downloading file', { error: error.message, fileId });
@@ -401,14 +403,20 @@ export class FilesController {
     @Response() res: any
   ) {
     try {
-      const result = await this.filesService.downloadFileByPath(telegramId, filePath);
-      
+      // Decode the URL encoded path
+      const decodedPath = decodeURIComponent(filePath);
+      const result = await this.filesService.downloadFileByPath(telegramId, decodedPath);
+
       res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
       res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
-      
+
       return res.sendFile(path.resolve(result.fullPath));
     } catch (error) {
-      this.logger.error('Error downloading file by path', { error: error.message, telegramId, filePath });
+      this.logger.error('Error downloading file by path', {
+        error: error.message,
+        telegramId,
+        filePath,
+      });
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -433,15 +441,18 @@ export class FilesController {
 
   @Delete('path/:telegramId/*')
   @UseGuards(JwtAuthGuard)
-  async deleteFileByPath(
-    @Param('telegramId') telegramId: string,
-    @Param('*') filePath: string
-  ) {
+  async deleteFileByPath(@Param('telegramId') telegramId: string, @Param('*') filePath: string) {
     try {
-      await this.filesService.deleteFileByPath(telegramId, filePath);
+      // Decode the URL encoded path
+      const decodedPath = decodeURIComponent(filePath);
+      await this.filesService.deleteFileByPath(telegramId, decodedPath);
       return { success: true, message: 'File deleted successfully' };
     } catch (error) {
-      this.logger.error('Error deleting file by path', { error: error.message, telegramId, filePath });
+      this.logger.error('Error deleting file by path', {
+        error: error.message,
+        telegramId,
+        filePath,
+      });
       if (error instanceof NotFoundException) {
         throw error;
       }
@@ -459,4 +470,4 @@ export class FilesController {
       throw new BadRequestException('Failed to get storage stats');
     }
   }
-} 
+}

@@ -18,30 +18,25 @@ export function createLogger(context: LogContext = {}) {
       winston.format.errors({ stack: true }),
       winston.format.json(),
       winston.format.printf(({ timestamp, level, message, ...meta }) => {
-        const contextStr = Object.keys(context).length > 0 
-          ? ` [${JSON.stringify(context)}]` 
-          : '';
-        const metaStr = Object.keys(meta).length > 0 
-          ? ` ${JSON.stringify(meta)}` 
-          : '';
-        
+        const contextStr = Object.keys(context).length > 0 ? ` [${JSON.stringify(context)}]` : '';
+        const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+
         return `${timestamp} [${level.toUpperCase()}]${contextStr} ${message}${metaStr}`;
       })
     ),
     transports: [
       new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
+        format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
       }),
       new DailyRotateFile({
-        filename: process.env.LOG_FILE_PATH ? `${process.env.LOG_FILE_PATH}/bot-%DATE%.log` : './logs/bot-%DATE%.log',
+        filename: process.env.LOG_FILE_PATH
+          ? `${process.env.LOG_FILE_PATH}/bot-%DATE%.log`
+          : './logs/bot-%DATE%.log',
         datePattern: 'YYYY-MM-DD',
         maxSize: '20m',
-        maxFiles: '14d'
-      })
-    ]
+        maxFiles: '14d',
+      }),
+    ],
   });
 
   return {
@@ -49,6 +44,6 @@ export function createLogger(context: LogContext = {}) {
     warn: (message: string, meta?: any) => logger.warn(message, { ...context, ...meta }),
     error: (message: string, meta?: any) => logger.error(message, { ...context, ...meta }),
     debug: (message: string, meta?: any) => logger.debug(message, { ...context, ...meta }),
-    child: (childContext: LogContext) => createLogger({ ...context, ...childContext })
+    child: (childContext: LogContext) => createLogger({ ...context, ...childContext }),
   };
 }

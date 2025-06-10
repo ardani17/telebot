@@ -11,32 +11,32 @@ const prisma = new PrismaClient();
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function askQuestion(question) {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  return new Promise(resolve => {
+    rl.question(question, answer => {
       resolve(answer);
     });
   });
 }
 
 function askPassword(question) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const stdin = process.stdin;
     const stdout = process.stdout;
-    
+
     stdout.write(question);
     stdin.setRawMode(true);
     stdin.resume();
     stdin.setEncoding('utf8');
-    
+
     let password = '';
-    
-    stdin.on('data', function(char) {
+
+    stdin.on('data', function (char) {
       char = char + '';
-      
+
       switch (char) {
         case '\n':
         case '\r':
@@ -71,7 +71,7 @@ async function setAdminPassword() {
   try {
     // Get admin telegram ID
     let telegramId = process.argv[2];
-    
+
     if (!telegramId) {
       telegramId = await askQuestion('Masukkan Telegram ID admin: ');
     }
@@ -97,15 +97,15 @@ async function setAdminPassword() {
     console.log('');
 
     // Get new password
-    let password = await askPassword('Masukkan password baru: ');
-    
+    const password = await askPassword('Masukkan password baru: ');
+
     if (password.length < 6) {
       console.log('\n❌ Password minimal 6 karakter');
       process.exit(1);
     }
 
-    let confirmPassword = await askPassword('Konfirmasi password: ');
-    
+    const confirmPassword = await askPassword('Konfirmasi password: ');
+
     if (password !== confirmPassword) {
       console.log('\n❌ Password tidak cocok');
       process.exit(1);
@@ -135,7 +135,6 @@ async function setAdminPassword() {
     console.log(`   URL: http://localhost:3000`);
     console.log(`   Telegram ID: ${updatedUser.telegramId}`);
     console.log(`   Password: [password yang baru diatur]`);
-
   } catch (error) {
     console.error('❌ Error mengatur password:', error.message);
     process.exit(1);
@@ -161,4 +160,4 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   process.exit(0);
 }
 
-setAdminPassword(); 
+setAdminPassword();

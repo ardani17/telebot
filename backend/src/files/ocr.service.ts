@@ -48,7 +48,7 @@ export class OcrService {
     try {
       // Initialize Google Cloud Vision client
       const keyFilePath = path.join(process.cwd(), 'config', 'gcp-vision-key.json');
-      
+
       if (fs.existsSync(keyFilePath)) {
         this.visionClient = new ImageAnnotatorClient({
           keyFilename: keyFilePath,
@@ -69,7 +69,7 @@ export class OcrService {
    */
   async extractTextFromImage(imagePath: string): Promise<OcrResult> {
     const startTime = Date.now();
-    
+
     try {
       if (!this.visionClient) {
         return {
@@ -98,13 +98,13 @@ export class OcrService {
       if (detections && detections.length > 0) {
         // First annotation contains the full text
         extractedText = detections[0].description || '';
-        
+
         // Calculate average confidence from all detections
         const confidenceValues = detections
           .slice(1) // Skip the first one (full text)
           .map(detection => detection.confidence || 0)
           .filter(conf => conf > 0);
-        
+
         if (confidenceValues.length > 0) {
           confidence = confidenceValues.reduce((a, b) => a + b, 0) / confidenceValues.length;
         }
@@ -113,21 +113,23 @@ export class OcrService {
       // Extract detailed language detection information
       if (fullTextAnnotation && fullTextAnnotation.pages && fullTextAnnotation.pages.length > 0) {
         const page = fullTextAnnotation.pages[0];
-        
+
         // Get all detected languages with confidence scores
         if (page.property && page.property.detectedLanguages) {
           detectedLanguages = page.property.detectedLanguages.map(lang => ({
             languageCode: lang.languageCode,
-            confidence: lang.confidence || 0
+            confidence: lang.confidence || 0,
           }));
         }
 
         // Processing statistics
         processingInfo = {
           totalPages: fullTextAnnotation.pages.length,
-          totalBlocks: fullTextAnnotation.pages.reduce((total, page) => 
-            total + (page.blocks ? page.blocks.length : 0), 0),
-          processingTime: Date.now() - startTime
+          totalBlocks: fullTextAnnotation.pages.reduce(
+            (total, page) => total + (page.blocks ? page.blocks.length : 0),
+            0
+          ),
+          processingTime: Date.now() - startTime,
         };
       }
 
@@ -143,7 +145,9 @@ export class OcrService {
           primaryLanguage: primaryLanguage?.languageCode,
           languageConfidence: primaryLanguage?.confidence?.toFixed(2),
           totalLanguagesDetected: detectedLanguages.length,
-          allDetectedLanguages: detectedLanguages.map(l => `${l.languageCode}(${(l.confidence * 100).toFixed(1)}%)`).join(', '),
+          allDetectedLanguages: detectedLanguages
+            .map(l => `${l.languageCode}(${(l.confidence * 100).toFixed(1)}%)`)
+            .join(', '),
           processingTime: `${processingTime}ms`,
         });
 
@@ -165,7 +169,7 @@ export class OcrService {
     } catch (error) {
       const processingTime = Date.now() - startTime;
       this.updateStats(false, processingTime);
-      
+
       this.logger.error('OCR processing failed', {
         error: error.message,
         stack: error.stack,
@@ -188,7 +192,7 @@ export class OcrService {
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif'];
     const allowedMimeTypes = [
       'image/jpeg',
-      'image/jpg', 
+      'image/jpg',
       'image/png',
       'image/gif',
       'image/bmp',
@@ -218,10 +222,11 @@ export class OcrService {
     try {
       // For now, just return the original path since Sharp is not working
       // In production, this would validate size, format, etc.
-      
+
       const stats = await fs.stat(imagePath);
-      
-      if (stats.size > 50 * 1024 * 1024) { // 50MB limit
+
+      if (stats.size > 50 * 1024 * 1024) {
+        // 50MB limit
         throw new Error('Image file too large (max 50MB)');
       }
 
@@ -245,7 +250,7 @@ export class OcrService {
    */
   private updateStats(success: boolean, processingTime: number): void {
     this.stats.totalProcessed++;
-    
+
     if (success) {
       this.stats.successfulProcesses++;
     } else {
@@ -253,12 +258,12 @@ export class OcrService {
     }
 
     // Update average processing time
-    this.stats.averageProcessingTime = 
-      (this.stats.averageProcessingTime * (this.stats.totalProcessed - 1) + processingTime) / 
+    this.stats.averageProcessingTime =
+      (this.stats.averageProcessingTime * (this.stats.totalProcessed - 1) + processingTime) /
       this.stats.totalProcessed;
 
     this.stats.lastProcessedAt = new Date();
-    
+
     // Update service health based on recent success rate
     const successRate = this.stats.successfulProcesses / this.stats.totalProcessed;
     this.stats.isServiceHealthy = successRate > 0.5 && this.visionClient !== null;
@@ -284,4 +289,4 @@ export class OcrService {
     };
     this.logger.log('OCR statistics reset');
   }
-} 
+}

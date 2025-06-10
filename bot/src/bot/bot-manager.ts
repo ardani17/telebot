@@ -1,4 +1,5 @@
 import { Telegraf, Context } from 'telegraf';
+import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
 import { UserService } from '../services/user.service';
 import { ModeManager } from '../utils/mode-manager';
 import { FileHandler } from '../utils/file-handler';
@@ -39,7 +40,7 @@ export class BotManager {
         if (!isRegistered) {
           await ctx.reply(
             '❌ Anda belum terdaftar dalam sistem.\n\n' +
-            'Silakan hubungi administrator untuk mendaftarkan akun Anda.'
+              'Silakan hubungi administrator untuk mendaftarkan akun Anda.'
           );
           return;
         }
@@ -55,11 +56,11 @@ export class BotManager {
     this.bot.use(async (ctx, next) => {
       const telegramId = ctx.from?.id.toString();
       const action = ctx.message ? 'message' : ctx.callbackQuery ? 'callback' : 'unknown';
-      
+
       this.services.logger.info('Bot interaction', {
         telegramId,
         action,
-        text: 'text' in ctx.message ? ctx.message.text : undefined
+        text: 'text' in (ctx.message || {}) ? (ctx.message as any)?.text : undefined,
       });
 
       await next();
@@ -68,14 +69,14 @@ export class BotManager {
 
   private setupCommands(): void {
     // Start command
-    this.bot.command('start', async (ctx) => {
+    this.bot.command('start', async ctx => {
       const telegramId = ctx.from.id.toString();
       const user = await this.services.userService.getUserByTelegramId(telegramId);
-      
+
       if (!user) {
         await ctx.reply(
           '❌ Anda belum terdaftar dalam sistem.\n\n' +
-          'Silakan hubungi administrator untuk mendaftarkan akun Anda.'
+            'Silakan hubungi administrator untuk mendaftarkan akun Anda.'
         );
         return;
       }
@@ -100,7 +101,7 @@ Ketik /help untuk melihat panduan lengkap.
     });
 
     // Help command
-    this.bot.command('help', async (ctx) => {
+    this.bot.command('help', async ctx => {
       const helpMessage = `
 📖 *Panduan Penggunaan Bot*
 
@@ -129,11 +130,11 @@ Jika ada pertanyaan, hubungi administrator.
     });
 
     // Status command
-    this.bot.command('status', async (ctx) => {
+    this.bot.command('status', async ctx => {
       const telegramId = ctx.from.id.toString();
       const user = await this.services.userService.getUserByTelegramId(telegramId);
       const currentMode = this.services.modeManager.getMode(telegramId);
-      
+
       if (!user) {
         await ctx.reply('❌ Data pengguna tidak ditemukan.');
         return;
@@ -162,10 +163,10 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
     });
 
     // Cancel command
-    this.bot.command('cancel', async (ctx) => {
+    this.bot.command('cancel', async ctx => {
       const telegramId = ctx.from.id.toString();
       const currentMode = this.services.modeManager.getMode(telegramId);
-      
+
       if (!currentMode) {
         await ctx.reply('⭕ Tidak ada operasi yang sedang berjalan.');
         return;
@@ -178,21 +179,21 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
 
   private setupHandlers(): void {
     // Document handler
-    this.bot.on('document', async (ctx) => {
+    this.bot.on('document', async ctx => {
       await this.handleFileUpload(ctx, ctx.message.document);
     });
 
     // Photo handler
-    this.bot.on('photo', async (ctx) => {
+    this.bot.on('photo', async ctx => {
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       await this.handleFileUpload(ctx, photo);
     });
 
     // Text handler for mode interactions
-    this.bot.on('text', async (ctx) => {
+    this.bot.on('text', async ctx => {
       const telegramId = ctx.from.id.toString();
       const currentMode = this.services.modeManager.getMode(telegramId);
-      
+
       if (currentMode) {
         // Handle mode-specific text input
         await this.handleModeInput(ctx, currentMode);
@@ -200,7 +201,7 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
         // No active mode, show help
         await ctx.reply(
           '❓ Tidak ada operasi yang sedang berjalan.\n\n' +
-          'Kirim file untuk memulai, atau ketik /help untuk bantuan.'
+            'Kirim file untuk memulai, atau ketik /help untuk bantuan.'
         );
       }
     });
@@ -232,12 +233,12 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
         fileType: fileInfo.extension,
         fileSize: fileInfo.fileSize,
         mimeType: fileInfo.mimeType,
-        mode: 'upload'
+        mode: 'upload',
       });
 
       // Determine available modes based on file type and user features
       const availableModes = this.getAvailableModesForFile(fileInfo, userFeatures);
-      
+
       if (availableModes.length === 0) {
         await ctx.reply('❌ Tidak ada mode yang tersedia untuk jenis file ini.');
         return;
@@ -248,7 +249,6 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
 
       // Show mode selection
       await this.showModeSelection(ctx, availableModes);
-
     } catch (error) {
       this.services.logger.error('Error handling file upload', { error, telegramId });
       await ctx.reply('❌ Terjadi kesalahan saat memproses file. Silakan coba lagi.');
@@ -261,8 +261,10 @@ ${user.features.map(feature => `✅ ${this.getFeatureDescription(feature)}`).joi
   }
 
   private async showModeSelection(ctx: Context, modes: string[]): Promise<void> {
-    const modeDescriptions = modes.map(mode => `• ${mode} - ${this.getModeDescription(mode)}`).join('\n');
-    
+    const modeDescriptions = modes
+      .map(mode => `• ${mode} - ${this.getModeDescription(mode)}`)
+      .join('\n');
+
     const message = `
 📋 *Pilih Mode Pemrosesan*
 
@@ -306,24 +308,24 @@ Balas dengan nama mode yang diinginkan (contoh: OCR)
 
   private getFeatureDescription(feature: string): string {
     const descriptions: Record<string, string> = {
-      'ocr': 'OCR - Ekstraksi teks dari gambar',
-      'geotags': 'Geotags - Ekstraksi data lokasi dari foto',
-      'archive': 'Archive - Ekstraksi dan analisis file arsip',
-      'workbook': 'Workbook - Konversi dan analisis spreadsheet',
-      'kml': 'KML - Ekstraksi data dari file KML/KMZ',
-      'location': 'Location - Pemrosesan data lokasi'
+      ocr: 'OCR - Ekstraksi teks dari gambar',
+      geotags: 'Geotags - Ekstraksi data lokasi dari foto',
+      archive: 'Archive - Ekstraksi dan analisis file arsip',
+      workbook: 'Workbook - Konversi dan analisis spreadsheet',
+      kml: 'KML - Ekstraksi data dari file KML/KMZ',
+      location: 'Location - Pemrosesan data lokasi',
     };
     return descriptions[feature] || feature;
   }
 
   private getModeDescription(mode: string): string {
     const descriptions: Record<string, string> = {
-      'OCR': 'Ekstraksi teks dari gambar',
-      'GEOTAGS': 'Ekstraksi koordinat GPS dari foto',
-      'ARCHIVE': 'Ekstraksi dan analisis isi arsip',
-      'WORKBOOK': 'Konversi format spreadsheet',
-      'KML': 'Ekstraksi data lokasi dari KML',
-      'LOCATION': 'Pemrosesan data koordinat'
+      OCR: 'Ekstraksi teks dari gambar',
+      GEOTAGS: 'Ekstraksi koordinat GPS dari foto',
+      ARCHIVE: 'Ekstraksi dan analisis isi arsip',
+      WORKBOOK: 'Konversi format spreadsheet',
+      KML: 'Ekstraksi data lokasi dari KML',
+      LOCATION: 'Pemrosesan data koordinat',
     };
     return descriptions[mode] || mode;
   }

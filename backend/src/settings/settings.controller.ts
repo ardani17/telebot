@@ -3,7 +3,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
-import { UpdateSettingsDto, GetSettingsDto, DatabaseConfigDto, SecurityConfigDto } from './dto/settings.dto';
+import {
+  UpdateSettingsDto,
+  GetSettingsDto,
+  DatabaseConfigDto,
+  SecurityConfigDto,
+} from './dto/settings.dto';
 
 @ApiTags('settings')
 @Controller('settings')
@@ -74,4 +79,4 @@ export class SettingsController {
   async updateSecurityConfig(@Body() configDto: SecurityConfigDto) {
     return this.settingsService.updateSecurityConfig(configDto);
   }
-} 
+}

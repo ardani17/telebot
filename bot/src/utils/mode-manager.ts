@@ -21,7 +21,7 @@ export class ModeManager {
     session.state = {}; // Reset state when changing mode
     session.updatedAt = new Date();
     if (userId) session.userId = userId;
-    
+
     this.sessions.set(telegramId, session);
   }
 
@@ -80,7 +80,7 @@ export class ModeManager {
   getState(telegramId: string, key?: string): any {
     const session = this.sessions.get(telegramId);
     if (!session) return undefined;
-    
+
     if (key) {
       return session.state[key];
     }

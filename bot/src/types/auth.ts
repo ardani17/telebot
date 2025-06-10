@@ -1,1 +1,1 @@
-export { AuthContext } from '../middleware/auth'; 
+export { AuthContext } from '../middleware/auth';

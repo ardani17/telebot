@@ -26,34 +26,35 @@ async function main() {
     id: adminUser.id,
     name: adminUser.name,
     telegramId: adminUser.telegramId,
-    role: adminUser.role
+    role: adminUser.role,
   });
 
   // Create default features
   const features = [
-    { 
-      name: 'ocr', 
-      description: 'OCR Text Recognition from Images - Extract text from images using Google Vision API' 
+    {
+      name: 'ocr',
+      description:
+        'OCR Text Recognition from Images - Extract text from images using Google Vision API',
     },
-    { 
-      name: 'archive', 
-      description: 'Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files' 
+    {
+      name: 'archive',
+      description: 'Archive Extraction and Management - Extract and process ZIP, RAR, 7Z files',
     },
-    { 
-      name: 'location', 
-      description: 'Location and GPS Processing - Process location data and coordinates' 
+    {
+      name: 'location',
+      description: 'Location and GPS Processing - Process location data and coordinates',
     },
-    { 
-      name: 'geotags', 
-      description: 'Geotag Extraction from Images - Extract GPS coordinates from image EXIF data' 
+    {
+      name: 'geotags',
+      description: 'Geotag Extraction from Images - Extract GPS coordinates from image EXIF data',
     },
-    { 
-      name: 'kml', 
-      description: 'KML File Processing - Process and convert KML/KMZ geographic files' 
+    {
+      name: 'kml',
+      description: 'KML File Processing - Process and convert KML/KMZ geographic files',
     },
-    { 
-      name: 'workbook', 
-      description: 'Excel/CSV File Processing - Process spreadsheet files and data conversion' 
+    {
+      name: 'workbook',
+      description: 'Excel/CSV File Processing - Process spreadsheet files and data conversion',
     },
   ];
 
@@ -103,14 +104,20 @@ async function main() {
       isActive: true,
       maxFileSize: 1900 * 1024 * 1024, // 1.9GB
       allowedFileTypes: [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-        'application/zip', 'application/x-rar-compressed', 
-        'application/x-7z-compressed', 'application/pdf',
-        'text/plain', 'text/csv',
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/zip',
+        'application/x-rar-compressed',
+        'application/x-7z-compressed',
+        'application/pdf',
+        'text/plain',
+        'text/csv',
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.google-earth.kml+xml',
-        'application/vnd.google-earth.kmz'
+        'application/vnd.google-earth.kmz',
       ],
     },
   });
@@ -118,7 +125,7 @@ async function main() {
   // Create bot feature configurations
   for (const featureData of features) {
     const feature = await prisma.feature.findUnique({
-      where: { name: featureData.name }
+      where: { name: featureData.name },
     });
 
     if (feature) {
@@ -146,7 +153,7 @@ async function main() {
   console.log('✅ Bot configuration created:', {
     id: botConfig.id,
     apiServer: botConfig.apiServer,
-    maxFileSize: `${Math.round(botConfig.maxFileSize / 1024 / 1024)}MB`
+    maxFileSize: `${Math.round(botConfig.maxFileSize / 1024 / 1024)}MB`,
   });
 
   // Create some system config entries
@@ -155,20 +162,21 @@ async function main() {
       key: 'MAINTENANCE_MODE',
       value: 'false',
       description: 'Enable/disable maintenance mode for the bot',
-      type: 'BOOLEAN'
+      type: 'BOOLEAN',
     },
     {
       key: 'MAX_USERS_PER_DAY',
       value: '100',
       description: 'Maximum new users that can register per day',
-      type: 'NUMBER'
+      type: 'NUMBER',
     },
     {
       key: 'WELCOME_MESSAGE',
-      value: 'Selamat datang di TeleWeb Bot! Silakan gunakan /help untuk melihat fitur yang tersedia.',
+      value:
+        'Selamat datang di TeleWeb Bot! Silakan gunakan /help untuk melihat fitur yang tersedia.',
       description: 'Welcome message for new users',
-      type: 'STRING'
-    }
+      type: 'STRING',
+    },
   ];
 
   for (const config of systemConfigs) {
@@ -188,12 +196,12 @@ async function main() {
   console.log('✅ System configurations created');
 
   console.log('🎉 Database seeding completed successfully!');
-  
+
   // Print summary
   const userCount = await prisma.user.count();
   const featureCount = await prisma.feature.count();
   const configCount = await prisma.systemConfig.count();
-  
+
   console.log('\n📊 Database Summary:');
   console.log(`   👥 Users: ${userCount}`);
   console.log(`   🎯 Features: ${featureCount}`);
@@ -212,7 +220,11 @@ function getFeatureSupportedFormats(featureName: string): string[] {
     case 'kml':
       return ['application/vnd.google-earth.kml+xml', 'application/vnd.google-earth.kmz'];
     case 'workbook':
-      return ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv'];
+      return [
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/csv',
+      ];
     case 'location':
       return ['text/plain', 'application/json'];
     default:
@@ -221,7 +233,7 @@ function getFeatureSupportedFormats(featureName: string): string[] {
 }
 
 main()
-  .catch((e) => {
+  .catch(e => {
     console.error('❌ Database seeding failed:', e);
     process.exit(1);
   })

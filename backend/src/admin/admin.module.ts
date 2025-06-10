@@ -8,6 +8,6 @@ import { BotAuthGuard } from '../auth/bot-auth.guard';
   imports: [PrismaModule],
   controllers: [AdminController],
   providers: [AdminService, BotAuthGuard],
-  exports: [AdminService]
+  exports: [AdminService],
 })
 export class AdminModule {}

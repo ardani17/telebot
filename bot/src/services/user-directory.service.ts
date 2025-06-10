@@ -1,4 +1,7 @@
-import { createAllUserFeatureDirs, createUserFeatureDir } from '../../../shared/src/utils/file-utils';
+import {
+  createAllUserFeatureDirs,
+  createUserFeatureDir,
+} from '../../../shared/src/utils/file-utils';
 import * as path from 'path';
 import winston from 'winston';
 
@@ -17,18 +20,17 @@ export class UserDirectoryService {
   async initializeUserDirectories(userId: string): Promise<void> {
     try {
       this.logger.info('Initializing user directories', { userId });
-      
+
       const directories = await createAllUserFeatureDirs(this.baseDir, userId);
-      
-      this.logger.info('User directories created', { 
-        userId, 
-        directories: Object.keys(directories) 
+
+      this.logger.info('User directories created', {
+        userId,
+        directories: Object.keys(directories),
       });
-      
     } catch (error) {
-      this.logger.error('Failed to initialize user directories', { 
-        userId, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      this.logger.error('Failed to initialize user directories', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -41,10 +43,10 @@ export class UserDirectoryService {
     try {
       return await createUserFeatureDir(this.baseDir, userId, featureName);
     } catch (error) {
-      this.logger.error('Failed to create user feature directory', { 
-        userId, 
-        featureName, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      this.logger.error('Failed to create user feature directory', {
+        userId,
+        featureName,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -56,4 +58,4 @@ export class UserDirectoryService {
   getBaseDirectory(): string {
     return this.baseDir;
   }
-} 
+}

@@ -55,7 +55,7 @@ export class LocationHandler {
   constructor(apiClient: ApiClient, logger: winston.Logger) {
     this.logger = logger;
     this.apiClient = apiClient;
-    this.backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    this.backendUrl = process.env.BACKEND_URL || 'http://localhost:3001/api';
     this.mapsApiKey = process.env.MAPS_API_KEY || '';
 
     if (!this.mapsApiKey) {
@@ -85,20 +85,20 @@ export class LocationHandler {
 
       await ctx.reply(
         '📍 **Mode Lokasi Diaktifkan**\n\n' +
-        '**Perintah yang tersedia:**\n' +
-        '• `/alamat [alamat]` - Mendapatkan koordinat dari alamat\n' +
-        '• `/koordinat [lat] [lon]` - Mendapatkan alamat dari koordinat\n' +
-        '• `/show_map [lokasi]` - Menampilkan peta lokasi\n' +
-        '• `/show_jarak` - Pengukuran jarak detail (max 1km)\n' +
-        '• `/ukur` - Mengukur jarak antara dua titik (pejalan kaki)\n' +
-        '• `/ukur_mobil` - Mengukur jarak untuk mobil\n' +
-        '• `/ukur_motor` - Mengukur jarak untuk motor\n' +
-        '• `/batal` - Membatalkan pengukuran aktif\n\n' +
-        '**Anda juga dapat:**\n' +
-        '• Mengirim lokasi Telegram untuk mendapatkan informasi lengkap\n' +
-        '• Mengirim koordinat (contoh: -7.6382862, 112.7372882)\n\n' +
-        `🗝️ Google Maps API: ${this.mapsApiKey ? '✅ Configured' : '❌ Not configured'}\n\n` +
-        'Ketik /menu untuk kembali ke menu utama.',
+          '**Perintah yang tersedia:**\n' +
+          '• `/alamat [alamat]` - Mendapatkan koordinat dari alamat\n' +
+          '• `/koordinat [lat] [lon]` - Mendapatkan alamat dari koordinat\n' +
+          '• `/show_map [lokasi]` - Menampilkan peta lokasi\n' +
+          '• `/show_jarak` - Pengukuran jarak detail (max 1km)\n' +
+          '• `/ukur` - Mengukur jarak antara dua titik (pejalan kaki)\n' +
+          '• `/ukur_mobil` - Mengukur jarak untuk mobil\n' +
+          '• `/ukur_motor` - Mengukur jarak untuk motor\n' +
+          '• `/batal` - Membatalkan pengukuran aktif\n\n' +
+          '**Anda juga dapat:**\n' +
+          '• Mengirim lokasi Telegram untuk mendapatkan informasi lengkap\n' +
+          '• Mengirim koordinat (contoh: -7.6382862, 112.7372882)\n\n' +
+          `🗝️ Google Maps API: ${this.mapsApiKey ? '✅ Configured' : '❌ Not configured'}\n\n` +
+          'Ketik /menu untuk kembali ke menu utama.',
         { parse_mode: 'Markdown' }
       );
 
@@ -110,7 +110,6 @@ export class LocationHandler {
         mode: 'location',
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Location command failed', { error, telegramId: ctx.from?.id });
       await ctx.reply('❌ Terjadi kesalahan saat mengaktifkan mode lokasi.');
@@ -127,12 +126,16 @@ export class LocationHandler {
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       if (!addressQuery) {
-        await ctx.reply('Silakan masukkan alamat yang valid.\nContoh: `/alamat Monas Jakarta`', { parse_mode: 'Markdown' });
+        await ctx.reply('Silakan masukkan alamat yang valid.\nContoh: `/alamat Monas Jakarta`', {
+          parse_mode: 'Markdown',
+        });
         return;
       }
 
@@ -149,13 +152,13 @@ export class LocationHandler {
 
       // Send detailed info with Google Maps link
       const googleMapsUrl = `https://maps.google.com/maps?q=${coordinates.latitude},${coordinates.longitude}`;
-      
+
       await ctx.reply(
         `📍 Koordinat untuk "${coordinates.address}":\n` +
-        `Latitude: ${coordinates.latitude}\n` +
-        `Longitude: ${coordinates.longitude}\n` +
-        `Lihat gmaps nya\n` +
-        `${googleMapsUrl}`
+          `Latitude: ${coordinates.latitude}\n` +
+          `Longitude: ${coordinates.longitude}\n` +
+          `Lihat gmaps nya\n` +
+          `${googleMapsUrl}`
       );
 
       // Record activity
@@ -167,7 +170,6 @@ export class LocationHandler {
         details: { query: addressQuery, found: true },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Alamat command failed', { error, addressQuery, telegramId: ctx.from?.id });
       await ctx.reply('❌ Terjadi kesalahan saat mencari koordinat.');
@@ -184,12 +186,17 @@ export class LocationHandler {
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       if (!lat || !lon) {
-        await ctx.reply('Silakan masukkan koordinat yang valid.\nContoh: `/koordinat -6.200000 106.816666`', { parse_mode: 'Markdown' });
+        await ctx.reply(
+          'Silakan masukkan koordinat yang valid.\nContoh: `/koordinat -6.200000 106.816666`',
+          { parse_mode: 'Markdown' }
+        );
         return;
       }
 
@@ -214,9 +221,9 @@ export class LocationHandler {
 
       await ctx.reply(
         `📍 **Alamat ditemukan:**\n` +
-        `**Alamat:** ${address}\n` +
-        `**Latitude:** ${latitude}\n` +
-        `**Longitude:** ${longitude}`,
+          `**Alamat:** ${address}\n` +
+          `**Latitude:** ${latitude}\n` +
+          `**Longitude:** ${longitude}`,
         { parse_mode: 'Markdown' }
       );
 
@@ -224,7 +231,7 @@ export class LocationHandler {
       await this.saveLocationCache(telegramId, {
         query: `${latitude},${longitude}`,
         result: { latitude, longitude, address },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Record activity
@@ -236,7 +243,6 @@ export class LocationHandler {
         details: { latitude, longitude, found: true },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Koordinat command failed', { error, lat, lon });
       await ctx.reply('❌ Terjadi kesalahan saat mencari alamat.');
@@ -253,12 +259,17 @@ export class LocationHandler {
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       if (!locationQuery) {
-        await ctx.reply('Silakan masukkan lokasi untuk ditampilkan.\nContoh: `/show_map -6.200000,106.816666` atau `/show_map Monas Jakarta`', { parse_mode: 'Markdown' });
+        await ctx.reply(
+          'Silakan masukkan lokasi untuk ditampilkan.\nContoh: `/show_map -6.200000,106.816666` atau `/show_map Monas Jakarta`',
+          { parse_mode: 'Markdown' }
+        );
         return;
       }
 
@@ -285,10 +296,13 @@ export class LocationHandler {
       // Generate map image using Google Maps Static API
       const mapImageBuffer = await this.generateMapImage(latitude, longitude);
 
-      await ctx.replyWithPhoto({ source: mapImageBuffer }, {
-        caption: `🗺️ **Peta Lokasi**\n**Koordinat:** ${latitude}, ${longitude}`,
-        parse_mode: 'Markdown'
-      });
+      await ctx.replyWithPhoto(
+        { source: mapImageBuffer },
+        {
+          caption: `🗺️ **Peta Lokasi**\n**Koordinat:** ${latitude}, ${longitude}`,
+          parse_mode: 'Markdown',
+        }
+      );
 
       // Record activity
       await this.recordActivity({
@@ -299,7 +313,6 @@ export class LocationHandler {
         details: { latitude, longitude, query: locationQuery },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Show map command failed', { error, locationQuery });
       await ctx.reply('❌ Terjadi kesalahan saat membuat peta.');
@@ -309,19 +322,24 @@ export class LocationHandler {
   /**
    * Handle measurement commands (/ukur, /ukur_mobil, /ukur_transit)
    */
-  async handleUkurCommand(ctx: LocationContext, transportMode: 'walking' | 'driving' | 'motorcycling' = 'walking') {
+  async handleUkurCommand(
+    ctx: LocationContext,
+    transportMode: 'walking' | 'driving' | 'motorcycling' = 'walking'
+  ) {
     try {
       const telegramId = ctx.from?.id.toString();
       if (!telegramId || !ctx.user) return;
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       const state = this.getUserLocationState(telegramId);
-      
+
       // Cancel any existing measurement
       if (state.isActive) {
         state.isActive = false;
@@ -336,18 +354,18 @@ export class LocationHandler {
 
       const modeText = {
         walking: 'Pejalan Kaki 🚶‍♂️',
-        driving: 'Mobil 🚗', 
-        motorcycling: 'Motor 🏍️'
+        driving: 'Mobil 🚗',
+        motorcycling: 'Motor 🏍️',
       };
 
       await ctx.reply(
         `📏 **Pengukuran Jarak Diaktifkan**\n` +
-        `**Mode:** ${modeText[transportMode]}\n\n` +
-        `Silakan kirim lokasi **PERTAMA** yang ingin diukur jaraknya.\n` +
-        `Anda dapat mengirim:\n` +
-        `• Lokasi Telegram (bagikan lokasi)\n` +
-        `• Koordinat (contoh: -6.200000 106.816666)\n\n` +
-        `Ketik /batal untuk membatalkan pengukuran.`,
+          `**Mode:** ${modeText[transportMode]}\n\n` +
+          `Silakan kirim lokasi **PERTAMA** yang ingin diukur jaraknya.\n` +
+          `Anda dapat mengirim:\n` +
+          `• Lokasi Telegram (bagikan lokasi)\n` +
+          `• Koordinat (contoh: -6.200000 106.816666)\n\n` +
+          `Ketik /batal untuk membatalkan pengukuran.`,
         { parse_mode: 'Markdown' }
       );
 
@@ -360,7 +378,6 @@ export class LocationHandler {
         details: { transportMode },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Ukur command failed', { error, transportMode });
       await ctx.reply('❌ Terjadi kesalahan saat memulai pengukuran.');
@@ -380,12 +397,14 @@ export class LocationHandler {
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       const state = this.getUserLocationState(telegramId);
-      
+
       // Cancel any existing measurement
       if (state.isActive) {
         state.isActive = false;
@@ -397,20 +416,20 @@ export class LocationHandler {
       state.timestamp = Date.now();
       delete state.firstPoint;
       delete state.secondPoint;
-      
+
       // Mark this as a show_jarak session
       this.showJarakSessions.add(telegramId);
 
       await ctx.reply(
         `📏 **Pengukuran Jarak Detail Diaktifkan**\n` +
-        `**Maksimal:** 1 kilometer\n` +
-        `**Mode:** Pejalan Kaki 🚶‍♂️\n\n` +
-        `Silakan kirim lokasi **PERTAMA** yang ingin diukur jaraknya.\n` +
-        `Anda dapat mengirim:\n` +
-        `• Lokasi Telegram (bagikan lokasi)\n` +
-        `• Koordinat (contoh: -6.200000 106.816666)\n\n` +
-        `Ketik /batal untuk membatalkan pengukuran.\n\n` +
-        `*Catatan: Fitur ini khusus untuk jarak pendek dengan detail tinggi*`,
+          `**Maksimal:** 1 kilometer\n` +
+          `**Mode:** Pejalan Kaki 🚶‍♂️\n\n` +
+          `Silakan kirim lokasi **PERTAMA** yang ingin diukur jaraknya.\n` +
+          `Anda dapat mengirim:\n` +
+          `• Lokasi Telegram (bagikan lokasi)\n` +
+          `• Koordinat (contoh: -6.200000 106.816666)\n\n` +
+          `Ketik /batal untuk membatalkan pengukuran.\n\n` +
+          `*Catatan: Fitur ini khusus untuk jarak pendek dengan detail tinggi*`,
         { parse_mode: 'Markdown' }
       );
 
@@ -423,7 +442,6 @@ export class LocationHandler {
         details: { maxDistance: 1000 },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Show jarak command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memulai pengukuran jarak detail.');
@@ -440,12 +458,14 @@ export class LocationHandler {
 
       const userMode = ctx.getUserMode?.();
       if (userMode !== 'location') {
-        await ctx.reply('Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.');
+        await ctx.reply(
+          'Anda harus berada dalam mode Lokasi untuk menggunakan perintah ini. Ketik /location untuk masuk ke mode Lokasi.'
+        );
         return;
       }
 
       const state = this.getUserLocationState(telegramId);
-      
+
       if (!state.isActive) {
         await ctx.reply('❌ Tidak ada pengukuran aktif untuk dibatalkan.');
         return;
@@ -456,7 +476,7 @@ export class LocationHandler {
       delete state.firstPoint;
       delete state.secondPoint;
       delete state.transportMode;
-      
+
       // Remove from show_jarak sessions if applicable
       this.showJarakSessions.delete(telegramId);
 
@@ -470,7 +490,6 @@ export class LocationHandler {
         mode: 'location',
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Batal command failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat membatalkan pengukuran.');
@@ -493,7 +512,7 @@ export class LocationHandler {
 
       const receivedLocation = {
         latitude: message.location.latitude,
-        longitude: message.location.longitude
+        longitude: message.location.longitude,
       };
 
       const state = this.getUserLocationState(telegramId);
@@ -505,7 +524,6 @@ export class LocationHandler {
         // Handle regular location info
         await this.handleLocationInfo(ctx, receivedLocation);
       }
-
     } catch (error) {
       this.logger.error('Location handling failed', { error });
       await ctx.reply('❌ Terjadi kesalahan saat memproses lokasi.');
@@ -536,7 +554,7 @@ export class LocationHandler {
 
         if (!isNaN(latitude) && !isNaN(longitude)) {
           const location = { latitude, longitude };
-          
+
           const state = this.getUserLocationState(telegramId);
           if (state.isActive) {
             await this.handleMeasurementLocation(ctx, location);
@@ -545,14 +563,15 @@ export class LocationHandler {
           }
         }
       }
-
     } catch (error) {
       this.logger.error('Text handling failed', { error });
     }
   }
 
   // Private helper methods
-  private async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number; address: string } | null> {
+  private async geocodeAddress(
+    address: string
+  ): Promise<{ latitude: number; longitude: number; address: string } | null> {
     try {
       if (!this.mapsApiKey) {
         this.logger.warn('MAPS_API_KEY not configured, cannot geocode address');
@@ -562,8 +581,8 @@ export class LocationHandler {
       const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
         params: {
           address,
-          key: this.mapsApiKey
-        }
+          key: this.mapsApiKey,
+        },
       });
 
       if (response.data.status === 'OK' && response.data.results.length > 0) {
@@ -571,7 +590,7 @@ export class LocationHandler {
         return {
           latitude: result.geometry.location.lat,
           longitude: result.geometry.location.lng,
-          address: result.formatted_address
+          address: result.formatted_address,
         };
       }
 
@@ -592,8 +611,8 @@ export class LocationHandler {
       const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
         params: {
           latlng: `${latitude},${longitude}`,
-          key: this.mapsApiKey
-        }
+          key: this.mapsApiKey,
+        },
       });
 
       if (response.data.status === 'OK' && response.data.results.length > 0) {
@@ -620,12 +639,12 @@ export class LocationHandler {
         size: '600x400',
         maptype: 'roadmap',
         markers: `color:red|${latitude},${longitude}`,
-        key: this.mapsApiKey
+        key: this.mapsApiKey,
       };
 
       const response = await axios.get(mapUrl, {
         params,
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
       });
 
       return Buffer.from(response.data);
@@ -649,22 +668,26 @@ export class LocationHandler {
 
       // Calculate optimal zoom level based on distance
       const zoom = this.calculateOptimalZoom(distance);
-      
+
       // Get directions for polyline
-      const directionsResponse = await this.getDirectionsWithPolyline(firstPoint, secondPoint, transportMode);
-      
+      const directionsResponse = await this.getDirectionsWithPolyline(
+        firstPoint,
+        secondPoint,
+        transportMode
+      );
+
       const mapUrl = 'https://maps.googleapis.com/maps/api/staticmap';
       const params: any = {
         size: '800x600',
         maptype: 'roadmap',
         key: this.mapsApiKey,
-        zoom: zoom.toString()
+        zoom: zoom.toString(),
       };
 
       // Add markers for start and end points
       params.markers = [
         `color:green|label:A|${firstPoint.latitude},${firstPoint.longitude}`,
-        `color:red|label:B|${secondPoint.latitude},${secondPoint.longitude}`
+        `color:red|label:B|${secondPoint.latitude},${secondPoint.longitude}`,
       ];
 
       // Add polyline if available
@@ -682,7 +705,7 @@ export class LocationHandler {
       const response = await axios.get(mapUrl, {
         params,
         responseType: 'arraybuffer',
-        timeout: 15000
+        timeout: 15000,
       });
 
       return Buffer.from(response.data);
@@ -694,13 +717,13 @@ export class LocationHandler {
 
   private calculateOptimalZoom(distanceInMeters: number): number {
     // Calculate zoom level based on distance
-    if (distanceInMeters < 1000) return 15;        // < 1km: very detailed
-    if (distanceInMeters < 5000) return 13;        // < 5km: detailed
-    if (distanceInMeters < 10000) return 12;       // < 10km: normal
-    if (distanceInMeters < 25000) return 11;       // < 25km: wide view
-    if (distanceInMeters < 50000) return 10;       // < 50km: city level
-    if (distanceInMeters < 100000) return 9;       // < 100km: regional
-    if (distanceInMeters < 250000) return 8;       // < 250km: province level
+    if (distanceInMeters < 1000) return 15; // < 1km: very detailed
+    if (distanceInMeters < 5000) return 13; // < 5km: detailed
+    if (distanceInMeters < 10000) return 12; // < 10km: normal
+    if (distanceInMeters < 25000) return 11; // < 25km: wide view
+    if (distanceInMeters < 50000) return 10; // < 50km: city level
+    if (distanceInMeters < 100000) return 9; // < 100km: regional
+    if (distanceInMeters < 250000) return 8; // < 250km: province level
     return 7; // > 250km: very wide view
   }
 
@@ -711,23 +734,23 @@ export class LocationHandler {
   ): Promise<{ polyline: string } | null> {
     try {
       const apiMode = mode === 'motorcycling' ? 'driving' : mode;
-      
+
       const params: any = {
         origin: `${origin.latitude},${origin.longitude}`,
         destination: `${destination.latitude},${destination.longitude}`,
         mode: apiMode,
-        key: this.mapsApiKey
+        key: this.mapsApiKey,
       };
 
       const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
         params,
-        timeout: 10000
+        timeout: 10000,
       });
 
       if (response.data.status === 'OK' && response.data.routes.length > 0) {
         const route = response.data.routes[0];
         return {
-          polyline: route.overview_polyline.points
+          polyline: route.overview_polyline.points,
         };
       }
 
@@ -744,9 +767,8 @@ export class LocationHandler {
     distance: number
   ): Promise<Buffer> {
     // Create a simple fallback image with route info
-    const distanceText = distance < 1000 
-      ? `${Math.round(distance)} m` 
-      : `${(distance / 1000).toFixed(1)} km`;
+    const distanceText =
+      distance < 1000 ? `${Math.round(distance)} m` : `${(distance / 1000).toFixed(1)} km`;
 
     const svg = `
       <svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
@@ -806,28 +828,35 @@ export class LocationHandler {
 
       // Calculate very detailed zoom level for short distances
       let zoom = 18; // Very detailed
-      if (distance > 500) zoom = 17;      // 500m-1km
-      else if (distance > 200) zoom = 18;  // 200m-500m  
-      else if (distance > 100) zoom = 19;  // 100m-200m
-      else zoom = 20;                      // < 100m (maximum detail)
+      if (distance > 500)
+        zoom = 17; // 500m-1km
+      else if (distance > 200)
+        zoom = 18; // 200m-500m
+      else if (distance > 100)
+        zoom = 19; // 100m-200m
+      else zoom = 20; // < 100m (maximum detail)
 
       const mapUrl = 'https://maps.googleapis.com/maps/api/staticmap';
       const params: any = {
         size: '1024x768', // Larger size for better detail
         maptype: 'roadmap',
         key: this.mapsApiKey,
-        zoom: zoom.toString()
+        zoom: zoom.toString(),
       };
 
       // Add detailed markers with correct format
       params.markers = [
         `color:green|size:mid|label:1|${firstPoint.latitude},${firstPoint.longitude}`,
-        `color:red|size:mid|label:2|${secondPoint.latitude},${secondPoint.longitude}`
+        `color:red|size:mid|label:2|${secondPoint.latitude},${secondPoint.longitude}`,
       ];
 
       // Try to get walking polyline for more accurate path
-      const walkingPolyline = await this.getDirectionsWithPolyline(firstPoint, secondPoint, 'walking');
-      
+      const walkingPolyline = await this.getDirectionsWithPolyline(
+        firstPoint,
+        secondPoint,
+        'walking'
+      );
+
       if (walkingPolyline && walkingPolyline.polyline) {
         // Use actual walking path
         params.path = `color:blue|weight:4|enc:${walkingPolyline.polyline}`;
@@ -850,17 +879,17 @@ export class LocationHandler {
       baseUrl.searchParams.set('key', params.key);
       baseUrl.searchParams.set('zoom', params.zoom);
       baseUrl.searchParams.set('center', params.center);
-      
+
       // Add each marker separately
       baseUrl.searchParams.append('markers', params.markers[0]);
       baseUrl.searchParams.append('markers', params.markers[1]);
-      
+
       // Add path
       baseUrl.searchParams.set('path', params.path);
 
       const response = await axios.get(baseUrl.toString(), {
         responseType: 'arraybuffer',
-        timeout: 15000
+        timeout: 15000,
       });
 
       return Buffer.from(response.data);
@@ -971,14 +1000,14 @@ export class LocationHandler {
 
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371e3; // Earth radius in meters
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     return R * c; // Distance in meters
@@ -993,30 +1022,32 @@ export class LocationHandler {
       if (!this.mapsApiKey) {
         // Fallback to direct distance calculation
         const distance = this.calculateDistance(
-          origin.latitude, origin.longitude,
-          destination.latitude, destination.longitude
+          origin.latitude,
+          origin.longitude,
+          destination.latitude,
+          destination.longitude
         );
-        return { distance, duration: distance / 50 * 3.6, traffic: '' }; // Rough estimation
+        return { distance, duration: (distance / 50) * 3.6, traffic: '' }; // Rough estimation
       }
 
       // Map internal modes to Google API modes
       let apiMode = mode;
-      let routeType = '';
-      
+      // let routeType = ''; // Reserved for future route type display
+
       if (mode === 'motorcycling') {
         apiMode = 'driving';
-        routeType = 'motorcycle';
+        // routeType = 'motorcycle';
       } else if (mode === 'driving') {
-        routeType = 'car';
+        // routeType = 'car';
       }
-      
+
       const params: any = {
         origin: `${origin.latitude},${origin.longitude}`,
         destination: `${destination.latitude},${destination.longitude}`,
         mode: apiMode,
         key: this.mapsApiKey,
         alternatives: false,
-        units: 'metric'
+        units: 'metric',
       };
 
       // Add traffic model and departure time for driving modes
@@ -1025,40 +1056,42 @@ export class LocationHandler {
         params.traffic_model = 'best_guess';
       }
 
-      this.logger.info('Calling Google Directions API', { 
-        origin: `${origin.latitude},${origin.longitude}`, 
+      this.logger.info('Calling Google Directions API', {
+        origin: `${origin.latitude},${origin.longitude}`,
         destination: `${destination.latitude},${destination.longitude}`,
-        mode: apiMode 
+        mode: apiMode,
       });
 
       this.logger.info('Directions API request params', { params });
 
       const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
         params,
-        timeout: 10000
+        timeout: 10000,
       });
 
-      this.logger.info('Google Directions API response', { 
+      this.logger.info('Google Directions API response', {
         status: response.data.status,
         routesCount: response.data.routes?.length || 0,
-        errorMessage: response.data.error_message || null
+        errorMessage: response.data.error_message || null,
       });
 
       if (response.data.status === 'OK' && response.data.routes.length > 0) {
         const route = response.data.routes[0];
         const leg = route.legs[0];
-        
+
         let traffic = '';
-        
+
         if (apiMode === 'driving' && leg.duration_in_traffic) {
           // For driving modes (car and motorcycle), check traffic
           const normalDuration = leg.duration.value;
           const trafficDuration = leg.duration_in_traffic.value;
           const delay = trafficDuration - normalDuration;
-          
-          if (delay > 300) { // More than 5 minutes delay
+
+          if (delay > 300) {
+            // More than 5 minutes delay
             traffic = `⚠️ Kemacetan: +${Math.round(delay / 60)} menit`;
-          } else if (delay > 60) { // 1-5 minutes delay
+          } else if (delay > 60) {
+            // 1-5 minutes delay
             traffic = `🟡 Lalu lintas padat: +${Math.round(delay / 60)} menit`;
           } else {
             traffic = `✅ Lalu lintas lancar`;
@@ -1067,37 +1100,41 @@ export class LocationHandler {
           // For walking, always show smooth traffic
           traffic = `✅ Lalu lintas lancar`;
         }
-        
+
         let finalDuration = leg.duration_in_traffic?.value || leg.duration.value;
-        
+
         // Adjust duration for motorcycles (typically 15-20% faster than cars)
         if (mode === 'motorcycling') {
           finalDuration = Math.round(finalDuration * 0.8); // 20% faster
         }
-        
+
         return {
           distance: leg.distance.value, // in meters
           duration: finalDuration, // in seconds with traffic adjustment
-          traffic
+          traffic,
         };
       }
 
-      this.logger.warn('No routes found in Directions API response', { status: response.data.status });
+      this.logger.warn('No routes found in Directions API response', {
+        status: response.data.status,
+      });
       return null;
     } catch (error) {
-      this.logger.error('Directions API failed', { 
-        error: (error as Error).message, 
+      this.logger.error('Directions API failed', {
+        error: (error as Error).message,
         origin: `${origin.latitude},${origin.longitude}`,
         destination: `${destination.latitude},${destination.longitude}`,
-        mode: mode 
+        mode: mode,
       });
-      
+
       // Fallback to direct distance
       const distance = this.calculateDistance(
-        origin.latitude, origin.longitude,
-        destination.latitude, destination.longitude
+        origin.latitude,
+        origin.longitude,
+        destination.latitude,
+        destination.longitude
       );
-      
+
       // Estimate duration based on mode
       let estimatedDuration = 0;
       if (mode === 'walking') {
@@ -1107,12 +1144,15 @@ export class LocationHandler {
       } else if (mode === 'motorcycling') {
         estimatedDuration = distance / 11.11; // 40 km/h average motorcycle speed
       }
-      
+
       return { distance, duration: estimatedDuration, traffic: '' };
     }
   }
 
-  private async handleMeasurementLocation(ctx: LocationContext, location: { latitude: number; longitude: number }) {
+  private async handleMeasurementLocation(
+    ctx: LocationContext,
+    location: { latitude: number; longitude: number }
+  ) {
     const telegramId = ctx.from!.id.toString();
     const state = this.getUserLocationState(telegramId);
 
@@ -1123,35 +1163,37 @@ export class LocationHandler {
       // First point
       state.firstPoint = {
         ...location,
-        address: address || 'Alamat tidak diketahui'
+        address: address || 'Alamat tidak diketahui',
       };
 
       await ctx.reply(
         `✅ **Titik PERTAMA diterima:**\n` +
-        `📍 ${state.firstPoint.address}\n` +
-        `📐 ${location.latitude}, ${location.longitude}\n\n` +
-        `Sekarang kirim lokasi **KEDUA** untuk mengukur jarak.`,
+          `📍 ${state.firstPoint.address}\n` +
+          `📐 ${location.latitude}, ${location.longitude}\n\n` +
+          `Sekarang kirim lokasi **KEDUA** untuk mengukur jarak.`,
         { parse_mode: 'Markdown' }
       );
-
     } else if (!state.secondPoint) {
       // Second point - complete measurement
       state.secondPoint = {
         ...location,
-        address: address || 'Alamat tidak diketahui'
+        address: address || 'Alamat tidak diketahui',
       };
 
       await ctx.reply('⏳ Menghitung jarak dan rute...');
 
       // Calculate straight-line distance for validation
       const straightDistance = this.calculateDistance(
-        state.firstPoint.latitude, state.firstPoint.longitude,
-        state.secondPoint.latitude, state.secondPoint.longitude
+        state.firstPoint.latitude,
+        state.firstPoint.longitude,
+        state.secondPoint.latitude,
+        state.secondPoint.longitude
       );
 
       // Check if this is a show_jarak session (detect by checking if it was started with walking mode and has specific marker)
-      const isShowJarakMode = state.transportMode === 'walking' && 
-        straightDistance <= 1000 && 
+      const isShowJarakMode =
+        state.transportMode === 'walking' &&
+        straightDistance <= 1000 &&
         this.isShowJarakSession(telegramId);
 
       if (isShowJarakMode) {
@@ -1159,12 +1201,12 @@ export class LocationHandler {
         if (straightDistance > 1000) {
           await ctx.reply(
             `❌ **Jarak terlalu jauh untuk mode detail!**\n\n` +
-            `📏 Jarak: ${(straightDistance / 1000).toFixed(2)} km\n` +
-            `📋 Maksimal: 1.00 km\n\n` +
-            `Silakan pilih titik yang lebih dekat atau gunakan /ukur untuk jarak jauh.`,
+              `📏 Jarak: ${(straightDistance / 1000).toFixed(2)} km\n` +
+              `📋 Maksimal: 1.00 km\n\n` +
+              `Silakan pilih titik yang lebih dekat atau gunakan /ukur untuk jarak jauh.`,
             { parse_mode: 'Markdown' }
           );
-          
+
           // Reset state but keep active for retry
           delete state.firstPoint;
           delete state.secondPoint;
@@ -1172,7 +1214,12 @@ export class LocationHandler {
         }
 
         // Send detailed short distance results
-        await this.sendDetailedShortDistanceResults(ctx, state.firstPoint, state.secondPoint, straightDistance);
+        await this.sendDetailedShortDistanceResults(
+          ctx,
+          state.firstPoint,
+          state.secondPoint,
+          straightDistance
+        );
       } else {
         // Regular measurement mode
         const directions = await this.getDirections(
@@ -1182,14 +1229,20 @@ export class LocationHandler {
         );
 
         if (directions) {
-          await this.sendMeasurementResults(ctx, state.firstPoint, state.secondPoint, directions, state.transportMode!);
+          await this.sendMeasurementResults(
+            ctx,
+            state.firstPoint,
+            state.secondPoint,
+            directions,
+            state.transportMode!
+          );
         } else {
           await ctx.reply('❌ Tidak dapat menghitung rute. Menggunakan jarak lurus.');
           await this.sendMeasurementResults(
-            ctx, 
-            state.firstPoint, 
-            state.secondPoint, 
-            { distance: straightDistance, duration: 0 }, 
+            ctx,
+            state.firstPoint,
+            state.secondPoint,
+            { distance: straightDistance, duration: 0 },
             state.transportMode!
           );
         }
@@ -1199,7 +1252,7 @@ export class LocationHandler {
       this.lastMeasurements.set(telegramId, {
         firstPoint: state.firstPoint,
         secondPoint: state.secondPoint,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Reset state
@@ -1209,7 +1262,10 @@ export class LocationHandler {
     }
   }
 
-  private async handleCoordinateInput(ctx: LocationContext, location: { latitude: number; longitude: number }) {
+  private async handleCoordinateInput(
+    ctx: LocationContext,
+    location: { latitude: number; longitude: number }
+  ) {
     const telegramId = ctx.from!.id.toString();
 
     // Send location first
@@ -1225,7 +1281,7 @@ export class LocationHandler {
     await this.saveLocationCache(telegramId, {
       query: `${location.latitude},${location.longitude}`,
       result: { ...location, address: address || 'Unknown' },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     await this.recordActivity({
@@ -1238,7 +1294,10 @@ export class LocationHandler {
     });
   }
 
-  private async handleLocationInfo(ctx: LocationContext, location: { latitude: number; longitude: number }) {
+  private async handleLocationInfo(
+    ctx: LocationContext,
+    location: { latitude: number; longitude: number }
+  ) {
     const telegramId = ctx.from!.id.toString();
 
     await ctx.reply('🔍 Menganalisis lokasi...');
@@ -1247,9 +1306,9 @@ export class LocationHandler {
 
     await ctx.reply(
       `📍 Informasi Lokasi:\n` +
-      `Latitude,Longitude: \`${location.latitude}, ${location.longitude}\`\n\n` +
-      `Alamat: ${address || 'Alamat tidak diketahui'}\n\n` +
-      `\`/koordinat ${location.latitude} ${location.longitude}\``,
+        `Latitude,Longitude: \`${location.latitude}, ${location.longitude}\`\n\n` +
+        `Alamat: ${address || 'Alamat tidak diketahui'}\n\n` +
+        `\`/koordinat ${location.latitude} ${location.longitude}\``,
       { parse_mode: 'Markdown' }
     );
 
@@ -1257,7 +1316,7 @@ export class LocationHandler {
     await this.saveLocationCache(telegramId, {
       query: `${location.latitude},${location.longitude}`,
       result: { ...location, address: address || 'Unknown' },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Record activity
@@ -1296,20 +1355,21 @@ export class LocationHandler {
     const modeEmoji = {
       walking: '🚶‍♂️',
       driving: '🚗',
-      motorcycling: '🏍️'
+      motorcycling: '🏍️',
     };
 
     const modeText = {
       walking: 'Pejalan Kaki',
       driving: 'Mobil',
-      motorcycling: 'Motor'
+      motorcycling: 'Motor',
     };
 
     // Generate Google Maps link
     const travelMode = transportMode === 'motorcycling' ? 'driving' : transportMode;
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${firstPoint.latitude},${firstPoint.longitude}&destination=${secondPoint.latitude},${secondPoint.longitude}&travelmode=${travelMode}`;
 
-    let message = `📏 Hasil Pengukuran Jarak\n\n` +
+    let message =
+      `📏 Hasil Pengukuran Jarak\n\n` +
       `${modeEmoji[transportMode]} Mode: ${modeText[transportMode]}\n\n` +
       `📍 Titik Awal:\n${firstPoint.address}\n` +
       `📐 ${firstPoint.latitude}, ${firstPoint.longitude}\n\n` +
@@ -1327,24 +1387,28 @@ export class LocationHandler {
 
     // Generate and send route map
     try {
-      const routeMapBuffer = await this.generateRouteMap(firstPoint, secondPoint, directions.distance, transportMode);
-      await ctx.replyWithPhoto({ source: routeMapBuffer }, {
-        caption: message,
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '🗺️ Lihat Rute di Google Maps', url: googleMapsUrl }
-          ]]
+      const routeMapBuffer = await this.generateRouteMap(
+        firstPoint,
+        secondPoint,
+        directions.distance,
+        transportMode
+      );
+      await ctx.replyWithPhoto(
+        { source: routeMapBuffer },
+        {
+          caption: message,
+          reply_markup: {
+            inline_keyboard: [[{ text: '🗺️ Lihat Rute di Google Maps', url: googleMapsUrl }]],
+          },
         }
-      });
+      );
     } catch (error) {
       this.logger.error('Failed to send route map', { error });
       // Fallback to text message only
       await ctx.reply(message, {
         reply_markup: {
-          inline_keyboard: [[
-            { text: '🗺️ Lihat Rute di Google Maps', url: googleMapsUrl }
-          ]]
-        }
+          inline_keyboard: [[{ text: '🗺️ Lihat Rute di Google Maps', url: googleMapsUrl }]],
+        },
       });
     }
 
@@ -1359,7 +1423,7 @@ export class LocationHandler {
         distance: directions.distance,
         duration: directions.duration,
         firstPoint,
-        secondPoint
+        secondPoint,
       },
       success: true,
     });
@@ -1382,7 +1446,7 @@ export class LocationHandler {
 
       // Get actual walking directions
       const walkingDirections = await this.getDirections(firstPoint, secondPoint, 'walking');
-      
+
       let actualDistance = straightDistance;
       let actualDuration = Math.round(straightDistance / 1.4); // fallback duration
       let distanceSource = 'jarak lurus udara';
@@ -1394,17 +1458,24 @@ export class LocationHandler {
       }
 
       // Generate detailed map using actual walking distance
-      const detailedMapBuffer = await this.generateDetailedShortDistanceMap(firstPoint, secondPoint, actualDistance);
-      
-      const distanceText = actualDistance < 1000 
-        ? `${Math.round(actualDistance)} meter`
-        : `${(actualDistance / 1000).toFixed(2)} km`;
-        
-      const durationText = actualDuration < 60 
-        ? `${Math.round(actualDuration)} detik`
-        : `${Math.round(actualDuration / 60)} menit`;
+      const detailedMapBuffer = await this.generateDetailedShortDistanceMap(
+        firstPoint,
+        secondPoint,
+        actualDistance
+      );
 
-      const message = `📏 **Pengukuran Jarak Detail**\n\n` +
+      const distanceText =
+        actualDistance < 1000
+          ? `${Math.round(actualDistance)} meter`
+          : `${(actualDistance / 1000).toFixed(2)} km`;
+
+      const durationText =
+        actualDuration < 60
+          ? `${Math.round(actualDuration)} detik`
+          : `${Math.round(actualDuration / 60)} menit`;
+
+      const message =
+        `📏 **Pengukuran Jarak Detail**\n\n` +
         `📍 **Titik 1:** ${firstPoint.address}\n` +
         `📐 ${firstPoint.latitude}, ${firstPoint.longitude}\n\n` +
         `📍 **Titik 2:** ${secondPoint.address}\n` +
@@ -1414,10 +1485,13 @@ export class LocationHandler {
         `📊 **Metode:** ${distanceSource}\n\n` +
         `*Terimakasih*`;
 
-      await ctx.replyWithPhoto({ source: detailedMapBuffer }, {
-        caption: message,
-        parse_mode: 'Markdown'
-      });
+      await ctx.replyWithPhoto(
+        { source: detailedMapBuffer },
+        {
+          caption: message,
+          parse_mode: 'Markdown',
+        }
+      );
 
       // Record activity
       await this.recordActivity({
@@ -1431,11 +1505,10 @@ export class LocationHandler {
           actualDuration,
           distanceSource,
           firstPoint,
-          secondPoint
+          secondPoint,
         },
         success: true,
       });
-
     } catch (error) {
       this.logger.error('Failed to send detailed distance results', { error });
       await ctx.reply('❌ Terjadi kesalahan saat membuat peta detail.');
@@ -1452,7 +1525,7 @@ export class LocationHandler {
   private initUserLocationState(telegramId: string): void {
     this.userStates.set(telegramId, {
       isActive: false,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -1471,7 +1544,10 @@ export class LocationHandler {
     const elapsed = now - state.timestamp;
 
     if (state.isActive && elapsed > this.MEASUREMENT_TIMEOUT_MS) {
-      this.logger.info('Measurement timeout cleanup', { telegramId, elapsed: Math.round(elapsed / 1000) });
+      this.logger.info('Measurement timeout cleanup', {
+        telegramId,
+        elapsed: Math.round(elapsed / 1000),
+      });
       this.initUserLocationState(telegramId);
       return true;
     }
@@ -1485,7 +1561,7 @@ export class LocationHandler {
       const userDir = await createUserFeatureDir(baseDir, telegramId, 'location');
       const filename = `${Date.now()}_${data.query.replace(/[^a-z0-9]/gi, '_').substring(0, 30)}.json`;
       const filepath = path.join(userDir, filename);
-      
+
       await fs.writeJson(filepath, data, { spaces: 2 });
     } catch (error) {
       this.logger.error('Failed to save location cache', { error, telegramId });
@@ -1513,4 +1589,4 @@ export class LocationHandler {
       });
     }
   }
-} 
+}

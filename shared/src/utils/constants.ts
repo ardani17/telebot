@@ -49,7 +49,7 @@ export const MIME_TYPES = {
   'image/bmp': ['bmp'],
   'image/webp': ['webp'],
   'image/tiff': ['tiff', 'tif'],
-  
+
   // Archives
   'application/zip': ['zip'],
   'application/x-rar-compressed': ['rar'],
@@ -57,20 +57,20 @@ export const MIME_TYPES = {
   'application/x-tar': ['tar'],
   'application/gzip': ['gz'],
   'application/x-bzip2': ['bz2'],
-  
+
   // Documents
   'application/pdf': ['pdf'],
   'application/msword': ['doc'],
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
   'text/plain': ['txt'],
   'application/rtf': ['rtf'],
-  
+
   // Spreadsheets
   'application/vnd.ms-excel': ['xls'],
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['xlsx'],
   'text/csv': ['csv'],
   'application/vnd.oasis.opendocument.spreadsheet': ['ods'],
-  
+
   // Geospatial
   'application/vnd.google-earth.kml+xml': ['kml'],
   'application/vnd.google-earth.kmz': ['kmz'],
@@ -84,36 +84,36 @@ export const API_ENDPOINTS = {
   AUTH_LOGIN: '/auth/login',
   AUTH_REFRESH: '/auth/refresh',
   AUTH_LOGOUT: '/auth/logout',
-  
+
   // Users
   USERS: '/users',
   USER_BY_ID: '/users/:id',
   USER_BY_TELEGRAM_ID: '/users/telegram/:telegramId',
   USER_FEATURES: '/users/:id/features',
-  
+
   // Features
   FEATURES: '/features',
   FEATURE_BY_ID: '/features/:id',
-  
+
   // Bot
   BOT_CONFIG: '/bot/config',
   BOT_STATS: '/bot/stats',
   BOT_ACTIVITIES: '/bot/activities',
   BOT_FILES: '/bot/files',
   BOT_SESSIONS: '/bot/sessions',
-  
+
   // Files
   FILES: '/files',
   FILE_BY_ID: '/files/:id',
   FILE_DOWNLOAD: '/files/:id/download',
   FILE_UPLOAD: '/files/upload',
-  
+
   // Dashboard
   DASHBOARD_STATS: '/dashboard/stats',
-  
+
   // Health
   HEALTH: '/health',
-  
+
   // WebSocket
   WEBSOCKET: '/ws',
 } as const;
@@ -125,35 +125,35 @@ export const ERROR_CODES = {
   FORBIDDEN: 'FORBIDDEN',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
   INVALID_TOKEN: 'INVALID_TOKEN',
-  
+
   // User errors
   USER_NOT_FOUND: 'USER_NOT_FOUND',
   USER_ALREADY_EXISTS: 'USER_ALREADY_EXISTS',
   USER_INACTIVE: 'USER_INACTIVE',
-  
+
   // Feature errors
   FEATURE_NOT_FOUND: 'FEATURE_NOT_FOUND',
   FEATURE_ACCESS_DENIED: 'FEATURE_ACCESS_DENIED',
   FEATURE_DISABLED: 'FEATURE_DISABLED',
-  
+
   // File errors
   FILE_NOT_FOUND: 'FILE_NOT_FOUND',
   FILE_TOO_LARGE: 'FILE_TOO_LARGE',
   UNSUPPORTED_FILE_TYPE: 'UNSUPPORTED_FILE_TYPE',
   FILE_UPLOAD_FAILED: 'FILE_UPLOAD_FAILED',
   FILE_PROCESSING_FAILED: 'FILE_PROCESSING_FAILED',
-  
+
   // Bot errors
   BOT_NOT_CONFIGURED: 'BOT_NOT_CONFIGURED',
   BOT_INACTIVE: 'BOT_INACTIVE',
   INVALID_BOT_TOKEN: 'INVALID_BOT_TOKEN',
   BOT_API_ERROR: 'BOT_API_ERROR',
-  
+
   // Validation errors
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   INVALID_INPUT: 'INVALID_INPUT',
   MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
-  
+
   // System errors
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   DATABASE_ERROR: 'DATABASE_ERROR',
@@ -211,16 +211,17 @@ export const ERROR_MESSAGES = {
 // Bot messages (Indonesian)
 export const BOT_MESSAGES = {
   WELCOME: 'Selamat datang! Gunakan /help untuk melihat daftar perintah.',
-  HELP: 'Daftar perintah yang tersedia:\n\n' +
-        '/ocr - Mode OCR untuk extract text dari gambar\n' +
-        '/archive - Mode Archive untuk compress/extract file\n' +
-        '/location - Mode Location untuk proses koordinat GPS\n' +
-        '/geotags - Mode Geotags untuk extract metadata lokasi\n' +
-        '/kml - Mode KML untuk proses file KML\n' +
-        '/workbook - Mode Workbook untuk proses Excel/CSV\n' +
-        '/status - Lihat status dan mode aktif\n' +
-        '/cancel - Batalkan mode aktif\n' +
-        '/help - Tampilkan pesan ini',
+  HELP:
+    'Daftar perintah yang tersedia:\n\n' +
+    '/ocr - Mode OCR untuk extract text dari gambar\n' +
+    '/archive - Mode Archive untuk compress/extract file\n' +
+    '/location - Mode Location untuk proses koordinat GPS\n' +
+    '/geotags - Mode Geotags untuk extract metadata lokasi\n' +
+    '/kml - Mode KML untuk proses file KML\n' +
+    '/workbook - Mode Workbook untuk proses Excel/CSV\n' +
+    '/status - Lihat status dan mode aktif\n' +
+    '/cancel - Batalkan mode aktif\n' +
+    '/help - Tampilkan pesan ini',
   STATUS_NO_MODE: 'Tidak ada mode aktif. Gunakan salah satu perintah untuk memulai.',
   STATUS_ACTIVE_MODE: 'Mode aktif: {mode}',
   MODE_CANCELLED: 'Mode dibatalkan.',

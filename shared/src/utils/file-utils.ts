@@ -36,10 +36,10 @@ export const AVAILABLE_FEATURES = [
   'location',
   'geotags',
   'kml',
-  'workbook'
+  'workbook',
 ] as const;
 
-export type FeatureName = typeof AVAILABLE_FEATURES[number];
+export type FeatureName = (typeof AVAILABLE_FEATURES)[number];
 
 /**
  * Create all feature directories for a user
@@ -49,10 +49,10 @@ export async function createAllUserFeatureDirs(
   userId: string
 ): Promise<Record<FeatureName, string>> {
   const dirs: Record<string, string> = {};
-  
+
   for (const feature of AVAILABLE_FEATURES) {
     dirs[feature] = await createUserFeatureDir(baseDir, userId, feature);
   }
-  
+
   return dirs as Record<FeatureName, string>;
-} 
+}

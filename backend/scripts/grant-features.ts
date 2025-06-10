@@ -33,7 +33,7 @@ async function grantFeatures() {
 
     // Find admin user for granting
     const adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' }
+      where: { role: 'ADMIN' },
     });
 
     if (!adminUser) {
@@ -45,7 +45,7 @@ async function grantFeatures() {
     let grantedCount = 0;
     for (const featureName of featureNames) {
       const feature = await prisma.feature.findUnique({
-        where: { name: featureName }
+        where: { name: featureName },
       });
 
       if (!feature) {
@@ -89,10 +89,10 @@ async function grantFeatures() {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     console.log(`\n📊 Final status for ${updatedUser.name}:`);
@@ -101,7 +101,6 @@ async function grantFeatures() {
     updatedUser.featureAccess.forEach(access => {
       console.log(`   - ${access.feature.name}: ${access.feature.description}`);
     });
-
   } catch (error) {
     console.error('❌ Error granting features:', error);
     throw error;
@@ -135,4 +134,4 @@ async function main() {
   await grantFeatures();
 }
 
-main().catch(console.error); 
+main().catch(console.error);

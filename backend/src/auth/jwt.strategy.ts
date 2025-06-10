@@ -16,7 +16,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private configService: ConfigService,
-    private prisma: PrismaService,
+    private prisma: PrismaService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -27,17 +27,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
-      where: { 
+      where: {
         id: payload.sub,
-        telegramId: payload.telegramId 
+        telegramId: payload.telegramId,
       },
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user || !user.isActive) {
@@ -46,4 +46,4 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     return user;
   }
-} 
+}

@@ -31,10 +31,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Get system logs' })
   @ApiQuery({ name: 'service', required: false, enum: ['backend', 'frontend', 'bot', 'all'] })
   @ApiQuery({ name: 'lines', required: false, type: Number })
-  async getLogs(
-    @Query('service') service: string = 'all',
-    @Query('lines') lines: number = 50
-  ) {
+  async getLogs(@Query('service') service: string = 'all', @Query('lines') lines: number = 50) {
     return this.dashboardService.getSystemLogs(service, lines);
   }
 
@@ -43,4 +40,4 @@ export class DashboardController {
   async getSystemStatus() {
     return this.dashboardService.getSystemStatus();
   }
-} 
+}

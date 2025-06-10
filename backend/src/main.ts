@@ -1,15 +1,16 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { SettingsService } from './settings/settings.service';
+import helmet from 'helmet';
 
 async function seedAdminUser(app: any, configService: ConfigService, logger: Logger) {
   const prisma = app.get(PrismaService);
-  
+
   const adminTelegramId = configService.get('ADMIN_TELEGRAM_ID');
   const adminName = configService.get('ADMIN_NAME', 'Admin');
   const adminUsername = configService.get('ADMIN_USERNAME', 'admin');
@@ -32,7 +33,7 @@ async function seedAdminUser(app: any, configService: ConfigService, logger: Log
 
     // Create admin user
     logger.log(`🌱 Creating admin user ${adminTelegramId}...`);
-    
+
     const adminUser = await prisma.user.create({
       data: {
         telegramId: adminTelegramId,
@@ -45,7 +46,7 @@ async function seedAdminUser(app: any, configService: ConfigService, logger: Log
 
     // Get all features and grant to admin
     const allFeatures = await prisma.feature.findMany();
-    
+
     for (const feature of allFeatures) {
       await prisma.userFeatureAccess.create({
         data: {
@@ -56,8 +57,9 @@ async function seedAdminUser(app: any, configService: ConfigService, logger: Log
       });
     }
 
-    logger.log(`🎉 Admin user created: ${adminUser.name} (${adminUser.telegramId}) with ${allFeatures.length} features`);
-
+    logger.log(
+      `🎉 Admin user created: ${adminUser.name} (${adminUser.telegramId}) with ${allFeatures.length} features`
+    );
   } catch (error) {
     logger.error('❌ Error seeding admin user:', error);
   }
@@ -77,19 +79,45 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
-    }),
+    })
   );
 
+  // Security middleware
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // Trust proxy untuk Cloudflare
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', true);
+
   // CORS configuration
-  const corsOrigins = [
+  const allowedOrigins = [
     configService.get('CORS_ORIGIN', 'http://localhost:3000'),
     `http://${configService.get('PUBLIC_IP')}:3000`,
-    `http://${configService.get('PUBLIC_IP')}:5173`, // Vite dev server
+    `http://${configService.get('PUBLIC_IP')}:8080`,
+    'https://teleweb.cloudnexify.com',
+    'http://localhost:3000',
+    'http://localhost:8080'
   ].filter(Boolean);
-  
+
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or Postman)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn(`CORS blocked origin: ${origin}`);
+        callback(null, false);
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['X-Total-Count'],
   });
 
   // API prefix
@@ -102,7 +130,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
@@ -115,9 +143,9 @@ async function bootstrap() {
 
   const port = configService.get('BACKEND_PORT', 3001);
   const host = configService.get('SERVER_HOST', '0.0.0.0');
-  
+
   await app.listen(port, host);
-  
+
   logger.log(`🚀 Application is running on: http://${host}:${port}`);
   logger.log(`📚 API Documentation: http://${host}:${port}/api/docs`);
 }

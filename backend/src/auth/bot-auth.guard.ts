@@ -23,9 +23,9 @@ export class BotAuthGuard implements CanActivate {
       id: 'bot',
       role: 'BOT',
       telegramId: 'bot',
-      name: 'Telegram Bot'
+      name: 'Telegram Bot',
     };
 
     return true;
   }
-} 
+}

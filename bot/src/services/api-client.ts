@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { getErrorMessage, getErrorStack, getAxiosErrorMessage, isAxiosError } from '../utils/error-utils';
 import winston from 'winston';
 
 export interface User {
@@ -50,7 +51,7 @@ export class ApiClient {
 
     // Add request interceptor for logging
     this.client.interceptors.request.use(
-      (config) => {
+      config => {
         this.logger.debug('API Request', {
           method: config.method?.toUpperCase(),
           url: config.url,
@@ -58,15 +59,15 @@ export class ApiClient {
         });
         return config;
       },
-      (error) => {
-        this.logger.error('API Request Error', { error: error.message });
+      error => {
+        this.logger.error('API Request Error', { error: getErrorMessage(error) });
         return Promise.reject(error);
       }
     );
 
     // Add response interceptor for logging
     this.client.interceptors.response.use(
-      (response) => {
+      response => {
         this.logger.debug('API Response', {
           status: response.status,
           url: response.config.url,
@@ -74,11 +75,11 @@ export class ApiClient {
         });
         return response;
       },
-      (error) => {
+      error => {
         this.logger.error('API Response Error', {
           status: error.response?.status,
           url: error.config?.url,
-          message: error.message,
+          message: getErrorMessage(error),
           data: error.response?.data,
         });
         return Promise.reject(error);
@@ -97,16 +98,16 @@ export class ApiClient {
         data: response.data,
       };
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isAxiosError(error) && error.response?.status === 404) {
         return {
           success: false,
           message: 'User not found',
         };
       }
-      
+
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
   }
@@ -124,7 +125,7 @@ export class ApiClient {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
   }
@@ -141,14 +142,14 @@ export class ApiClient {
       }
 
       const hasAccess = featuresResponse.data.some(
-        (access) => access.feature.name === featureName && access.feature.isEnabled
+        access => access.feature.name === featureName && access.feature.isEnabled
       );
 
       this.logger.debug('Feature access check', {
         telegramId,
         featureName,
         hasAccess,
-        totalFeatures: featuresResponse.data.length
+        totalFeatures: featuresResponse.data.length,
       });
 
       return hasAccess;
@@ -156,7 +157,7 @@ export class ApiClient {
       this.logger.error('Error checking feature access', {
         telegramId,
         featureName,
-        error: error.message,
+        error: getErrorMessage(error),
       });
       return false;
     }
@@ -180,7 +181,7 @@ export class ApiClient {
     } catch (error) {
       return {
         success: false,
-        error: error.response?.data?.message || error.message,
+        error: getAxiosErrorMessage(error),
       };
     }
   }
@@ -194,7 +195,7 @@ export class ApiClient {
     } catch (error) {
       this.logger.warn('Failed to update user activity', {
         telegramId,
-        error: error.message,
+        error: getErrorMessage(error),
       });
     }
   }
@@ -212,7 +213,7 @@ export class ApiClient {
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
   }
@@ -225,7 +226,7 @@ export class ApiClient {
       const response = await this.client.get('/health');
       return response.status === 200;
     } catch (error) {
-      this.logger.error('Backend health check failed', { error: error.message });
+      this.logger.error('Backend health check failed', { error: getErrorMessage(error) });
       return false;
     }
   }
@@ -233,10 +234,14 @@ export class ApiClient {
   /**
    * Generic request method for admin operations
    */
-  async request<T = any>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, data?: any): Promise<ApiResponse<T>> {
+  async request<T = any>(
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    url: string,
+    data?: any
+  ): Promise<ApiResponse<T>> {
     try {
       let response;
-      
+
       // Add bot token header for bot admin endpoints
       const headers: any = {};
       if (url.startsWith('/admin/bot/')) {
@@ -245,7 +250,7 @@ export class ApiClient {
           headers['x-bot-token'] = botToken;
         }
       }
-      
+
       switch (method.toUpperCase()) {
         case 'GET':
           response = await this.client.get(url, { headers });
@@ -271,15 +276,15 @@ export class ApiClient {
       this.logger.error('API request failed', {
         method,
         url,
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
+        error: getErrorMessage(error),
+        status: isAxiosError(error) ? error.response?.status : undefined,
+        data: isAxiosError(error) ? error.response?.data : undefined,
       });
 
       return {
         success: false,
-        error: error.response?.data?.message || error.message,
+        error: getAxiosErrorMessage(error),
       };
     }
   }
-} 
+}

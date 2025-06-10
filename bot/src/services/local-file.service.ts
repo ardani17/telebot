@@ -1,4 +1,5 @@
 import * as fs from 'fs-extra';
+import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
 import * as path from 'path';
 import { createUserFeatureDir } from '../../../shared/src/utils/file-utils';
 import winston from 'winston';
@@ -38,30 +39,30 @@ export class LocalFileService {
         fileId,
         filePath,
         userId,
-        featureName
+        featureName,
       });
 
       // Find the file in bot API data directory
       const sourceFilePath = await this.findFileInBotApiDirectory(filePath);
-      
+
       if (!sourceFilePath) {
         return {
           success: false,
-          error: 'File not found in bot API directory'
+          error: 'File not found in bot API directory',
         };
       }
 
       // Check if source file exists
-      if (!await fs.pathExists(sourceFilePath)) {
+      if (!(await fs.pathExists(sourceFilePath))) {
         return {
           success: false,
-          error: `Source file does not exist: ${sourceFilePath}`
+          error: `Source file does not exist: ${sourceFilePath}`,
         };
       }
 
       // Create user feature directory
       const userFeatureDir = await createUserFeatureDir(this.userDataDir, userId, featureName);
-      
+
       // Generate unique filename
       const ext = path.extname(filePath) || '.jpg';
       const fileName = `${featureName}-${Date.now()}-${fileId}${ext}`;
@@ -79,28 +80,27 @@ export class LocalFileService {
         fileName,
         size: stats.size,
         userId,
-        featureName
+        featureName,
       });
 
       return {
         success: true,
         localPath: destFilePath,
         fileName,
-        size: stats.size
+        size: stats.size,
       };
-
     } catch (error) {
       this.logger.error('Failed to copy file locally', {
-        error: error.message,
+        error: getErrorMessage(error),
         fileId,
         filePath,
         userId,
-        featureName
+        featureName,
       });
 
       return {
         success: false,
-        error: `File copy failed: ${error.message}`
+        error: `File copy failed: ${getErrorMessage(error)}`,
       };
     }
   }
@@ -112,7 +112,7 @@ export class LocalFileService {
     try {
       this.logger.info('Searching for file in bot API directory', {
         filePath,
-        botApiDataDir: this.botApiDataDir
+        botApiDataDir: this.botApiDataDir,
       });
 
       // If filePath is already absolute and points to bot API directory, use it
@@ -135,24 +135,24 @@ export class LocalFileService {
         }
       }
 
-      this.logger.info('Extracted relative path', { 
-        originalPath: filePath, 
-        relativePath 
+      this.logger.info('Extracted relative path', {
+        originalPath: filePath,
+        relativePath,
       });
 
       // Search in bot token directories
       const botTokenDirs = await fs.readdir(this.botApiDataDir);
-      
+
       for (const botDir of botTokenDirs) {
         const botDirPath = path.join(this.botApiDataDir, botDir);
-        
+
         if ((await fs.stat(botDirPath)).isDirectory()) {
           // Try direct relative path
           const possibleFilePath = path.join(botDirPath, relativePath);
-          
+
           if (await fs.pathExists(possibleFilePath)) {
-            this.logger.info('File found', { 
-              foundPath: possibleFilePath 
+            this.logger.info('File found', {
+              foundPath: possibleFilePath,
             });
             return possibleFilePath;
           }
@@ -161,10 +161,10 @@ export class LocalFileService {
           if (relativePath.includes('/')) {
             const fileName = path.basename(relativePath);
             const photosDir = path.join(botDirPath, 'photos', fileName);
-            
+
             if (await fs.pathExists(photosDir)) {
-              this.logger.info('File found in photos directory', { 
-                foundPath: photosDir 
+              this.logger.info('File found in photos directory', {
+                foundPath: photosDir,
               });
               return photosDir;
             }
@@ -176,14 +176,14 @@ export class LocalFileService {
         filePath,
         relativePath,
         botApiDataDir: this.botApiDataDir,
-        searchedDirs: botTokenDirs
+        searchedDirs: botTokenDirs,
       });
 
       return null;
     } catch (error) {
       this.logger.error('Error searching for file in bot API directory', {
-        error: error.message,
-        filePath
+        error: getErrorMessage(error),
+        filePath,
       });
       return null;
     }
@@ -213,4 +213,4 @@ export class LocalFileService {
       return false;
     }
   }
-} 
+}

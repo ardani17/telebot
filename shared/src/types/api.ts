@@ -96,25 +96,25 @@ export enum WebSocketMessageType {
   // Connection events
   CONNECTED = 'connected',
   DISCONNECTED = 'disconnected',
-  
+
   // Bot events
   BOT_ACTIVITY = 'bot_activity',
   USER_MODE_CHANGED = 'user_mode_changed',
   FILE_UPLOADED = 'file_uploaded',
   FILE_PROCESSED = 'file_processed',
-  
+
   // User events
   USER_CREATED = 'user_created',
   USER_UPDATED = 'user_updated',
   USER_DELETED = 'user_deleted',
-  
+
   // Feature events
   FEATURE_UPDATED = 'feature_updated',
   USER_FEATURE_ACCESS_CHANGED = 'user_feature_access_changed',
-  
+
   // System events
   SYSTEM_STATUS = 'system_status',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 // Health check types
@@ -190,7 +190,7 @@ export enum NotificationType {
   INFO = 'info',
   SUCCESS = 'success',
   WARNING = 'warning',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 // Configuration types
@@ -208,7 +208,7 @@ export enum ConfigType {
   STRING = 'string',
   NUMBER = 'number',
   BOOLEAN = 'boolean',
-  JSON = 'json'
+  JSON = 'json',
 }
 
 export interface UpdateConfigRequest {

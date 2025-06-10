@@ -1,62 +1,138 @@
 import { useState, useEffect } from 'react';
-import { Activity, Clock, User, FileText } from 'lucide-react';
+import {
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Filter,
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface ActivityItem {
   id: string;
-  type: 'file_upload' | 'user_login' | 'settings_change' | 'file_delete';
-  description: string;
-  timestamp: string;
-  user: string;
+  userId: string;
+  telegramId: string;
+  action: string;
+  mode?: string;
+  details?: any;
+  success: boolean;
+  errorMessage?: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    telegramId: string;
+  };
+}
+
+interface ActivityStats {
+  total: number;
+  today: number;
+  yesterday: number;
+  lastWeek: number;
+  lastMonth: number;
+  successRate: number;
+  failureRate: number;
+  byMode: Array<{ mode: string; count: number }>;
+  recentErrors: any[];
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function Activities() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [stats, setStats] = useState<ActivityStats | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({
+    success: '',
+    mode: '',
+    dateFrom: '',
+    dateTo: '',
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    // Simulated activities data - nanti ganti dengan API call
-    const simulatedActivities: ActivityItem[] = [
-      {
-        id: '1',
-        type: 'file_upload',
-        description: 'File document.pdf uploaded',
-        timestamp: new Date().toISOString(),
-        user: 'Admin',
-      },
-      {
-        id: '2',
-        type: 'user_login',
-        description: 'User logged in successfully',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        user: 'User123',
-      },
-    ];
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '20',
+      });
 
-    setTimeout(() => {
-      setActivities(simulatedActivities);
+      if (filters.success) params.append('success', filters.success);
+      if (filters.mode) params.append('mode', filters.mode);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+
+      const response = await api.get(`/activity/list?${params}`);
+      setActivities(response.data.data);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error('Failed to fetch activities:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
-
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    switch (type) {
-      case 'file_upload':
-      case 'file_delete':
-        return <FileText className='w-4 h-4' />;
-      case 'user_login':
-        return <User className='w-4 h-4' />;
-      case 'settings_change':
-        return <Activity className='w-4 h-4' />;
-      default:
-        return <Activity className='w-4 h-4' />;
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    return new Date(timestamp).toLocaleString('id-ID');
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/activity/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch activity stats:', error);
+    }
   };
 
-  if (loading) {
+  useEffect(() => {
+    fetchActivities();
+  }, [page, filters]);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Baru saja';
+    if (diffInMinutes < 60) return `${diffInMinutes} menit yang lalu`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} jam yang lalu`;
+    return date.toLocaleString('id-ID');
+  };
+
+  const handleRefresh = () => {
+    fetchActivities();
+    fetchStats();
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      success: '',
+      mode: '',
+      dateFrom: '',
+      dateTo: '',
+    });
+    setPage(1);
+  };
+
+  if (loading && !activities.length) {
     return (
       <div className='p-6'>
         <div className='animate-pulse'>
@@ -73,11 +149,136 @@ export default function Activities() {
 
   return (
     <div className='p-6'>
-      <div className='flex items-center gap-3 mb-6'>
-        <Activity className='w-8 h-8 text-blue-600' />
-        <h1 className='text-3xl font-bold text-gray-900'>Activities</h1>
+      <div className='flex items-center justify-between mb-6'>
+        <div className='flex items-center gap-3'>
+          <Activity className='w-8 h-8 text-blue-600' />
+          <h1 className='text-3xl font-bold text-gray-900'>Activities</h1>
+        </div>
+        <div className='flex items-center gap-2'>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border rounded-md hover:bg-gray-50'
+          >
+            <Filter className='w-4 h-4' />
+            Filter
+          </button>
+          <button
+            onClick={handleRefresh}
+            className='flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700'
+          >
+            <RefreshCw className='w-4 h-4' />
+            Refresh
+          </button>
+        </div>
       </div>
 
+      {/* Statistics */}
+      {stats && (
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm text-gray-600'>Total Aktivitas</p>
+                <p className='text-2xl font-bold'>{stats.total.toLocaleString()}</p>
+              </div>
+              <Activity className='w-8 h-8 text-blue-500' />
+            </div>
+          </div>
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm text-gray-600'>Hari Ini</p>
+                <p className='text-2xl font-bold'>{stats.today}</p>
+              </div>
+              <TrendingUp className='w-8 h-8 text-green-500' />
+            </div>
+          </div>
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm text-gray-600'>Tingkat Sukses</p>
+                <p className='text-2xl font-bold'>{stats.successRate.toFixed(1)}%</p>
+              </div>
+              <CheckCircle className='w-8 h-8 text-green-500' />
+            </div>
+          </div>
+          <div className='bg-white p-4 rounded-lg shadow'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm text-gray-600'>Tingkat Gagal</p>
+                <p className='text-2xl font-bold'>{stats.failureRate.toFixed(1)}%</p>
+              </div>
+              <XCircle className='w-8 h-8 text-red-500' />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      {showFilters && (
+        <div className='bg-white p-4 rounded-lg shadow mb-6'>
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Status</label>
+              <select
+                value={filters.success}
+                onChange={e => handleFilterChange('success', e.target.value)}
+                className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value=''>Semua</option>
+                <option value='true'>Sukses</option>
+                <option value='false'>Gagal</option>
+              </select>
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Mode</label>
+              <select
+                value={filters.mode}
+                onChange={e => handleFilterChange('mode', e.target.value)}
+                className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value=''>Semua</option>
+                <option value='ocr'>OCR</option>
+                <option value='archive'>Archive</option>
+                <option value='location'>Location</option>
+                <option value='geotags'>Geotags</option>
+                <option value='kml'>KML</option>
+                <option value='workbook'>Workbook</option>
+              </select>
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>Dari Tanggal</label>
+              <input
+                type='date'
+                value={filters.dateFrom}
+                onChange={e => handleFilterChange('dateFrom', e.target.value)}
+                className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-1'>
+                Sampai Tanggal
+              </label>
+              <input
+                type='date'
+                value={filters.dateTo}
+                onChange={e => handleFilterChange('dateTo', e.target.value)}
+                className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+          </div>
+          <div className='mt-4 flex justify-end'>
+            <button
+              onClick={resetFilters}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Reset Filter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Activities List */}
       <div className='bg-white rounded-lg shadow-sm border'>
         <div className='p-4 border-b'>
           <h2 className='text-lg font-semibold text-gray-900'>Recent Activities</h2>
@@ -94,39 +295,98 @@ export default function Activities() {
             activities.map(activity => (
               <div key={activity.id} className='p-4 hover:bg-gray-50 transition-colors'>
                 <div className='flex items-start gap-3'>
-                  <div className='flex-shrink-0 p-2 bg-blue-100 rounded-lg text-blue-600'>
-                    {getActivityIcon(activity.type)}
+                  <div
+                    className={`flex-shrink-0 p-2 rounded-lg ${
+                      activity.success
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-red-100 text-red-600'
+                    }`}
+                  >
+                    {activity.success ? (
+                      <CheckCircle className='w-4 h-4' />
+                    ) : (
+                      <XCircle className='w-4 h-4' />
+                    )}
                   </div>
                   <div className='flex-1 min-w-0'>
                     <div className='flex items-center justify-between'>
-                      <h3 className='text-sm font-medium text-gray-900 truncate'>
-                        {activity.description}
+                      <h3 className='text-sm font-medium text-gray-900'>
+                        {activity.action}
+                        {activity.mode && (
+                          <span className='ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded'>
+                            {activity.mode}
+                          </span>
+                        )}
                       </h3>
                       <div className='flex items-center gap-1 text-xs text-gray-500'>
                         <Clock className='w-3 h-3' />
-                        {formatTimestamp(activity.timestamp)}
+                        {formatTimestamp(activity.createdAt)}
                       </div>
                     </div>
                     <p className='text-xs text-gray-600 mt-1'>
-                      By: <span className='font-medium'>{activity.user}</span>
+                      By: <span className='font-medium'>{activity.user.name}</span> (
+                      {activity.user.telegramId})
                     </p>
+                    {activity.errorMessage && (
+                      <div className='mt-2 flex items-start gap-2 p-2 bg-red-50 rounded'>
+                        <AlertCircle className='w-4 h-4 text-red-500 flex-shrink-0 mt-0.5' />
+                        <p className='text-xs text-red-700'>{activity.errorMessage}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className='px-4 py-3 border-t'>
+            <div className='flex items-center justify-between'>
+              <div className='text-sm text-gray-700'>
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} activities
+              </div>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  className='px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  Previous
+                </button>
+                <span className='px-3 py-1 text-sm'>
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === pagination.totalPages}
+                  className='px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className='mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg'>
-        <div className='flex items-center gap-2'>
-          <Activity className='w-5 h-5 text-yellow-600' />
-          <h3 className='text-sm font-medium text-yellow-800'>Coming Soon</h3>
+      {/* By Mode Statistics */}
+      {stats && stats.byMode.length > 0 && (
+        <div className='mt-6 bg-white rounded-lg shadow p-4'>
+          <h3 className='text-lg font-semibold mb-4'>Aktivitas per Mode</h3>
+          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
+            {stats.byMode.map(item => (
+              <div key={item.mode || 'unknown'} className='text-center'>
+                <p className='text-2xl font-bold text-blue-600'>{item.count}</p>
+                <p className='text-sm text-gray-600 capitalize'>{item.mode || 'Unknown'}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <p className='text-xs text-yellow-700 mt-1'>
-          Fitur Activities masih dalam pengembangan. Saat ini menampilkan data simulasi.
-        </p>
-      </div>
+      )}
     </div>
   );
 }

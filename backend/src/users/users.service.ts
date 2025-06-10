@@ -11,16 +11,16 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     // Remove password from response for security
     return users.map(user => ({
       ...user,
-      password: user.password ? true : false // Only indicate if password is set
+      password: user.password ? true : false, // Only indicate if password is set
     }));
   }
 
@@ -30,10 +30,10 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -43,7 +43,7 @@ export class UsersService {
     // Remove password from response for security
     return {
       ...user,
-      password: user.password ? true : false // Only indicate if password is set
+      password: user.password ? true : false, // Only indicate if password is set
     };
   }
 
@@ -53,10 +53,10 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -72,10 +72,10 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -87,7 +87,7 @@ export class UsersService {
 
   async updateUserActivity(telegramId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { telegramId }
+      where: { telegramId },
     });
 
     if (!user) {
@@ -97,8 +97,8 @@ export class UsersService {
     return this.prisma.user.update({
       where: { telegramId },
       data: {
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     });
   }
 
@@ -110,7 +110,7 @@ export class UsersService {
     role?: 'USER' | 'ADMIN';
   }) {
     const existingUser = await this.prisma.user.findUnique({
-      where: { telegramId: userData.telegramId }
+      where: { telegramId: userData.telegramId },
     });
 
     if (existingUser) {
@@ -135,28 +135,31 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     // Remove password from response for security
     return {
       ...user,
-      password: user.password ? true : false // Only indicate if password is set
+      password: user.password ? true : false, // Only indicate if password is set
     };
   }
 
-  async updateUser(id: string, userData: {
-    name?: string;
-    username?: string;
-    password?: string;
-    role?: 'USER' | 'ADMIN';
-    isActive?: boolean;
-  }) {
+  async updateUser(
+    id: string,
+    userData: {
+      name?: string;
+      username?: string;
+      password?: string;
+      role?: 'USER' | 'ADMIN';
+      isActive?: boolean;
+    }
+  ) {
     const user = await this.prisma.user.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!user) {
@@ -175,22 +178,22 @@ export class UsersService {
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     // Remove password from response for security
     return {
       ...updatedUser,
-      password: updatedUser.password ? true : false // Only indicate if password is set
+      password: updatedUser.password ? true : false, // Only indicate if password is set
     };
   }
 
   async deleteUser(id: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!user) {
@@ -199,26 +202,26 @@ export class UsersService {
 
     // Delete related records first
     await this.prisma.userFeatureAccess.deleteMany({
-      where: { userId: id }
+      where: { userId: id },
     });
 
     await this.prisma.botActivity.deleteMany({
-      where: { userId: id }
+      where: { userId: id },
     });
 
     await this.prisma.fileMetadata.deleteMany({
-      where: { userId: id }
+      where: { userId: id },
     });
 
     // Delete the user
     return this.prisma.user.delete({
-      where: { id }
+      where: { id },
     });
   }
 
   async toggleUserStatus(id: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id }
+      where: { id },
     });
 
     if (!user) {
@@ -228,21 +231,21 @@ export class UsersService {
     const updatedUser = await this.prisma.user.update({
       where: { id },
       data: {
-        isActive: !user.isActive
+        isActive: !user.isActive,
       },
       include: {
         featureAccess: {
           include: {
-            feature: true
-          }
-        }
-      }
+            feature: true,
+          },
+        },
+      },
     });
 
     // Remove password from response for security
     return {
       ...updatedUser,
-      password: updatedUser.password ? true : false // Only indicate if password is set
+      password: updatedUser.password ? true : false, // Only indicate if password is set
     };
   }
 }

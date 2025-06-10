@@ -14,14 +14,13 @@ export const userSchema = z.object({
 });
 
 export const createUserSchema = z.object({
-  telegramId: z.string()
+  telegramId: z
+    .string()
     .min(1, 'Telegram ID is required')
     .regex(/^\d+$/, 'Telegram ID must be numeric'),
-  name: z.string()
-    .min(1, 'Name is required')
-    .max(100, 'Name too long')
-    .trim(),
-  username: z.string()
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
+  username: z
+    .string()
     .min(1)
     .max(50)
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
@@ -31,12 +30,9 @@ export const createUserSchema = z.object({
 });
 
 export const updateUserSchema = z.object({
-  name: z.string()
-    .min(1, 'Name is required')
-    .max(100, 'Name too long')
-    .trim()
-    .optional(),
-  username: z.string()
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim().optional(),
+  username: z
+    .string()
     .min(1)
     .max(50)
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
@@ -67,24 +63,20 @@ export const featureSchema = z.object({
 });
 
 export const createFeatureSchema = z.object({
-  name: z.string()
-    .min(1, 'Feature name is required')
-    .max(50, 'Feature name too long')
-    .trim(),
-  description: z.string()
-    .min(1, 'Description is required')
-    .max(500, 'Description too long')
-    .trim(),
+  name: z.string().min(1, 'Feature name is required').max(50, 'Feature name too long').trim(),
+  description: z.string().min(1, 'Description is required').max(500, 'Description too long').trim(),
   isEnabled: z.boolean().default(true),
 });
 
 export const updateFeatureSchema = z.object({
-  name: z.string()
+  name: z
+    .string()
     .min(1, 'Feature name is required')
     .max(50, 'Feature name too long')
     .trim()
     .optional(),
-  description: z.string()
+  description: z
+    .string()
     .min(1, 'Description is required')
     .max(500, 'Description too long')
     .trim()
@@ -103,16 +95,21 @@ export const userFeatureAccessSchema = z.object({
 
 export const grantFeatureAccessSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
-  featureIds: z.array(z.string().uuid('Invalid feature ID')).min(1, 'At least one feature must be selected'),
+  featureIds: z
+    .array(z.string().uuid('Invalid feature ID'))
+    .min(1, 'At least one feature must be selected'),
 });
 
 export const revokeFeatureAccessSchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
-  featureIds: z.array(z.string().uuid('Invalid feature ID')).min(1, 'At least one feature must be selected'),
+  featureIds: z
+    .array(z.string().uuid('Invalid feature ID'))
+    .min(1, 'At least one feature must be selected'),
 });
 
 // Validation helpers
-export const telegramIdSchema = z.string()
+export const telegramIdSchema = z
+  .string()
   .min(1, 'Telegram ID is required')
   .regex(/^\d+$/, 'Telegram ID must be numeric');
 

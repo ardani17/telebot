@@ -38,32 +38,32 @@ export class FileHandler {
   async downloadFile(fileId: string, fileName: string): Promise<FileInfo> {
     const botToken = process.env.BOT_TOKEN;
     const botApiServer = process.env.BOT_API_SERVER || 'https://api.telegram.org';
-    
+
     // Get file info from Telegram
     const fileInfoResponse = await axios.get(
       `${botApiServer}/bot${botToken}/getFile?file_id=${fileId}`
     );
-    
+
     if (!fileInfoResponse.data.ok) {
       throw new Error('Failed to get file info from Telegram');
     }
-    
+
     const filePath = fileInfoResponse.data.result.file_path;
     const fileSize = fileInfoResponse.data.result.file_size || 0;
-    
+
     // Download file
     const fileUrl = `${botApiServer}/file/bot${botToken}/${filePath}`;
     const response = await axios.get(fileUrl, { responseType: 'stream' });
-    
+
     // Generate unique filename
     const extension = extname(fileName).toLowerCase();
     const uniqueFileName = `${uuidv4()}${extension}`;
     const localFilePath = join(this.uploadDir, uniqueFileName);
-    
+
     // Save file
     const writer = createWriteStream(localFilePath);
     response.data.pipe(writer);
-    
+
     return new Promise((resolve, reject) => {
       writer.on('finish', () => {
         resolve({
@@ -73,10 +73,10 @@ export class FileHandler {
           filePath: localFilePath,
           fileSize,
           extension: extension.replace('.', ''),
-          mimeType: response.headers['content-type']
+          mimeType: response.headers['content-type'],
         });
       });
-      
+
       writer.on('error', reject);
     });
   }
@@ -87,7 +87,7 @@ export class FileHandler {
   async createTempFile(content: string | Buffer, extension: string): Promise<string> {
     const fileName = `${uuidv4()}.${extension}`;
     const filePath = join(this.tempDir, fileName);
-    
+
     await fs.writeFile(filePath, content);
     return filePath;
   }
@@ -149,11 +149,11 @@ export class FileHandler {
     try {
       const files = await fs.readdir(this.tempDir);
       const now = Date.now();
-      
+
       for (const file of files) {
         const filePath = join(this.tempDir, file);
         const stats = await fs.stat(filePath);
-        
+
         if (now - stats.mtime.getTime() > maxAge) {
           await this.deleteFile(filePath);
         }

@@ -7,4 +7,4 @@ import { SettingsService } from './settings.service';
   providers: [SettingsService],
   exports: [SettingsService],
 })
-export class SettingsModule {} 
+export class SettingsModule {}

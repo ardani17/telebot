@@ -497,7 +497,7 @@ export function Dashboard() {
         )}
 
         {/* Logs Display */}
-        <div className='bg-black text-green-400 p-4 rounded-lg font-mono text-sm overflow-hidden'>
+        <div className='bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-hidden'>
           <div className='flex items-center justify-between mb-2'>
             <span className='text-gray-300'>
               📋{' '}
@@ -513,12 +513,12 @@ export function Dashboard() {
             )}
           </div>
 
-          <div className='max-h-64 overflow-y-auto space-y-1'>
+          <div className='h-96 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800'>
             {systemLogs ? (
               <>
                 {selectedLogService === 'all' || selectedLogService === 'backend'
                   ? systemLogs.backend.map((log, index) => (
-                      <div key={`backend-${index}`} className='text-blue-400'>
+                      <div key={`backend-${index}`} className='text-blue-400 whitespace-pre-wrap break-all'>
                         <span className='text-blue-300'>[BACKEND]</span> {log}
                       </div>
                     ))
@@ -526,7 +526,7 @@ export function Dashboard() {
 
                 {selectedLogService === 'all' || selectedLogService === 'frontend'
                   ? systemLogs.frontend.map((log, index) => (
-                      <div key={`frontend-${index}`} className='text-purple-400'>
+                      <div key={`frontend-${index}`} className='text-purple-400 whitespace-pre-wrap break-all'>
                         <span className='text-purple-300'>[FRONTEND]</span> {log}
                       </div>
                     ))
@@ -534,7 +534,7 @@ export function Dashboard() {
 
                 {selectedLogService === 'all' || selectedLogService === 'bot'
                   ? systemLogs.bot.map((log, index) => (
-                      <div key={`bot-${index}`} className='text-green-400'>
+                      <div key={`bot-${index}`} className='text-green-400 whitespace-pre-wrap break-all'>
                         <span className='text-green-300'>[BOT]</span> {log}
                       </div>
                     ))

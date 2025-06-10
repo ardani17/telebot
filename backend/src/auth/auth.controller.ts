@@ -11,8 +11,8 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({ summary: 'Login with Telegram ID and password' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Login successful',
     schema: {
       type: 'object',
@@ -25,11 +25,11 @@ export class AuthController {
             id: { type: 'string' },
             telegramId: { type: 'string' },
             name: { type: 'string' },
-            role: { type: 'string' }
-          }
-        }
-      }
-    }
+            role: { type: 'string' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {

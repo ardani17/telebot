@@ -120,4 +120,4 @@ export class SecurityConfigDto {
   @IsOptional()
   @IsString()
   updatedBy?: string;
-} 
+}

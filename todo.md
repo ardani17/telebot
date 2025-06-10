@@ -17,7 +17,7 @@
 ### 1.2 Development Tools
 - [x] Setup package.json untuk workspace management
 - [x] Configure TypeScript untuk shared types
-- [ ] Setup ESLint dan Prettier configuration
+- [x] Setup ESLint dan Prettier configuration
 - [x] Create development scripts untuk semua services
 
 ## Phase 2: Database & Backend Core ✅
@@ -144,7 +144,6 @@
   - [x] Search and filter functionality
   - [x] User statistics and counts
   - [x] Modal forms for create/edit operations
-  - [ ] Feature assignment interface
 - [x] Feature management (enable/disable features, configure access)
   - [x] Features listing with status indicators
   - [x] Enable/disable features functionality
