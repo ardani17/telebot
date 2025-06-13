@@ -133,7 +133,21 @@ cd bot && npm run build && cd ..
 
 ## 🚀 Production Start Guide
 
-### Quick Start (Recommended)
+### Smart Deployment (Recommended)
+```bash
+cd /home/teleweb
+./deploy.sh
+```
+
+This automated script will:
+- ✅ Check PostgreSQL connection
+- ✅ Auto-detect if database is empty
+- ✅ Setup database schema if needed
+- ✅ Seed admin user if needed
+- ✅ Start all services with PM2
+- ✅ Run health checks
+
+### Quick Start (Legacy)
 ```bash
 cd /home/teleweb
 ./scripts/prod-start-no-docker.sh
@@ -159,6 +173,71 @@ pm2 start ecosystem.config.js --env production
 # 3. Save PM2 configuration
 pm2 save
 ```
+
+## 📦 Database & Prisma Management
+
+### Understanding Prisma Components
+
+TeleWeb menggunakan **Prisma ORM** untuk database management. Ada 2 komponen terpisah:
+
+1. **Prisma Client** - Sudah di-bundle ke aplikasi, otomatis berjalan
+2. **Database Schema** - Perlu setup manual saat database kosong
+
+### Deployment Scenarios
+
+| Skenario | PM2 Start Langsung | Perlu Setup Database |
+|----------|-------------------|-------------------|
+| **Restart VPS sama** | ✅ Bisa langsung | ❌ Tidak perlu |
+| **Pindah VPS baru** | ❌ Error database | ✅ Wajib setup |
+| **Update schema** | ❌ Error schema | ✅ Wajib update |
+
+### Database Setup Commands
+
+#### Auto Setup (Recommended)
+```bash
+cd /home/teleweb
+./deploy.sh  # Otomatis detect & setup database
+```
+
+#### Manual Setup
+```bash
+# 1. Setup database schema (jika database kosong)
+cd /home/teleweb/backend
+npx dotenv -e ../.env -- prisma db push --skip-generate
+
+# 2. Seed admin user (jika belum ada)
+cd /home/teleweb/scripts
+node seed-admin.js
+
+# 3. Start services
+cd /home/teleweb
+pm2 start ecosystem.config.js
+```
+
+#### Development/Schema Updates
+```bash
+# Generate Prisma client
+cd /home/teleweb/backend
+npx dotenv -e ../.env -- prisma generate
+
+# Push schema changes
+npx dotenv -e ../.env -- prisma db push --skip-generate
+
+# Restart services
+cd /home/teleweb
+pm2 restart all
+```
+
+### Environment Configuration
+
+Semua services menggunakan **single .env file** di `/home/teleweb/.env`:
+
+- ✅ **Backend**: `envFilePath: '../.env'`
+- ✅ **Bot**: `dotenv.config({ path: '../.env' })`
+- ✅ **Frontend**: `envDir: '../'`
+- ✅ **PM2**: Reads dari current directory
+
+**Tidak ada .env lokal** di subdirectory untuk menghindari konflik konfigurasi.
 
 ### Service Management
 ```bash
@@ -299,7 +378,46 @@ Access system monitoring at: `http://your-domain/dashboard`
 
 ## 🛟 Troubleshooting
 
-### Bot Not Responding
+### Common Issues After VPS Restart
+
+#### Backend Error: "DATABASE_URL not found"
+**Symptoms:**
+- Backend logs show Prisma validation errors
+- Bot gets 502 Bad Gateway responses
+- `pm2 start ecosystem.config.js` fails
+
+**Root Cause:**
+- Environment variables tidak terbaca dengan benar
+- Database schema mungkin hilang
+
+**Solution:**
+```bash
+cd /home/teleweb
+./deploy.sh  # Auto-fix database dan environment
+```
+
+#### Environment Configuration Conflicts
+**Symptoms:**
+- Services menggunakan konfigurasi berbeda
+- Database connection errors randomly
+
+**Root Cause:**
+- Multiple .env files dengan konfigurasi berbeda
+- Inconsistent environment loading
+
+**Solution:**
+```bash
+# Pastikan hanya ada 1 .env file
+ls -la backend/.env bot/.env frontend/.env  # Should not exist
+ls -la .env  # Should exist
+
+# Re-deploy jika ada konflik
+./deploy.sh
+```
+
+### Standard Troubleshooting
+
+#### Bot Not Responding
 ```bash
 # Check bot status
 pm2 status teleweb-bot
@@ -311,7 +429,7 @@ pm2 logs teleweb-bot --lines 100
 pm2 restart teleweb-bot
 ```
 
-### Web Interface Not Accessible
+#### Web Interface Not Accessible
 ```bash
 # Check nginx
 sudo systemctl status nginx
@@ -322,14 +440,45 @@ pm2 status teleweb-backend
 curl http://localhost:3001/api/health
 ```
 
-### Database Connection Issues
+#### Database Connection Issues
 ```bash
 # Check PostgreSQL
 sudo systemctl status postgresql
 sudo -u postgres psql -c "SELECT 1;"
 
-# Run migrations
-cd backend && npx prisma migrate deploy
+# Setup database schema
+cd /home/teleweb/backend
+npx dotenv -e ../.env -- prisma db push --skip-generate
+```
+
+#### Prisma Environment Issues
+```bash
+# Install dotenv-cli jika belum ada
+cd /home/teleweb/backend
+npm install --save-dev dotenv-cli
+
+# Generate Prisma client dengan environment
+npx dotenv -e ../.env -- prisma generate
+
+# Push schema ke database
+npx dotenv -e ../.env -- prisma db push --skip-generate
+```
+
+### Debug Commands
+```bash
+# Test environment loading
+cd /home/teleweb
+node test-config.js
+
+# Check database connection
+psql -U root -h localhost -d teleweb -p 5432 -c "SELECT current_database();"
+
+# Verify Prisma schema
+cd backend
+npx dotenv -e ../.env -- prisma validate
+
+# Check PM2 environment
+pm2 describe teleweb-backend
 ```
 
 ## 🔒 Security Notes

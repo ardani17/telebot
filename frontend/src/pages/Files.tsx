@@ -461,23 +461,39 @@ export function Files() {
   const handleDownload = async (filePath: string, fileName: string) => {
     if (!selectedUser) return;
 
+    console.log('Download request:', { filePath, fileName, selectedUser });
+
     try {
       setActionLoading(true);
-      // Properly encode the file path for URL
-      const encodedPath = encodeURIComponent(filePath);
-      const response = await api.get(`/files/download/path/${selectedUser}/${encodedPath}`, {
+      
+      // Use alternative endpoint with query parameter
+      const params = new URLSearchParams({ path: filePath });
+      const url = `/files/download-file/${selectedUser}?${params}`;
+      
+      console.log('Download URL:', url);
+      console.log('Query params:', params.toString());
+      console.log('API base URL:', api.defaults.baseURL);
+      console.log('Full URL will be:', `${api.defaults.baseURL}${url}`);
+      
+      const response = await api.get(url, {
         responseType: 'blob',
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url2 = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
-      link.href = url;
+      link.href = url2;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url2);
+      
+      console.log('Download successful');
     } catch (err: any) {
+      console.error('Download error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
       alert('Failed to download file: ' + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
@@ -487,19 +503,36 @@ export function Files() {
   const handleDelete = async (filePath: string, fileName: string) => {
     if (!selectedUser) return;
 
+    console.log('Delete request:', { filePath, fileName, selectedUser });
+
     if (!confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
       return;
     }
 
     try {
       setActionLoading(true);
-      // Properly encode the file path for URL
-      const encodedPath = encodeURIComponent(filePath);
-      await api.delete(`/files/path/${selectedUser}/${encodedPath}`);
+      
+      // Use alternative endpoint with query parameter
+      const params = new URLSearchParams({ path: filePath });
+      const url = `/files/delete-file/${selectedUser}?${params}`;
+      
+      console.log('Delete URL:', url);
+      console.log('Query params:', params.toString());
+      console.log('API base URL:', api.defaults.baseURL);
+      console.log('Full URL will be:', `${api.defaults.baseURL}${url}`);
+      
+      await api.delete(url);
+      
+      console.log('Delete successful');
+      
       // Refresh filesystem
       await fetchFilesystem(selectedUser);
       await fetchStorageStats();
     } catch (err: any) {
+      console.error('Delete error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
       alert('Failed to delete file: ' + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);

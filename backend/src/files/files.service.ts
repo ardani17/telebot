@@ -569,20 +569,45 @@ export class FilesService {
    * Download file by path
    */
   async downloadFileByPath(telegramId: string, filePath: string) {
+    this.logger.log('downloadFileByPath called', {
+      telegramId,
+      filePath,
+      filePathLength: filePath.length,
+    });
+
     const botApiDataPath =
       process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
     const userDataPath = path.join(botApiDataPath, telegramId);
     const fullPath = path.join(userDataPath, filePath);
 
+    this.logger.log('Paths constructed', {
+      botApiDataPath,
+      userDataPath,
+      fullPath,
+      filePath,
+    });
+
     // Security check: ensure path is within user directory
     const resolvedPath = path.resolve(fullPath);
     const resolvedUserPath = path.resolve(userDataPath);
+
+    this.logger.log('Security check', {
+      resolvedPath,
+      resolvedUserPath,
+      startsWith: resolvedPath.startsWith(resolvedUserPath),
+    });
 
     if (!resolvedPath.startsWith(resolvedUserPath)) {
       throw new NotFoundException('File path not allowed');
     }
 
-    if (!(await fs.pathExists(fullPath))) {
+    const exists = await fs.pathExists(fullPath);
+    this.logger.log('File existence check', {
+      fullPath,
+      exists,
+    });
+
+    if (!exists) {
       throw new NotFoundException('File not found');
     }
 
@@ -591,12 +616,15 @@ export class FilesService {
       throw new NotFoundException('Path is not a file');
     }
 
-    return {
+    const result = {
       fullPath,
       fileName: path.basename(filePath),
       mimeType: this.getMimeType(path.basename(filePath)),
       size: stats.size,
     };
+
+    this.logger.log('Returning file info', result);
+    return result;
   }
 
   /**
@@ -635,24 +663,50 @@ export class FilesService {
    * Delete file by path from filesystem
    */
   async deleteFileByPath(telegramId: string, filePath: string) {
+    this.logger.log('deleteFileByPath called', {
+      telegramId,
+      filePath,
+      filePathLength: filePath.length,
+    });
+
     const botApiDataPath =
       process.env.BOT_API_DATA_PATH || path.join(process.cwd(), 'data-bot-user');
     const userDataPath = path.join(botApiDataPath, telegramId);
     const fullPath = path.join(userDataPath, filePath);
 
+    this.logger.log('Paths constructed for delete', {
+      botApiDataPath,
+      userDataPath,
+      fullPath,
+      filePath,
+    });
+
     // Security check: ensure path is within user directory
     const resolvedPath = path.resolve(fullPath);
     const resolvedUserPath = path.resolve(userDataPath);
+
+    this.logger.log('Security check for delete', {
+      resolvedPath,
+      resolvedUserPath,
+      startsWith: resolvedPath.startsWith(resolvedUserPath),
+    });
 
     if (!resolvedPath.startsWith(resolvedUserPath)) {
       throw new NotFoundException('File path not allowed');
     }
 
-    if (!(await fs.pathExists(fullPath))) {
+    const exists = await fs.pathExists(fullPath);
+    this.logger.log('File existence check for delete', {
+      fullPath,
+      exists,
+    });
+
+    if (!exists) {
       throw new NotFoundException('File not found');
     }
 
     await fs.remove(fullPath);
+    this.logger.log('File deleted successfully', { fullPath });
 
     // Also try to remove from database if exists
     try {

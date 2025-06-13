@@ -276,12 +276,26 @@ export class GeotagsHandler {
         const parsedDate = this.customDateParser(timeString);
         if (parsedDate) {
           state.customDateTime = parsedDate;
-          await ctx.reply(
-            `⏱️ Waktu manual diatur ke: ${parsedDate.toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}`
-          );
+          
+          // Format preview in Indonesia timezone for confirmation
+          const preview = parsedDate.toLocaleString('id-ID', { 
+            dateStyle: 'full', 
+            timeStyle: 'short',
+            timeZone: 'Asia/Jakarta'
+          });
+          
+          // Debug logging
+          this.logger.info('Custom time set', {
+            telegramId,
+            input: timeString,
+            parsedUTC: parsedDate.toISOString(),
+            previewWIB: preview
+          });
+          
+          await ctx.reply(`⏱️ Waktu manual diatur ke: ${preview} WIB`);
         } else {
           await ctx.reply(
-            'Format tanggal/waktu tidak valid. Gunakan YYYY-MM-DD HH:MM\nContoh: /set_time 2024-01-20 10:30'
+            'Format tanggal/waktu tidak valid. Gunakan YYYY-MM-DD HH:MM\nContoh: /set_time 2024-06-28 14:00 (untuk 2 PM)'
           );
         }
       }
@@ -506,15 +520,21 @@ export class GeotagsHandler {
     const hours = parseInt(parts[4], 10);
     const minutes = parseInt(parts[5], 10);
 
-    const date = new Date(year, month, day, hours, minutes);
+    // ✅ FIX: Create date in Indonesia timezone (WIB = UTC+7)
+    // User input: "2024-06-28 14:00" should be treated as 14:00 WIB
+    
+    // Create UTC date and adjust for Indonesia timezone offset
+    const utcDate = new Date(Date.UTC(year, month, day, hours - 7, minutes)); // Subtract 7 hours for WIB
+    
+    // Validate the input components (before timezone adjustment)
     if (
-      date.getFullYear() === year &&
-      date.getMonth() === month &&
-      date.getDate() === day &&
-      date.getHours() === hours &&
-      date.getMinutes() === minutes
+      year >= 1900 && year <= 2100 &&
+      month >= 0 && month <= 11 &&
+      day >= 1 && day <= 31 &&
+      hours >= 0 && hours <= 23 &&
+      minutes >= 0 && minutes <= 59
     ) {
-      return date;
+      return utcDate;
     }
     return null;
   }
@@ -680,11 +700,17 @@ export class GeotagsHandler {
 
     const rawAddress = await this.fetchAddressFromCoordinates(latitude, longitude);
 
-    // Use Indonesia timezone (WIB/WITA/WIT)
-    const now = customDateTime ? new Date(customDateTime) : new Date();
-    const jakartaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+    // ✅ FIX: Proper timezone handling for Indonesia
+    const targetDateTime = customDateTime || new Date();
 
-    // Format date and time in Indonesian format
+    // Debug logging for timezone handling
+    this.logger.info('Generating geotag timestamp', {
+      isCustomTime: !!customDateTime,
+      targetDateTimeUTC: targetDateTime.toISOString(),
+      targetDateTimeLocal: targetDateTime.toString()
+    });
+
+    // Format date and time in Indonesian format using the target datetime
     const dateFormatter = new Intl.DateTimeFormat('id-ID', {
       weekday: 'short',
       day: '2-digit',
@@ -699,12 +725,19 @@ export class GeotagsHandler {
       timeZone: 'Asia/Jakarta',
     });
 
-    const dateStrParts = dateFormatter.formatToParts(jakartaTime);
+    const dateStrParts = dateFormatter.formatToParts(targetDateTime);
     const dayName = dateStrParts.find(p => p.type === 'weekday')?.value || '';
     const day = dateStrParts.find(p => p.type === 'day')?.value || '';
     const month = dateStrParts.find(p => p.type === 'month')?.value || '';
     const year = dateStrParts.find(p => p.type === 'year')?.value || '';
-    const timeStr = timeFormatter.format(jakartaTime).replace(/\./g, ':');
+    const timeStr = timeFormatter.format(targetDateTime).replace(/\./g, ':');
+
+    // Debug the formatted result
+    this.logger.info('Formatted timestamp result', {
+      dateStrParts: dateStrParts.map(p => `${p.type}:${p.value}`),
+      finalTimeStr: timeStr,
+      finalDateTimeString: `${year}-${month}-${day}(${dayName}) ${timeStr}`
+    });
 
     // Format: 2025-06-07(Sab) 06:16(PM)
     const dateTimeString = `${year}-${month}-${day}(${dayName}) ${timeStr}`;

@@ -368,6 +368,94 @@ export class FilesController {
     }
   }
 
+  @Get('download-file/:telegramId')
+  @UseGuards(JwtAuthGuard)
+  async downloadFileAlt(
+    @Param('telegramId') telegramId: string,
+    @Query('path') filePath: string,
+    @Response() res: any
+  ) {
+    try {
+      this.logger.log('Alternative download request', {
+        telegramId,
+        filePath,
+        filePathLength: filePath?.length,
+      });
+
+      if (!filePath) {
+        throw new BadRequestException('File path is required');
+      }
+
+      const result = await this.filesService.downloadFileByPath(telegramId, filePath);
+
+      res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+      res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
+
+      return res.sendFile(path.resolve(result.fullPath));
+    } catch (error) {
+      this.logger.error('Error in alternative download', {
+        error: error.message,
+        telegramId,
+        filePath,
+      });
+      if (error instanceof NotFoundException) {
+        res.status(404).json({ message: 'File not found', error: error.message });
+      } else {
+        res.status(400).json({ message: 'Failed to download file', error: error.message });
+      }
+    }
+  }
+
+  @Get('download/path/:telegramId/*')
+  @UseGuards(JwtAuthGuard)
+  async downloadFileByPath(
+    @Param('telegramId') telegramId: string,
+    @Param('*') filePath: string,
+    @Response() res: any,
+    @Req() req: any
+  ) {
+    try {
+      this.logger.log('Download request received', {
+        telegramId,
+        rawFilePath: filePath,
+        fullUrl: req.url,
+        originalUrl: req.originalUrl,
+      });
+
+      // Decode the URL encoded path
+      const decodedPath = decodeURIComponent(filePath);
+      
+      this.logger.log('Path after decoding', {
+        decodedPath,
+        telegramId,
+      });
+
+      const result = await this.filesService.downloadFileByPath(telegramId, decodedPath);
+
+      this.logger.log('File found, sending response', {
+        fileName: result.fileName,
+        fullPath: result.fullPath,
+        mimeType: result.mimeType,
+      });
+
+      res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+      res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
+
+      return res.sendFile(path.resolve(result.fullPath));
+    } catch (error) {
+      this.logger.error('Error downloading file by path', {
+        error: error.message,
+        stack: error.stack,
+        telegramId,
+        filePath,
+      });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to download file');
+    }
+  }
+
   @Get('download/:fileId')
   @UseGuards(JwtAuthGuard)
   async downloadFile(@Param('fileId') fileId: string, @Response() res: any) {
@@ -395,24 +483,27 @@ export class FilesController {
     }
   }
 
-  @Get('download/path/:telegramId/*')
+  @Delete('delete-file/:telegramId')
   @UseGuards(JwtAuthGuard)
-  async downloadFileByPath(
+  async deleteFileAlt(
     @Param('telegramId') telegramId: string,
-    @Param('*') filePath: string,
-    @Response() res: any
+    @Query('path') filePath: string
   ) {
     try {
-      // Decode the URL encoded path
-      const decodedPath = decodeURIComponent(filePath);
-      const result = await this.filesService.downloadFileByPath(telegramId, decodedPath);
+      this.logger.log('Alternative delete request', {
+        telegramId,
+        filePath,
+        filePathLength: filePath?.length,
+      });
 
-      res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
-      res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
+      if (!filePath) {
+        throw new BadRequestException('File path is required');
+      }
 
-      return res.sendFile(path.resolve(result.fullPath));
+      await this.filesService.deleteFileByPath(telegramId, filePath);
+      return { success: true, message: 'File deleted successfully' };
     } catch (error) {
-      this.logger.error('Error downloading file by path', {
+      this.logger.error('Error in alternative delete', {
         error: error.message,
         telegramId,
         filePath,
@@ -420,7 +511,46 @@ export class FilesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new BadRequestException('Failed to download file');
+      throw new BadRequestException('Failed to delete file');
+    }
+  }
+
+  @Delete('path/:telegramId/*')
+  @UseGuards(JwtAuthGuard)
+  async deleteFileByPath(
+    @Param('telegramId') telegramId: string, 
+    @Param('*') filePath: string,
+    @Req() req: any
+  ) {
+    try {
+      this.logger.log('Delete request received', {
+        telegramId,
+        rawFilePath: filePath,
+        fullUrl: req.url,
+        originalUrl: req.originalUrl,
+      });
+
+      // Decode the URL encoded path
+      const decodedPath = decodeURIComponent(filePath);
+      
+      this.logger.log('Path after decoding', {
+        decodedPath,
+        telegramId,
+      });
+
+      await this.filesService.deleteFileByPath(telegramId, decodedPath);
+      return { success: true, message: 'File deleted successfully' };
+    } catch (error) {
+      this.logger.error('Error deleting file by path', {
+        error: error.message,
+        stack: error.stack,
+        telegramId,
+        filePath,
+      });
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to delete file');
     }
   }
 
@@ -432,27 +562,6 @@ export class FilesController {
       return { success: true, message: 'File deleted successfully' };
     } catch (error) {
       this.logger.error('Error deleting file', { error: error.message, fileId });
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new BadRequestException('Failed to delete file');
-    }
-  }
-
-  @Delete('path/:telegramId/*')
-  @UseGuards(JwtAuthGuard)
-  async deleteFileByPath(@Param('telegramId') telegramId: string, @Param('*') filePath: string) {
-    try {
-      // Decode the URL encoded path
-      const decodedPath = decodeURIComponent(filePath);
-      await this.filesService.deleteFileByPath(telegramId, decodedPath);
-      return { success: true, message: 'File deleted successfully' };
-    } catch (error) {
-      this.logger.error('Error deleting file by path', {
-        error: error.message,
-        telegramId,
-        filePath,
-      });
       if (error instanceof NotFoundException) {
         throw error;
       }

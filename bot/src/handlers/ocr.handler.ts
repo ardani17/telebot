@@ -55,6 +55,14 @@ export class OcrHandler {
       // Set user in OCR mode using session manager
       ctx.setUserMode?.('ocr');
 
+      // Clear koordinat sub-mode if active (ensure regular OCR mode)
+      const wasInKoordinatMode = this.koordinatModeUsers.has(telegramId);
+      this.koordinatModeUsers.delete(telegramId);
+      
+      if (wasInKoordinatMode) {
+        this.logger.info('Cleared koordinat sub-mode for regular OCR', { telegramId });
+      }
+
       await ctx.reply(
         '🔤 OCR Text Recognition\n\n' +
           'Anda memiliki akses ke fitur OCR. Cara penggunaan:\n\n' +
