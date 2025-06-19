@@ -44,6 +44,8 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingUser, setCheckingUser] = useState(false);
+  const [checkResult, setCheckResult] = useState<{ name?: string; username?: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -66,7 +68,42 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
       });
     }
     setError(null);
+    setCheckResult(null);
   }, [user, isOpen]);
+
+  const handleCheckUser = async () => {
+    if (!formData.telegramId.trim()) {
+      setError('Masukkan Telegram ID terlebih dahulu');
+      return;
+    }
+
+    setCheckingUser(true);
+    setError(null);
+    setCheckResult(null);
+
+    try {
+      const response = await api.get(`/admin/users/check-telegram/${formData.telegramId}`);
+      const userData = response.data;
+      
+      setCheckResult({
+        name: userData.first_name + (userData.last_name ? ` ${userData.last_name}` : ''),
+        username: userData.username
+      });
+
+      // Auto-fill the form if data is found
+      if (userData.first_name) {
+        setFormData(prev => ({
+          ...prev,
+          name: userData.first_name + (userData.last_name ? ` ${userData.last_name}` : ''),
+          username: userData.username || ''
+        }));
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Tidak dapat mengecek informasi user');
+    } finally {
+      setCheckingUser(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,15 +191,36 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
             >
               Telegram ID
             </label>
-            <input
-              id='user-telegram-id'
-              type='text'
-              required
-              value={formData.telegramId}
-              onChange={e => setFormData({ ...formData, telegramId: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-              disabled={!!user}
-            />
+            <div className='flex space-x-2'>
+              <input
+                id='user-telegram-id'
+                type='text'
+                required
+                value={formData.telegramId}
+                onChange={e => setFormData({ ...formData, telegramId: e.target.value })}
+                className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+                readOnly={!!user}
+                title={user ? 'Telegram ID cannot be changed for existing users' : ''}
+              />
+              <button
+                type='button'
+                onClick={handleCheckUser}
+                disabled={checkingUser || !formData.telegramId.trim()}
+                className='px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md border border-blue-200 disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                {checkingUser ? 'Cek...' : 'Cek'}
+              </button>
+            </div>
+            
+            {/* Check Result Display */}
+            {checkResult && (
+              <div className='mt-2 p-3 bg-green-50 border border-green-200 rounded-md'>
+                <div className='text-sm text-green-800'>
+                  <div><strong>Nama:</strong> {checkResult.name || 'Tidak ada'}</div>
+                  <div><strong>Username:</strong> @{checkResult.username || 'Tidak ada'}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

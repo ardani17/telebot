@@ -848,6 +848,8 @@ export class OcrHandler {
       /([+-]?\d+,\d+)([NS])([+-]?\d+,\d+)([EW])/g,
       // NEW FORMAT: Sign with direction (dot as decimal separator): -7.1607S+112.5317E
       /([+-]?\d+\.\d+)([NS])([+-]?\d+\.\d+)([EW])/g,
+      // OCR ERROR FORMAT: Very long digit sequences that might be OCR errors: 7236491666666666S 112.73853E
+      /(\d{7,})([NS])\s+(\d+\.?\d*)([EW])/g,
     ];
 
     // Pattern untuk DMS coordinates - improved
@@ -965,8 +967,45 @@ export class OcrHandler {
 
         for (const match of matches) {
           // Convert comma to dot for parsing (European decimal format)
-          const latValue = match[1].replace(',', '.');
+          let latValue = match[1].replace(',', '.');
           const lonValue = match[3].replace(',', '.');
+
+          // Handle OCR error case: very long digit sequences (likely OCR misreads)
+          if (latValue.length > 10 && !latValue.includes('.')) {
+            // Try to interpret as potential coordinate by inserting decimal point
+            // Common OCR error: 7236491666666666 should be 7.236491
+            const digits = latValue.toString();
+            
+            // Try different decimal point positions for realistic coordinates
+            const possibleValues: number[] = [];
+            
+            // Try inserting decimal after first digit: 7.236491666666666 -> 7.236491
+            if (digits.length > 1) {
+              const candidate1 = digits[0] + '.' + digits.substring(1, 7); // Take up to 6 decimal places
+              const parsed1 = parseFloat(candidate1);
+              if (parsed1 >= 0 && parsed1 <= 90) possibleValues.push(parsed1);
+            }
+            
+            // Try inserting decimal after first two digits: 72.36491666666666 -> 72.36491
+            if (digits.length > 2) {
+              const candidate2 = digits.substring(0, 2) + '.' + digits.substring(2, 8);
+              const parsed2 = parseFloat(candidate2);
+              if (parsed2 >= 0 && parsed2 <= 90) possibleValues.push(parsed2);
+            }
+            
+            // Use the most reasonable value (closest to typical coordinate ranges)
+            if (possibleValues.length > 0) {
+              // Prefer values in typical latitude range (0-90)
+              const bestValue = possibleValues.find(v => v <= 10) || possibleValues[0];
+              latValue = bestValue.toString();
+              this.logger.info('OCR error correction applied', {
+                original: match[1],
+                corrected: latValue,
+                possibleValues,
+                selected: bestValue
+              });
+            }
+          }
 
           let lat = parseFloat(latValue);
           const latDir = match[2];

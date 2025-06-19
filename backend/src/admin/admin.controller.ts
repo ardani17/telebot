@@ -173,15 +173,25 @@ export class AdminController {
   }
 
   // Web-specific endpoints (JWT required)
+  @Get('users')
   @ApiTags('admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, AdminGuard)
-  @Get('users')
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'List of users' })
   async getUsers(@Query('active') active?: string) {
     const isActiveFilter = active === 'true' ? true : active === 'false' ? false : undefined;
     return this.adminService.getUsers(isActiveFilter);
+  }
+
+  @Get('users/check-telegram/:telegramId')
+  @ApiTags('admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiOperation({ summary: 'Check Telegram user info by ID' })
+  @ApiResponse({ status: 200, description: 'Telegram user info' })
+  async checkTelegramUser(@Param('telegramId') telegramId: string) {
+    return this.adminService.checkTelegramUser(telegramId);
   }
 
   @Get('users/:telegramId')

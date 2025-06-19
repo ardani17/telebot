@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 import * as os from 'os';
+import axios from 'axios';
 
 @Injectable()
 export class AdminService {
@@ -66,6 +67,54 @@ export class AdminService {
       return user;
     } catch (error) {
       this.logger.error(`Failed to get user ${telegramId}`, error);
+      throw error;
+    }
+  }
+
+  async checkTelegramUser(telegramId: string) {
+    try {
+      const botToken = process.env.BOT_TOKEN;
+      if (!botToken) {
+        throw new Error('BOT_TOKEN environment variable is not set');
+      }
+
+      // Use getChat method to get user information
+      const botApiServer = process.env.BOT_API_SERVER;
+      let apiUrl: string;
+      
+      if (botApiServer) {
+        apiUrl = `${botApiServer}/bot${botToken}/getChat`;
+      } else {
+        apiUrl = `https://api.telegram.org/bot${botToken}/getChat`;
+      }
+
+      const response = await axios.get(apiUrl, {
+        params: {
+          chat_id: telegramId
+        },
+        timeout: 10000 // 10 second timeout
+      });
+
+      if (response.data.ok && response.data.result) {
+        const userInfo = response.data.result;
+        
+        return {
+          id: userInfo.id,
+          first_name: userInfo.first_name,
+          last_name: userInfo.last_name,
+          username: userInfo.username,
+          type: userInfo.type
+        };
+      } else {
+        throw new NotFoundException(`User with Telegram ID ${telegramId} not found or bot cannot access this user`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to check Telegram user ${telegramId}`, error);
+      
+      if (error.response?.status === 400) {
+        throw new NotFoundException(`User with Telegram ID ${telegramId} not found or bot cannot access this user`);
+      }
+      
       throw error;
     }
   }
