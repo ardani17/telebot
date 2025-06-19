@@ -148,79 +148,92 @@ export default function Activities() {
   }
 
   return (
-    <div className='p-6'>
-      <div className='flex items-center justify-between mb-6'>
-        <div className='flex items-center gap-3'>
-          <Activity className='w-8 h-8 text-blue-600' />
-          <h1 className='text-3xl font-bold text-gray-900'>Activities</h1>
-        </div>
-        <div className='flex items-center gap-2'>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className='flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border rounded-md hover:bg-gray-50'
-          >
-            <Filter className='w-4 h-4' />
-            Filter
-          </button>
-          <button
-            onClick={handleRefresh}
-            className='flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700'
-          >
-            <RefreshCw className='w-4 h-4' />
-            Refresh
-          </button>
+    <div className='space-y-6'>
+      {/* Header */}
+      <div>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+          <div className='flex items-center gap-3'>
+            <Activity className='w-8 h-8 text-blue-600 flex-shrink-0' />
+            <div>
+              <h1 className='text-2xl font-bold text-gray-900'>Activities</h1>
+              <p className='text-sm text-gray-600'>Monitor sistem dan user activities</p>
+            </div>
+          </div>
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className='flex items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border rounded-md hover:bg-gray-50'
+            >
+              <Filter className='w-4 h-4' />
+              <span className='hidden sm:inline'>Filter</span>
+            </button>
+            <button
+              onClick={handleRefresh}
+              className='flex items-center justify-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700'
+            >
+              <RefreshCw className='w-4 h-4' />
+              <span className='hidden sm:inline'>Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Statistics */}
+      {/* Statistics - Mobile Responsive */}
       {stats && (
-        <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
-          <div className='bg-white p-4 rounded-lg shadow'>
+        <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
+          <div className='bg-white p-4 rounded-lg shadow border'>
             <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-gray-600'>Total Aktivitas</p>
-                <p className='text-2xl font-bold'>{stats.total.toLocaleString()}</p>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Total Aktivitas</p>
+                <p className='text-xl font-bold'>{stats.total.toLocaleString()}</p>
               </div>
-              <Activity className='w-8 h-8 text-blue-500' />
+              <Activity className='w-6 h-6 text-blue-500 flex-shrink-0' />
             </div>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
+          <div className='bg-white p-4 rounded-lg shadow border'>
             <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-gray-600'>Hari Ini</p>
-                <p className='text-2xl font-bold'>{stats.today}</p>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Hari Ini</p>
+                <p className='text-xl font-bold'>{stats.today}</p>
               </div>
-              <TrendingUp className='w-8 h-8 text-green-500' />
+              <TrendingUp className='w-6 h-6 text-green-500 flex-shrink-0' />
             </div>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
+          <div className='bg-white p-4 rounded-lg shadow border'>
             <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-gray-600'>Tingkat Sukses</p>
-                <p className='text-2xl font-bold'>{stats.successRate.toFixed(1)}%</p>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Tingkat Sukses</p>
+                <p className='text-xl font-bold'>{stats.successRate.toFixed(1)}%</p>
               </div>
-              <CheckCircle className='w-8 h-8 text-green-500' />
+              <CheckCircle className='w-6 h-6 text-green-500 flex-shrink-0' />
             </div>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
+          <div className='bg-white p-4 rounded-lg shadow border'>
             <div className='flex items-center justify-between'>
-              <div>
-                <p className='text-sm text-gray-600'>Tingkat Gagal</p>
-                <p className='text-2xl font-bold'>{stats.failureRate.toFixed(1)}%</p>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Tingkat Gagal</p>
+                <p className='text-xl font-bold'>{stats.failureRate.toFixed(1)}%</p>
               </div>
-              <XCircle className='w-8 h-8 text-red-500' />
+              <XCircle className='w-6 h-6 text-red-500 flex-shrink-0' />
             </div>
           </div>
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters - Mobile Responsive */}
       {showFilters && (
-        <div className='bg-white p-4 rounded-lg shadow mb-6'>
-          <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+        <div className='bg-white p-4 rounded-lg shadow border'>
+          <h3 className='text-md font-medium text-gray-900 mb-4'>Filter Activities</h3>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Status</label>
+              <label
+                htmlFor='filter-status'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Status
+              </label>
               <select
+                id='filter-status'
                 value={filters.success}
                 onChange={e => handleFilterChange('success', e.target.value)}
                 className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -231,8 +244,11 @@ export default function Activities() {
               </select>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Mode</label>
+              <label htmlFor='filter-mode' className='block text-sm font-medium text-gray-700 mb-1'>
+                Mode
+              </label>
               <select
+                id='filter-mode'
                 value={filters.mode}
                 onChange={e => handleFilterChange('mode', e.target.value)}
                 className='w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
@@ -247,8 +263,14 @@ export default function Activities() {
               </select>
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>Dari Tanggal</label>
+              <label
+                htmlFor='filter-date-from'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Dari Tanggal
+              </label>
               <input
+                id='filter-date-from'
                 type='date'
                 value={filters.dateFrom}
                 onChange={e => handleFilterChange('dateFrom', e.target.value)}
@@ -256,10 +278,14 @@ export default function Activities() {
               />
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label
+                htmlFor='filter-date-to'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
                 Sampai Tanggal
               </label>
               <input
+                id='filter-date-to'
                 type='date'
                 value={filters.dateTo}
                 onChange={e => handleFilterChange('dateTo', e.target.value)}
@@ -278,11 +304,20 @@ export default function Activities() {
         </div>
       )}
 
-      {/* Activities List */}
-      <div className='bg-white rounded-lg shadow-sm border'>
+      {/* Activities List - Enhanced Mobile Design */}
+      <div className='bg-white rounded-lg shadow border'>
         <div className='p-4 border-b'>
-          <h2 className='text-lg font-semibold text-gray-900'>Recent Activities</h2>
-          <p className='text-sm text-gray-600'>Monitor sistem dan user activities</p>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+            <div>
+              <h2 className='text-lg font-semibold text-gray-900'>Recent Activities</h2>
+              <p className='text-sm text-gray-600'>Monitor sistem dan user activities</p>
+            </div>
+            {pagination && (
+              <div className='text-sm text-gray-500'>
+                {activities.length} of {pagination.total} activities
+              </div>
+            )}
+          </div>
         </div>
 
         <div className='divide-y'>
@@ -294,12 +329,10 @@ export default function Activities() {
           ) : (
             activities.map(activity => (
               <div key={activity.id} className='p-4 hover:bg-gray-50 transition-colors'>
-                <div className='flex items-start gap-3'>
+                <div className='flex flex-col sm:flex-row sm:items-start gap-3'>
                   <div
                     className={`flex-shrink-0 p-2 rounded-lg ${
-                      activity.success
-                        ? 'bg-green-100 text-green-600'
-                        : 'bg-red-100 text-red-600'
+                      activity.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                     }`}
                   >
                     {activity.success ? (
@@ -308,29 +341,34 @@ export default function Activities() {
                       <XCircle className='w-4 h-4' />
                     )}
                   </div>
+
                   <div className='flex-1 min-w-0'>
-                    <div className='flex items-center justify-between'>
-                      <h3 className='text-sm font-medium text-gray-900'>
-                        {activity.action}
+                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+                      <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
+                        <h3 className='text-sm font-medium text-gray-900 truncate'>
+                          {activity.action}
+                        </h3>
                         {activity.mode && (
-                          <span className='ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded'>
+                          <span className='inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full'>
                             {activity.mode}
                           </span>
                         )}
-                      </h3>
-                      <div className='flex items-center gap-1 text-xs text-gray-500'>
+                      </div>
+                      <div className='flex items-center gap-1 text-xs text-gray-500 flex-shrink-0'>
                         <Clock className='w-3 h-3' />
                         {formatTimestamp(activity.createdAt)}
                       </div>
                     </div>
-                    <p className='text-xs text-gray-600 mt-1'>
+
+                    <p className='text-sm text-gray-600 mt-1'>
                       By: <span className='font-medium'>{activity.user.name}</span> (
                       {activity.user.telegramId})
                     </p>
+
                     {activity.errorMessage && (
-                      <div className='mt-2 flex items-start gap-2 p-2 bg-red-50 rounded'>
+                      <div className='mt-2 flex items-start gap-2 p-2 bg-red-50 rounded border border-red-200'>
                         <AlertCircle className='w-4 h-4 text-red-500 flex-shrink-0 mt-0.5' />
-                        <p className='text-xs text-red-700'>{activity.errorMessage}</p>
+                        <p className='text-sm text-red-700'>{activity.errorMessage}</p>
                       </div>
                     )}
                   </div>
@@ -340,16 +378,16 @@ export default function Activities() {
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - Mobile Responsive */}
         {pagination && pagination.totalPages > 1 && (
-          <div className='px-4 py-3 border-t'>
-            <div className='flex items-center justify-between'>
-              <div className='text-sm text-gray-700'>
+          <div className='px-4 py-3 border-t bg-gray-50'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+              <div className='text-sm text-gray-700 text-center sm:text-left'>
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                 {pagination.total} activities
               </div>
-              <div className='flex gap-2'>
+              <div className='flex items-center justify-center gap-2'>
                 <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
@@ -357,7 +395,7 @@ export default function Activities() {
                 >
                   Previous
                 </button>
-                <span className='px-3 py-1 text-sm'>
+                <span className='px-3 py-1 text-sm font-medium'>
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
                 <button
@@ -373,15 +411,17 @@ export default function Activities() {
         )}
       </div>
 
-      {/* By Mode Statistics */}
+      {/* By Mode Statistics - Mobile Responsive */}
       {stats && stats.byMode.length > 0 && (
-        <div className='mt-6 bg-white rounded-lg shadow p-4'>
+        <div className='bg-white rounded-lg shadow border p-4'>
           <h3 className='text-lg font-semibold mb-4'>Aktivitas per Mode</h3>
-          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
+          <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4'>
             {stats.byMode.map(item => (
-              <div key={item.mode || 'unknown'} className='text-center'>
-                <p className='text-2xl font-bold text-blue-600'>{item.count}</p>
-                <p className='text-sm text-gray-600 capitalize'>{item.mode || 'Unknown'}</p>
+              <div key={item.mode || 'unknown'} className='text-center p-3 bg-gray-50 rounded-lg'>
+                <p className='text-xl font-bold text-blue-600'>{item.count}</p>
+                <p className='text-sm text-gray-600 capitalize truncate'>
+                  {item.mode || 'Unknown'}
+                </p>
               </div>
             ))}
           </div>

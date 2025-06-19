@@ -36,18 +36,22 @@ function UserSelector({ users, selectedUser, onUserSelect, loading }: UserSelect
     <div className='relative'>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+        className='inline-flex items-center justify-between w-full sm:w-auto min-w-48 px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
         disabled={loading}
       >
-        <User className='h-4 w-4 mr-2' />
-        {selectedUser
-          ? users.find(u => u.telegramId === selectedUser)?.name || selectedUser
-          : 'All Users'}
-        <ChevronDown className='h-4 w-4 ml-2' />
+        <div className='flex items-center min-w-0 flex-1'>
+          <User className='h-4 w-4 mr-2 flex-shrink-0' />
+          <span className='truncate'>
+            {selectedUser
+              ? users.find(u => u.telegramId === selectedUser)?.name || selectedUser
+              : 'All Users'}
+          </span>
+        </div>
+        <ChevronDown className='h-4 w-4 ml-2 flex-shrink-0' />
       </button>
 
       {isOpen && (
-        <div className='absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10'>
+        <div className='absolute right-0 mt-2 w-full sm:w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 max-h-64 overflow-y-auto'>
           <div className='py-1'>
             <button
               onClick={() => {
@@ -58,7 +62,10 @@ function UserSelector({ users, selectedUser, onUserSelect, loading }: UserSelect
                 selectedUser === null ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
               }`}
             >
-              All Users
+              <div className='flex items-center'>
+                <UsersIcon className='h-4 w-4 mr-2 flex-shrink-0' />
+                <span>All Users</span>
+              </div>
             </button>
             {users.map(user => (
               <button
@@ -71,7 +78,13 @@ function UserSelector({ users, selectedUser, onUserSelect, loading }: UserSelect
                   selectedUser === user.telegramId ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
                 }`}
               >
-                {user.name} ({user.telegramId})
+                <div className='flex items-center min-w-0'>
+                  <User className='h-4 w-4 mr-2 flex-shrink-0' />
+                  <div className='min-w-0 flex-1'>
+                    <div className='truncate font-medium'>{user.name}</div>
+                    <div className='truncate text-xs text-gray-500'>ID: {user.telegramId}</div>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -155,33 +168,35 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
       {filesystem.files.map(file => (
         <div
           key={file.path}
-          className='flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50'
+          className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors'
         >
-          <div className='flex items-center space-x-3'>
-            {getFileIcon(file.name, file.mimeType)}
-            <div>
-              <div className='font-medium text-sm'>{file.name}</div>
+          <div className='flex items-center space-x-3 min-w-0 flex-1'>
+            <div className='flex-shrink-0'>{getFileIcon(file.name, file.mimeType)}</div>
+            <div className='min-w-0 flex-1'>
+              <div className='font-medium text-sm truncate'>{file.name}</div>
               <div className='text-xs text-gray-500'>
                 {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
               </div>
             </div>
           </div>
-          <div className='flex items-center space-x-2'>
+          <div className='flex items-center justify-end gap-2 flex-shrink-0'>
             <button
               onClick={() => onDownload(file.path, file.name)}
-              className='p-1 text-blue-600 hover:text-blue-800 rounded'
+              className='flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors'
               title='Download'
               disabled={loading}
             >
               <Download className='h-4 w-4' />
+              <span className='hidden sm:inline'>Download</span>
             </button>
             <button
               onClick={() => onDelete(file.path, file.name)}
-              className='p-1 text-red-600 hover:text-red-800 rounded'
+              className='flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors'
               title='Delete'
               disabled={loading}
             >
               <Trash2 className='h-4 w-4' />
+              <span className='hidden sm:inline'>Delete</span>
             </button>
           </div>
         </div>
@@ -402,7 +417,7 @@ export function Files() {
           setSelectedUser(user.telegramId);
         }
       }
-    } catch (err: any) {
+    } catch {
       setError('Failed to load users');
     }
   };
@@ -465,16 +480,16 @@ export function Files() {
 
     try {
       setActionLoading(true);
-      
+
       // Use alternative endpoint with query parameter
       const params = new URLSearchParams({ path: filePath });
       const url = `/files/download-file/${selectedUser}?${params}`;
-      
+
       console.log('Download URL:', url);
       console.log('Query params:', params.toString());
       console.log('API base URL:', api.defaults.baseURL);
       console.log('Full URL will be:', `${api.defaults.baseURL}${url}`);
-      
+
       const response = await api.get(url, {
         responseType: 'blob',
       });
@@ -487,7 +502,7 @@ export function Files() {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url2);
-      
+
       console.log('Download successful');
     } catch (err: any) {
       console.error('Download error:', err);
@@ -511,20 +526,20 @@ export function Files() {
 
     try {
       setActionLoading(true);
-      
+
       // Use alternative endpoint with query parameter
       const params = new URLSearchParams({ path: filePath });
       const url = `/files/delete-file/${selectedUser}?${params}`;
-      
+
       console.log('Delete URL:', url);
       console.log('Query params:', params.toString());
       console.log('API base URL:', api.defaults.baseURL);
       console.log('Full URL will be:', `${api.defaults.baseURL}${url}`);
-      
+
       await api.delete(url);
-      
+
       console.log('Delete successful');
-      
+
       // Refresh filesystem
       await fetchFilesystem(selectedUser);
       await fetchStorageStats();
@@ -547,75 +562,84 @@ export function Files() {
   };
 
   return (
-    <div>
+    <div className='space-y-6'>
       {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold text-gray-900'>File Management</h1>
-            <p className='mt-1 text-sm text-gray-600'>
-              View, download, and manage user files from the bot
-            </p>
+      <div>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+          <div className='flex items-center gap-3'>
+            <FilesIcon className='w-8 h-8 text-blue-600 flex-shrink-0' />
+            <div>
+              <h1 className='text-2xl font-bold text-gray-900'>File Management</h1>
+              <p className='text-sm text-gray-600'>
+                View, download, and manage user files from the bot
+              </p>
+            </div>
           </div>
           <button
             onClick={handleRefresh}
-            className='inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50'
+            className='flex items-center justify-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50'
             disabled={loading || actionLoading}
           >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loading || actionLoading ? 'animate-spin' : ''}`}
-            />
-            Refresh
+            <RefreshCw className={`h-4 w-4 ${loading || actionLoading ? 'animate-spin' : ''}`} />
+            <span className='hidden sm:inline'>Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* Storage Stats */}
+      {/* Storage Stats - Mobile Responsive */}
       {storageStats && (
-        <div className='mb-6 grid grid-cols-1 md:grid-cols-4 gap-4'>
-          <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex items-center'>
-              <HardDrive className='h-6 w-6 text-blue-500' />
-              <span className='ml-2 text-sm font-medium text-gray-600'>Total Storage</span>
+        <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
+          <div className='bg-white p-4 rounded-lg shadow border'>
+            <div className='flex items-center justify-between'>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Total Storage</p>
+                <p className='text-xl font-bold text-gray-900'>
+                  {storageStats.formatted.totalSizeFormatted}
+                </p>
+              </div>
+              <HardDrive className='w-6 h-6 text-blue-500 flex-shrink-0' />
             </div>
-            <p className='mt-2 text-2xl font-semibold text-gray-900'>
-              {storageStats.formatted.totalSizeFormatted}
-            </p>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex items-center'>
-              <Database className='h-6 w-6 text-green-500' />
-              <span className='ml-2 text-sm font-medium text-gray-600'>DB Storage</span>
+          <div className='bg-white p-4 rounded-lg shadow border'>
+            <div className='flex items-center justify-between'>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>DB Storage</p>
+                <p className='text-xl font-bold text-gray-900'>
+                  {storageStats.formatted.dbSizeFormatted}
+                </p>
+              </div>
+              <Database className='w-6 h-6 text-green-500 flex-shrink-0' />
             </div>
-            <p className='mt-2 text-2xl font-semibold text-gray-900'>
-              {storageStats.formatted.dbSizeFormatted}
-            </p>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex items-center'>
-              <FilesIcon className='h-6 w-6 text-purple-500' />
-              <span className='ml-2 text-sm font-medium text-gray-600'>Total Files</span>
+          <div className='bg-white p-4 rounded-lg shadow border'>
+            <div className='flex items-center justify-between'>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Total Files</p>
+                <p className='text-xl font-bold text-gray-900'>
+                  {storageStats.filesystem.fileCount.toLocaleString()}
+                </p>
+              </div>
+              <FilesIcon className='w-6 h-6 text-purple-500 flex-shrink-0' />
             </div>
-            <p className='mt-2 text-2xl font-semibold text-gray-900'>
-              {storageStats.filesystem.fileCount.toLocaleString()}
-            </p>
           </div>
-          <div className='bg-white p-4 rounded-lg shadow'>
-            <div className='flex items-center'>
-              <UsersIcon className='h-6 w-6 text-orange-500' />
-              <span className='ml-2 text-sm font-medium text-gray-600'>Users</span>
+          <div className='bg-white p-4 rounded-lg shadow border'>
+            <div className='flex items-center justify-between'>
+              <div className='min-w-0 flex-1'>
+                <p className='text-sm text-gray-600 truncate'>Users</p>
+                <p className='text-xl font-bold text-gray-900'>
+                  {storageStats.filesystem.userCount}
+                </p>
+              </div>
+              <UsersIcon className='w-6 h-6 text-orange-500 flex-shrink-0' />
             </div>
-            <p className='mt-2 text-2xl font-semibold text-gray-900'>
-              {storageStats.filesystem.userCount}
-            </p>
           </div>
         </div>
       )}
 
-      {/* User Selection */}
-      <div className='mb-6 flex items-center justify-between'>
+      {/* User Selection - Mobile Responsive */}
+      <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
         <div>
-          <h2 className='text-lg font-medium text-gray-900 mb-2'>Select User</h2>
+          <h2 className='text-lg font-medium text-gray-900'>Select User</h2>
           <p className='text-sm text-gray-600'>Choose a user to view their files</p>
         </div>
         <UserSelector

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Files, Activity, Settings, LogOut, Menu, X, Sliders } from 'lucide-react';
+import { Home, Users, Files, Activity, Settings, LogOut, Menu, X, Sliders, BarChart3, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface LayoutProps {
@@ -13,6 +13,8 @@ const navigation = [
   { name: 'Features', href: '/features', icon: Sliders },
   { name: 'Files', href: '/files', icon: Files },
   { name: 'Activities', href: '/activities', icon: Activity },
+  { name: 'Statistics', href: '/statistics', icon: BarChart3 },
+  { name: 'User Analytics', href: '/user-analytics', icon: UserCheck },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -59,6 +61,26 @@ export function Layout({ children }: LayoutProps) {
               );
             })}
           </nav>
+
+          {/* Mobile User Info & Logout */}
+          <div className='border-t border-gray-200 p-4'>
+            <div className='flex items-center gap-x-3 px-2 py-3 text-sm font-semibold text-gray-900'>
+              <div className='h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white'>
+                {user?.name?.charAt(0).toUpperCase() || 'A'}
+              </div>
+              <span>{user?.name || 'Admin'}</span>
+            </div>
+            <button
+              onClick={() => {
+                logout();
+                setSidebarOpen(false);
+              }}
+              className='flex items-center px-2 py-2 text-sm font-medium rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 w-full'
+            >
+              <LogOut className='mr-3 h-5 w-5' />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -132,6 +154,26 @@ export function Layout({ children }: LayoutProps) {
             <div className='flex flex-1 gap-x-4 self-stretch lg:gap-x-6'>
               <div className='flex items-center gap-x-4 lg:gap-x-6'>
                 <div className='hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200' />
+              </div>
+
+              {/* Mobile top bar user & logout */}
+              <div className='flex items-center gap-x-4 lg:hidden ml-auto'>
+                <div className='flex items-center gap-x-2'>
+                  <div className='h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs'>
+                    {user?.name?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                  <span className='text-sm font-medium text-gray-900 hidden sm:block'>
+                    {user?.name || 'Admin'}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  className='flex items-center gap-x-1 px-2 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md'
+                  title='Logout'
+                >
+                  <LogOut className='h-4 w-4' />
+                  <span className='hidden sm:inline'>Logout</span>
+                </button>
               </div>
             </div>
           </div>

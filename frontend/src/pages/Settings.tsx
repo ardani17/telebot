@@ -1396,40 +1396,44 @@ export function Settings() {
   );
 
   return (
-    <div>
+    <div className='space-y-6'>
       {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold text-gray-900'>System Settings</h1>
-            <p className='mt-1 text-sm text-gray-600'>
-              Configure system settings, bot configuration, and environment variables
-            </p>
+      <div>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+          <div className='flex items-center gap-3'>
+            <SettingsIcon className='w-8 h-8 text-blue-600 flex-shrink-0' />
+            <div>
+              <h1 className='text-2xl font-bold text-gray-900'>System Settings</h1>
+              <p className='text-sm text-gray-600'>
+                Configure system settings, bot configuration, and environment variables
+              </p>
+            </div>
           </div>
-          <div className='flex space-x-3'>
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
             <button
               onClick={handleRefresh}
-              className='inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50'
+              className='flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50'
               disabled={loading}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className='hidden sm:inline'>Refresh</span>
             </button>
             <button
               onClick={handleSave}
-              className='inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700'
+              className='flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700'
               disabled={saving}
             >
-              <Save className='h-4 w-4 mr-2' />
-              {saving ? 'Saving...' : 'Save Changes'}
+              <Save className='h-4 w-4' />
+              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className='border-b border-gray-200 mb-6'>
-        <nav className='-mb-px flex space-x-8'>
+      {/* Tabs - Mobile Responsive */}
+      <div className='border-b border-gray-200'>
+        {/* Desktop Tabs */}
+        <nav className='hidden lg:flex -mb-px space-x-8'>
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -1440,7 +1444,7 @@ export function Settings() {
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center`}
+                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center transition-colors`}
               >
                 <Icon className='h-4 w-4 mr-2' />
                 {tab.name}
@@ -1448,10 +1452,25 @@ export function Settings() {
             );
           })}
         </nav>
+
+        {/* Mobile Tab Dropdown */}
+        <div className='lg:hidden'>
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value)}
+            className='block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+          >
+            {tabs.map(tab => (
+              <option key={tab.id} value={tab.id}>
+                {tab.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Tab Content */}
-      <div className='bg-white shadow rounded-lg p-6'>
+      <div className='bg-white shadow rounded-lg border p-4 sm:p-6'>
         {activeTab === 'system' && renderSystemInfo()}
         {activeTab === 'environment' && renderEnvironmentConfig()}
         {activeTab === 'database' && renderDatabaseConfig()}

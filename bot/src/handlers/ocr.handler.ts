@@ -842,6 +842,10 @@ export class OcrHandler {
       /(\d+\.?\d*)([NS])\s+(\d+\.?\d*)([EW])/g,
       // Format with comma separator: 7,258150S 112,745900E
       /(\d+,?\d*)([NS])\s+(\d+,?\d*)([EW])/g,
+      // NEW FORMAT: Sign with direction (comma as decimal separator): -7,1607S+112,5317E
+      /([+-]?\d+,\d+)([NS])([+-]?\d+,\d+)([EW])/g,
+      // NEW FORMAT: Sign with direction (dot as decimal separator): -7.1607S+112.5317E
+      /([+-]?\d+\.\d+)([NS])([+-]?\d+\.\d+)([EW])/g,
     ];
 
     // Pattern untuk DMS coordinates - improved
@@ -967,9 +971,19 @@ export class OcrHandler {
           let lon = parseFloat(lonValue);
           const lonDir = match[4];
 
-          // Apply direction: S = negative lat, W = negative lon
-          if (latDir === 'S') lat = -lat;
-          if (lonDir === 'W') lon = -lon;
+          // For new format with sign: respect the existing sign but also consider direction
+          // If number already has sign, use it as is; otherwise apply direction
+          if (!match[1].includes('+') && !match[1].includes('-')) {
+            // Traditional format without sign - apply direction
+            if (latDir === 'S') lat = -Math.abs(lat);
+            if (latDir === 'N') lat = Math.abs(lat);
+          }
+          
+          if (!match[3].includes('+') && !match[3].includes('-')) {
+            // Traditional format without sign - apply direction
+            if (lonDir === 'W') lon = -Math.abs(lon);
+            if (lonDir === 'E') lon = Math.abs(lon);
+          }
 
           this.logger.info('Checking decimal direction coordinate validity', {
             lat,
@@ -1006,7 +1020,8 @@ export class OcrHandler {
               this.logger.info('Valid decimal direction coordinates found', {
                 decimal: result.decimal,
                 dms: result.dms,
-                originalFormat: `${match[1]}${latDir} ${match[3]}${lonDir}`,
+                originalFormat: `${match[1]}${latDir}${match[3]}${lonDir}`,
+                formatType: match[1].includes('+') || match[1].includes('-') ? 'signed_with_direction' : 'traditional_with_direction',
               });
               break;
             } else {

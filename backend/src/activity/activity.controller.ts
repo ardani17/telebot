@@ -52,6 +52,44 @@ export class ActivityController {
   }
 
   /**
+   * Get activity time series data
+   */
+  @Get('time-series')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get activity time series data for charts' })
+  async getActivityTimeSeries(@Query('days') days?: string) {
+    const daysNum = days ? parseInt(days, 10) : 30;
+    return this.activityService.getActivityTimeSeries(daysNum);
+  }
+
+  /**
+   * Get user analytics with date range filter
+   */
+  @Get('user-analytics/:userId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get detailed analytics for a specific user' })
+  async getUserAnalytics(
+    @Param('userId') userId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    return this.activityService.getUserAnalytics(userId, dateFrom, dateTo);
+  }
+
+  /**
+   * Get list of users for analytics
+   */
+  @Get('users-for-analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get list of users with activity data for analytics' })
+  async getUsersForAnalytics() {
+    return this.activityService.getUsersForAnalytics();
+  }
+
+  /**
    * Get user activity statistics for a specific feature
    */
   @Get('user/:userId/feature/:feature')

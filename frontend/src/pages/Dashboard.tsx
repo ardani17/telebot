@@ -7,7 +7,6 @@ import {
   Server,
   Database,
   Clock,
-  Terminal,
   RefreshCw,
   Play,
   Square,
@@ -237,188 +236,22 @@ export function Dashboard() {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div className='mb-8'>
-        <h1 className='text-2xl font-bold text-gray-900'>Dashboard</h1>
-        <p className='mt-1 text-sm text-gray-600'>
-          Welcome back, {user?.name}! Here's what's happening with your system.
-        </p>
-      </div>
-
-      {/* System Status */}
-      <div className='mb-8'>
-        <h2 className='text-lg font-medium text-gray-900 mb-4'>System Status</h2>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          <div className='bg-white overflow-hidden shadow rounded-lg'>
-            <div className='p-5'>
-              <div className='flex items-center'>
-                <div className='flex-shrink-0'>
-                  <Database className='h-6 w-6 text-gray-400' />
-                </div>
-                <div className='ml-5 w-0 flex-1'>
-                  <dl>
-                    <dt className='text-sm font-medium text-gray-500 truncate'>Database</dt>
-                    <dd className='flex items-baseline'>
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(stats.systemStatus.database)}`}
-                      >
-                        {stats.systemStatus.database}
-                      </span>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white overflow-hidden shadow rounded-lg'>
-            <div className='p-5'>
-              <div className='flex items-center'>
-                <div className='flex-shrink-0'>
-                  <Bot className='h-6 w-6 text-gray-400' />
-                </div>
-                <div className='ml-5 w-0 flex-1'>
-                  <dl>
-                    <dt className='text-sm font-medium text-gray-500 truncate'>Bot Service</dt>
-                    <dd className='flex items-baseline'>
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(stats.systemStatus.bot)}`}
-                      >
-                        {stats.systemStatus.bot}
-                      </span>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='bg-white overflow-hidden shadow rounded-lg'>
-            <div className='p-5'>
-              <div className='flex items-center'>
-                <div className='flex-shrink-0'>
-                  <Server className='h-6 w-6 text-gray-400' />
-                </div>
-                <div className='ml-5 w-0 flex-1'>
-                  <dl>
-                    <dt className='text-sm font-medium text-gray-500 truncate'>API Server</dt>
-                    <dd className='flex items-baseline'>
-                      <span className='inline-flex px-2 py-1 text-xs font-medium rounded-full text-green-600 bg-green-100'>
-                        healthy
-                      </span>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className='mb-8'>
-        <h2 className='text-lg font-medium text-gray-900 mb-4'>Overview</h2>
-        <dl className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4'>
-          {statCards.map(item => (
-            <div
-              key={item.name}
-              className='relative bg-white pt-5 px-4 pb-12 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden'
-            >
-              <dt>
-                <div className='absolute bg-blue-500 rounded-md p-3'>
-                  <item.icon className='h-6 w-6 text-white' aria-hidden='true' />
-                </div>
-                <p className='ml-16 text-sm font-medium text-gray-500 truncate'>{item.name}</p>
-              </dt>
-              <dd className='ml-16 pb-6 flex items-baseline sm:pb-7'>
-                <p className='text-2xl font-semibold text-gray-900'>{item.stat}</p>
-                <p className='ml-2 flex items-baseline text-sm font-semibold text-green-600'>
-                  <TrendingUp
-                    className='self-center flex-shrink-0 h-4 w-4 text-green-500'
-                    aria-hidden='true'
-                  />
-                  <span className='sr-only'>
-                    {' '}
-                    {item.changeType === 'increase' ? 'Increased' : 'Decreased'} by{' '}
-                  </span>
-                  {item.change}
-                </p>
-                <div className='absolute bottom-0 inset-x-0 bg-gray-50 px-4 py-4 sm:px-6'>
-                  <div className='text-sm'>
-                    <p className='text-gray-600'>{item.substat}</p>
-                  </div>
-                </div>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
-      {/* Recent Activities */}
-      <div className='mb-8'>
-        <h2 className='text-lg font-medium text-gray-900 mb-4'>Recent Activities</h2>
-        <div className='bg-white shadow overflow-hidden sm:rounded-md'>
-          <ul className='divide-y divide-gray-200'>
-            {recentActivities.length > 0 ? (
-              recentActivities.map(activity => (
-                <li key={activity.id}>
-                  <div className='px-4 py-4 sm:px-6'>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center'>
-                        <div className='flex-shrink-0'>
-                          <Activity className='h-5 w-5 text-gray-400' />
-                        </div>
-                        <div className='ml-4'>
-                          <div className='flex items-center'>
-                            <p className='text-sm font-medium text-blue-600 truncate'>
-                              {activity.type}
-                            </p>
-                            <p className='ml-2 text-sm text-gray-500'>by {activity.user}</p>
-                          </div>
-                          <p className='text-sm text-gray-600'>{activity.description}</p>
-                        </div>
-                      </div>
-                      <div className='flex items-center text-sm text-gray-500'>
-                        <Clock className='h-4 w-4 mr-1' />
-                        {formatRelativeTime(activity.timestamp)}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))
-            ) : (
-              <li>
-                <div className='px-4 py-4 sm:px-6 text-center text-gray-500'>
-                  No recent activities
-                </div>
-              </li>
-            )}
-          </ul>
-        </div>
-      </div>
-
-      {/* System Logs */}
+    <div className='space-y-6'>
+      {/* Welcome Header */}
       <div>
-        <div className='flex items-center justify-between mb-4'>
-          <h2 className='text-lg font-medium text-gray-900'>System Logs</h2>
-          <div className='flex items-center space-x-4'>
-            {/* Service selector */}
-            <select
-              value={selectedLogService}
-              onChange={e => setSelectedLogService(e.target.value)}
-              className='text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value='all'>All Services</option>
-              <option value='backend'>Backend</option>
-              <option value='frontend'>Frontend</option>
-              <option value='bot'>Bot</option>
-            </select>
-
-            {/* Auto refresh toggle */}
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+          <div>
+            <h1 className='text-2xl font-bold text-gray-900'>
+              Welcome back, {user?.name || 'Admin'}!
+            </h1>
+            <p className='mt-1 text-sm text-gray-600'>
+              Here's what's happening with your TeleWeb system today.
+            </p>
+          </div>
+          <div className='flex items-center space-x-3'>
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`flex items-center px-3 py-1 text-sm rounded-md ${
+              className={`flex items-center px-3 py-2 text-sm rounded-md ${
                 autoRefresh
                   ? 'bg-green-100 text-green-700 border border-green-300'
                   : 'bg-gray-100 text-gray-700 border border-gray-300'
@@ -429,30 +262,192 @@ export function Dashboard() {
               ) : (
                 <Play className='h-4 w-4 mr-1' />
               )}
-              {autoRefresh ? 'Stop' : 'Auto Refresh'}
+              {autoRefresh ? 'Auto Refresh' : 'Manual'}
             </button>
-
-            {/* Manual refresh */}
             <button
               onClick={refreshData}
-              className='flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200'
+              className='flex items-center px-3 py-2 text-sm bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200'
             >
               <RefreshCw className='h-4 w-4 mr-1' />
               Refresh
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Process Status */}
+      {/* Stats Grid - Mobile Responsive */}
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+        {statCards.map(item => (
+          <div
+            key={item.name}
+            className='relative bg-white p-4 shadow rounded-lg border overflow-hidden'
+          >
+            <div className='flex items-center'>
+              <div className='flex-shrink-0 p-2 bg-blue-500 rounded-md'>
+                <item.icon className='h-5 w-5 text-white' aria-hidden='true' />
+              </div>
+              <div className='ml-3 min-w-0 flex-1'>
+                <p className='text-sm font-medium text-gray-500 truncate'>{item.name}</p>
+                <p className='text-lg font-semibold text-gray-900'>{item.stat}</p>
+              </div>
+            </div>
+            <div className='mt-3'>
+              <div className='flex items-center justify-between'>
+                <p className='text-xs text-gray-600'>{item.substat}</p>
+                <div className='flex items-center text-xs text-green-600'>
+                  <TrendingUp className='h-3 w-3 mr-1' />
+                  <span>{item.change}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* System Status - Mobile Cards */}
+      <div>
+        <h2 className='text-lg font-medium text-gray-900 mb-4'>System Status</h2>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+          <div className='bg-white p-4 shadow rounded-lg border'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <Database className='h-6 w-6 text-gray-400 flex-shrink-0' />
+                <div className='ml-3'>
+                  <p className='text-sm font-medium text-gray-900'>Database</p>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 ${getStatusColor(stats.systemStatus.database)}`}
+                  >
+                    {stats.systemStatus.database}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className='bg-white p-4 shadow rounded-lg border'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <Bot className='h-6 w-6 text-gray-400 flex-shrink-0' />
+                <div className='ml-3'>
+                  <p className='text-sm font-medium text-gray-900'>Bot Service</p>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 ${getStatusColor(stats.systemStatus.bot)}`}
+                  >
+                    {stats.systemStatus.bot}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className='bg-white p-4 shadow rounded-lg border sm:col-span-2 lg:col-span-1'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <Server className='h-6 w-6 text-gray-400 flex-shrink-0' />
+                <div className='ml-3'>
+                  <p className='text-sm font-medium text-gray-900'>API Server</p>
+                  <span className='inline-flex px-2 py-1 text-xs font-medium rounded-full text-green-600 bg-green-100 mt-1'>
+                    healthy
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activities - Mobile Responsive */}
+      <div>
+        <h2 className='text-lg font-medium text-gray-900 mb-4'>Recent Activities</h2>
+        <div className='bg-white shadow rounded-lg border overflow-hidden'>
+          {recentActivities.length > 0 ? (
+            <ul className='divide-y divide-gray-200'>
+              {recentActivities.map(activity => (
+                <li key={activity.id} className='p-4'>
+                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+                    <div className='flex items-start space-x-3 min-w-0 flex-1'>
+                      <div className='flex-shrink-0 p-1 bg-blue-100 rounded'>
+                        <Activity className='h-4 w-4 text-blue-600' />
+                      </div>
+                      <div className='min-w-0 flex-1'>
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
+                          <p className='text-sm font-medium text-blue-600 truncate'>
+                            {activity.type}
+                          </p>
+                          <p className='text-sm text-gray-500'>by {activity.user}</p>
+                        </div>
+                        <p className='text-sm text-gray-600 mt-1'>{activity.description}</p>
+                      </div>
+                    </div>
+                    <div className='flex items-center text-xs text-gray-500 flex-shrink-0'>
+                      <Clock className='h-3 w-3 mr-1' />
+                      {formatRelativeTime(activity.timestamp)}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className='p-8 text-center text-gray-500'>
+              <Activity className='mx-auto h-12 w-12 text-gray-300 mb-2' />
+              <p>No recent activities</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* System Logs - Mobile Responsive */}
+      <div>
+        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4'>
+          <h2 className='text-lg font-medium text-gray-900'>System Logs</h2>
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
+            <select
+              value={selectedLogService}
+              onChange={e => setSelectedLogService(e.target.value)}
+              className='text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+            >
+              <option value='all'>All Services</option>
+              <option value='backend'>Backend</option>
+              <option value='frontend'>Frontend</option>
+              <option value='bot'>Bot</option>
+            </select>
+
+            <button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={`flex items-center justify-center px-3 py-2 text-sm rounded-md whitespace-nowrap ${
+                autoRefresh
+                  ? 'bg-green-100 text-green-700 border border-green-300'
+                  : 'bg-gray-100 text-gray-700 border border-gray-300'
+              }`}
+            >
+              {autoRefresh ? (
+                <Square className='h-4 w-4 sm:mr-1' />
+              ) : (
+                <Play className='h-4 w-4 sm:mr-1' />
+              )}
+              <span className='hidden sm:inline'>{autoRefresh ? 'Stop' : 'Auto Refresh'}</span>
+            </button>
+
+            <button
+              onClick={refreshData}
+              className='flex items-center justify-center px-3 py-2 text-sm bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 whitespace-nowrap'
+            >
+              <RefreshCw className='h-4 w-4 sm:mr-1' />
+              <span className='hidden sm:inline'>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Process Status - Mobile Grid */}
         {systemStatus && (
           <div className='mb-4'>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <div className='bg-white p-4 rounded-lg shadow'>
-                <div className='flex items-center'>
-                  <Server className='h-5 w-5 text-blue-500 mr-2' />
-                  <span className='text-sm font-medium'>Backend</span>
+            <h3 className='text-md font-medium text-gray-900 mb-2'>Process Status</h3>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+              <div className='bg-white p-3 border rounded-lg'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-sm font-medium text-gray-700'>Backend</span>
                   <span
-                    className={`ml-auto px-2 py-1 text-xs rounded-full ${
+                    className={`px-2 py-1 text-xs rounded-full ${
                       systemStatus.processes.backend === 'running'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
@@ -462,12 +457,11 @@ export function Dashboard() {
                   </span>
                 </div>
               </div>
-              <div className='bg-white p-4 rounded-lg shadow'>
-                <div className='flex items-center'>
-                  <Terminal className='h-5 w-5 text-purple-500 mr-2' />
-                  <span className='text-sm font-medium'>Frontend</span>
+              <div className='bg-white p-3 border rounded-lg'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-sm font-medium text-gray-700'>Frontend</span>
                   <span
-                    className={`ml-auto px-2 py-1 text-xs rounded-full ${
+                    className={`px-2 py-1 text-xs rounded-full ${
                       systemStatus.processes.frontend === 'running'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
@@ -477,12 +471,11 @@ export function Dashboard() {
                   </span>
                 </div>
               </div>
-              <div className='bg-white p-4 rounded-lg shadow'>
-                <div className='flex items-center'>
-                  <Bot className='h-5 w-5 text-green-500 mr-2' />
-                  <span className='text-sm font-medium'>Bot</span>
+              <div className='bg-white p-3 border rounded-lg sm:col-span-2 lg:col-span-1'>
+                <div className='flex items-center justify-between'>
+                  <span className='text-sm font-medium text-gray-700'>Bot</span>
                   <span
-                    className={`ml-auto px-2 py-1 text-xs rounded-full ${
+                    className={`px-2 py-1 text-xs rounded-full ${
                       systemStatus.processes.bot === 'running'
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
@@ -496,59 +489,73 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Logs Display */}
-        <div className='bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-hidden'>
-          <div className='flex items-center justify-between mb-2'>
-            <span className='text-gray-300'>
-              📋{' '}
-              {selectedLogService === 'all'
-                ? 'All Services'
-                : selectedLogService.charAt(0).toUpperCase() + selectedLogService.slice(1)}{' '}
-              Logs
-            </span>
-            {systemLogs && (
-              <span className='text-xs text-gray-400'>
-                Last updated: {new Date(systemLogs.timestamp).toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-
-          <div className='h-96 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800'>
-            {systemLogs ? (
-              <>
-                {selectedLogService === 'all' || selectedLogService === 'backend'
-                  ? systemLogs.backend.map((log, index) => (
-                      <div key={`backend-${index}`} className='text-blue-400 whitespace-pre-wrap break-all'>
-                        <span className='text-blue-300'>[BACKEND]</span> {log}
-                      </div>
-                    ))
-                  : null}
-
-                {selectedLogService === 'all' || selectedLogService === 'frontend'
-                  ? systemLogs.frontend.map((log, index) => (
-                      <div key={`frontend-${index}`} className='text-purple-400 whitespace-pre-wrap break-all'>
-                        <span className='text-purple-300'>[FRONTEND]</span> {log}
-                      </div>
-                    ))
-                  : null}
-
-                {selectedLogService === 'all' || selectedLogService === 'bot'
-                  ? systemLogs.bot.map((log, index) => (
-                      <div key={`bot-${index}`} className='text-green-400 whitespace-pre-wrap break-all'>
-                        <span className='text-green-300'>[BOT]</span> {log}
-                      </div>
-                    ))
-                  : null}
-
-                {systemLogs.backend.length === 0 &&
-                  systemLogs.frontend.length === 0 &&
-                  systemLogs.bot.length === 0 && (
-                    <div className='text-gray-400'>No logs available for {selectedLogService}</div>
+        {/* Logs Display - Mobile Responsive */}
+        <div className='bg-gray-900 rounded-lg overflow-hidden'>
+          <div className='p-4'>
+            <h4 className='text-sm font-medium text-gray-300 mb-2'>Live Logs</h4>
+            <div className='bg-black rounded p-3 max-h-64 overflow-y-auto'>
+              {systemLogs ? (
+                <div className='space-y-1'>
+                  {systemLogs.backend.length > 0 && selectedLogService === 'all' && (
+                    <div>
+                      <div className='text-xs text-blue-400 font-medium mb-1'>[BACKEND]</div>
+                      {systemLogs.backend.slice(-5).map((log, index) => (
+                        <div key={index} className='text-xs text-green-400 font-mono break-all'>
+                          {log}
+                        </div>
+                      ))}
+                    </div>
                   )}
-              </>
-            ) : (
-              <div className='text-gray-400'>Loading logs...</div>
-            )}
+                  {systemLogs.frontend.length > 0 && selectedLogService === 'all' && (
+                    <div>
+                      <div className='text-xs text-purple-400 font-medium mb-1'>[FRONTEND]</div>
+                      {systemLogs.frontend.slice(-5).map((log, index) => (
+                        <div key={index} className='text-xs text-yellow-400 font-mono break-all'>
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {systemLogs.bot.length > 0 && selectedLogService === 'all' && (
+                    <div>
+                      <div className='text-xs text-orange-400 font-medium mb-1'>[BOT]</div>
+                      {systemLogs.bot.slice(-5).map((log, index) => (
+                        <div key={index} className='text-xs text-cyan-400 font-mono break-all'>
+                          {log}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedLogService === 'backend' &&
+                    systemLogs.backend.map((log, index) => (
+                      <div key={index} className='text-xs text-green-400 font-mono break-all'>
+                        {log}
+                      </div>
+                    ))}
+                  {selectedLogService === 'frontend' &&
+                    systemLogs.frontend.map((log, index) => (
+                      <div key={index} className='text-xs text-yellow-400 font-mono break-all'>
+                        {log}
+                      </div>
+                    ))}
+                  {selectedLogService === 'bot' &&
+                    systemLogs.bot.map((log, index) => (
+                      <div key={index} className='text-xs text-cyan-400 font-mono break-all'>
+                        {log}
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className='text-xs text-gray-500'>Loading logs...</div>
+              )}
+            </div>
+            <div className='text-xs text-gray-400 mt-2'>
+              Last updated:{' '}
+              {systemLogs?.timestamp
+                ? new Date(systemLogs.timestamp).toLocaleTimeString()
+                : 'Never'}
+            </div>
           </div>
         </div>
       </div>

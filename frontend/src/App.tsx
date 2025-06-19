@@ -5,6 +5,8 @@ import { Users } from '@/pages/Users';
 import { Features } from '@/pages/Features';
 import { Files } from '@/pages/Files';
 import Activities from '@/pages/Activities';
+import Statistics from '@/pages/Statistics';
+import UserAnalytics from '@/pages/UserAnalytics';
 import { Settings } from '@/pages/Settings';
 import { Login } from '@/pages/Login';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +34,8 @@ function App() {
         <Route path='/features' element={<Features />} />
         <Route path='/files' element={<Files />} />
         <Route path='/activities' element={<Activities />} />
+        <Route path='/statistics' element={<Statistics />} />
+        <Route path='/user-analytics' element={<UserAnalytics />} />
         <Route path='/settings' element={<Settings />} />
       </Routes>
     </Layout>

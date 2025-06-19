@@ -151,7 +151,7 @@ export function useAuth() {
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error: any) {
+        } catch {
           // If token is invalid, clear it
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');

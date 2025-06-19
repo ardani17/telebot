@@ -325,4 +325,260 @@ export class ActivityService {
       recentErrors,
     };
   }
+
+  /**
+   * Get time series data for activity trends
+   */
+  async getActivityTimeSeries(days: number = 30) {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Create array of all dates in range
+      const dateRange: Date[] = [];
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        dateRange.push(new Date(d));
+      }
+
+      // Get activities grouped by date
+      const activities = await this.prisma.botActivity.findMany({
+        where: {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          createdAt: true,
+          success: true,
+        },
+      });
+
+      // Group activities by date
+      const activityByDate = activities.reduce((acc, activity) => {
+        const dateKey = activity.createdAt.toISOString().split('T')[0];
+        if (!acc[dateKey]) {
+          acc[dateKey] = { total: 0, success: 0, failure: 0 };
+        }
+        acc[dateKey].total++;
+        if (activity.success) {
+          acc[dateKey].success++;
+        } else {
+          acc[dateKey].failure++;
+        }
+        return acc;
+      }, {} as Record<string, { total: number; success: number; failure: number }>);
+
+      // Fill in missing dates with zero values
+      const timeSeriesData = dateRange.map(date => {
+        const dateKey = date.toISOString().split('T')[0];
+        const data = activityByDate[dateKey] || { total: 0, success: 0, failure: 0 };
+        return {
+          date: dateKey,
+          activities: data.total,
+          success: data.success,
+          failure: data.failure,
+        };
+      });
+
+      return timeSeriesData;
+    } catch (error) {
+      console.error('Error getting activity time series:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user analytics with date range filter
+   */
+  async getUserAnalytics(userId: string, dateFrom?: string, dateTo?: string) {
+    try {
+      const whereClause: any = { userId };
+      
+      if (dateFrom || dateTo) {
+        whereClause.createdAt = {};
+        if (dateFrom) whereClause.createdAt.gte = new Date(dateFrom);
+        if (dateTo) {
+          const endDate = new Date(dateTo);
+          endDate.setHours(23, 59, 59, 999); // Include the entire end date
+          whereClause.createdAt.lte = endDate;
+        }
+      }
+
+      // Get user info
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          telegramId: true,
+          isActive: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Get all activities for the user in date range
+      const activities = await this.prisma.botActivity.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Calculate basic stats
+      const totalActivities = activities.length;
+      const successCount = activities.filter(a => a.success).length;
+      const failureCount = totalActivities - successCount;
+      const successRate = totalActivities > 0 ? (successCount / totalActivities) * 100 : 0;
+
+      // Group by mode (feature)
+      const featureUsage = activities.reduce((acc, activity) => {
+        const mode = activity.mode;
+        if (!acc[mode]) {
+          acc[mode] = { total: 0, success: 0, failure: 0 };
+        }
+        acc[mode].total++;
+        if (activity.success) {
+          acc[mode].success++;
+        } else {
+          acc[mode].failure++;
+        }
+        return acc;
+      }, {} as Record<string, { total: number; success: number; failure: number }>);
+
+      // Group by action
+      const actionUsage = activities.reduce((acc, activity) => {
+        const action = activity.action;
+        acc[action] = (acc[action] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Create time series data for user
+      const startDate = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = dateTo ? new Date(dateTo) : new Date();
+      
+      const dateRange: Date[] = [];
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        dateRange.push(new Date(d));
+      }
+
+      const activityByDate = activities.reduce((acc, activity) => {
+        const dateKey = activity.createdAt.toISOString().split('T')[0];
+        if (!acc[dateKey]) {
+          acc[dateKey] = { total: 0, success: 0, failure: 0, byMode: {} };
+        }
+        acc[dateKey].total++;
+        if (activity.success) {
+          acc[dateKey].success++;
+        } else {
+          acc[dateKey].failure++;
+        }
+        
+        // Track by mode per date
+        const mode = activity.mode;
+        acc[dateKey].byMode[mode] = (acc[dateKey].byMode[mode] || 0) + 1;
+        
+        return acc;
+      }, {} as Record<string, { total: number; success: number; failure: number; byMode: Record<string, number> }>);
+
+      const timeSeriesData = dateRange.map(date => {
+        const dateKey = date.toISOString().split('T')[0];
+        const data = activityByDate[dateKey] || { total: 0, success: 0, failure: 0, byMode: {} };
+        return {
+          date: dateKey,
+          activities: data.total,
+          success: data.success,
+          failure: data.failure,
+          byMode: data.byMode,
+        };
+      });
+
+      // Get most used features
+      const topFeatures = Object.entries(featureUsage)
+        .sort(([,a], [,b]) => b.total - a.total)
+        .slice(0, 5)
+        .map(([mode, stats]) => ({
+          mode,
+          ...stats,
+          successRate: stats.total > 0 ? (stats.success / stats.total) * 100 : 0,
+        }));
+
+      // Get recent activities
+      const recentActivities = activities.slice(0, 10).map(activity => ({
+        id: activity.id,
+        action: activity.action,
+        mode: activity.mode,
+        success: activity.success,
+        createdAt: activity.createdAt,
+        errorMessage: activity.errorMessage,
+      }));
+
+      return {
+        user,
+        summary: {
+          totalActivities,
+          successCount,
+          failureCount,
+          successRate,
+          dateRange: {
+            from: startDate.toISOString().split('T')[0],
+            to: endDate.toISOString().split('T')[0],
+          },
+        },
+        featureUsage: Object.entries(featureUsage).map(([mode, stats]) => ({
+          mode,
+          ...stats,
+          successRate: stats.total > 0 ? (stats.success / stats.total) * 100 : 0,
+        })),
+        actionUsage: Object.entries(actionUsage)
+          .sort(([,a], [,b]) => b - a)
+          .map(([action, count]) => ({ action, count })),
+        topFeatures,
+        timeSeriesData,
+        recentActivities,
+      };
+    } catch (error) {
+      console.error('Error getting user analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get list of users for analytics dropdown
+   */
+  async getUsersForAnalytics() {
+    try {
+      const users = await this.prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          telegramId: true,
+          isActive: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      });
+
+      // Get activity counts for each user
+      const usersWithActivityCount = await Promise.all(
+        users.map(async (user) => {
+          const activityCount = await this.prisma.botActivity.count({
+            where: { userId: user.id },
+          });
+          return {
+            ...user,
+            activityCount,
+          };
+        })
+      );
+
+      return usersWithActivityCount.filter(user => user.activityCount > 0);
+    } catch (error) {
+      console.error('Error getting users for analytics:', error);
+      throw error;
+    }
+  }
 }
