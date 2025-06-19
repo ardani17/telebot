@@ -245,7 +245,7 @@ export function Dashboard() {
               Welcome back, {user?.name || 'Admin'}!
             </h1>
             <p className='mt-1 text-sm text-gray-600'>
-              Here's what's happening with your TeleWeb system today.
+              Here&apos;s what&apos;s happening with your TeleWeb system today.
             </p>
           </div>
           <div className='flex items-center space-x-3'>

@@ -487,7 +487,10 @@ export class DashboardService {
       try {
         const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
         if (stdout.trim()) {
-          return stdout.trim().split('\n').filter(line => line.length > 0);
+          return stdout
+            .trim()
+            .split('\n')
+            .filter(line => line.length > 0);
         }
       } catch (fileError) {
         // If log file doesn't exist, try PM2 logs
@@ -495,9 +498,14 @@ export class DashboardService {
 
       // Fallback to PM2 logs
       try {
-        const { stdout } = await execAsync(`pm2 logs ${serviceName} --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`);
+        const { stdout } = await execAsync(
+          `pm2 logs ${serviceName} --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
+        );
         if (stdout.trim()) {
-          return stdout.trim().split('\n').filter(line => line.length > 0);
+          return stdout
+            .trim()
+            .split('\n')
+            .filter(line => line.length > 0);
         }
       } catch (pm2Error) {
         // If PM2 command fails, continue to next fallback

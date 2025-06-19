@@ -22,10 +22,10 @@ module.exports = {
   rules: {
     'prettier/prettier': 'error',
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off', // Disabled untuk fleksibilitas development
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-empty-function': 'warn',
+    '@typescript-eslint/no-empty-function': 'off', // Allow empty functions untuk callbacks
     'no-console': 'off',
     'no-debugger': 'warn',
     'prefer-const': 'error',

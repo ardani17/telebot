@@ -58,7 +58,7 @@ export class OcrHandler {
       // Clear koordinat sub-mode if active (ensure regular OCR mode)
       const wasInKoordinatMode = this.koordinatModeUsers.has(telegramId);
       this.koordinatModeUsers.delete(telegramId);
-      
+
       if (wasInKoordinatMode) {
         this.logger.info('Cleared koordinat sub-mode for regular OCR', { telegramId });
       }
@@ -348,7 +348,8 @@ export class OcrHandler {
           await fs.remove(tempFilePath);
         } catch (cleanupError) {
           this.logger.warn('Failed to cleanup temp file', {
-            tempFilePath: tempFilePath || "unknown", error: getErrorMessage(cleanupError),
+            tempFilePath: tempFilePath || 'unknown',
+            error: getErrorMessage(cleanupError),
           });
         }
 
@@ -662,7 +663,8 @@ export class OcrHandler {
         await fs.remove(tempFilePath);
       } catch (cleanupError) {
         this.logger.warn('Failed to cleanup document temp file', {
-          tempFilePath: tempFilePath || "unknown", error: getErrorMessage(cleanupError),
+          tempFilePath: tempFilePath || 'unknown',
+          error: getErrorMessage(cleanupError),
         });
       }
 
@@ -978,7 +980,7 @@ export class OcrHandler {
             if (latDir === 'S') lat = -Math.abs(lat);
             if (latDir === 'N') lat = Math.abs(lat);
           }
-          
+
           if (!match[3].includes('+') && !match[3].includes('-')) {
             // Traditional format without sign - apply direction
             if (lonDir === 'W') lon = -Math.abs(lon);
@@ -1021,7 +1023,10 @@ export class OcrHandler {
                 decimal: result.decimal,
                 dms: result.dms,
                 originalFormat: `${match[1]}${latDir}${match[3]}${lonDir}`,
-                formatType: match[1].includes('+') || match[1].includes('-') ? 'signed_with_direction' : 'traditional_with_direction',
+                formatType:
+                  match[1].includes('+') || match[1].includes('-')
+                    ? 'signed_with_direction'
+                    : 'traditional_with_direction',
               });
               break;
             } else {

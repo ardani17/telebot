@@ -1,5 +1,5 @@
 import { Context, Middleware } from 'telegraf';
-import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
+import { getErrorMessage, getErrorStack } from '../utils/error-utils';
 import { ApiClient, User } from '../services/api-client';
 import { SessionManager, UserMode } from '../services/session-manager';
 import { UserDirectoryService } from '../services/user-directory.service';

@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
@@ -83,10 +83,12 @@ async function bootstrap() {
   );
 
   // Security middleware
-  app.use(helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }));
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    })
+  );
 
   // Trust proxy untuk Cloudflare
   const expressApp = app.getHttpAdapter().getInstance();
@@ -99,14 +101,14 @@ async function bootstrap() {
     `http://${configService.get('PUBLIC_IP')}:8080`,
     'https://teleweb.cloudnexify.com',
     'http://localhost:3000',
-    'http://localhost:8080'
+    'http://localhost:8080',
   ].filter(Boolean);
 
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or Postman)
       if (!origin) return callback(null, true);
-      
+
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {

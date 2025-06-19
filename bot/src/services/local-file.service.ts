@@ -1,5 +1,5 @@
 import * as fs from 'fs-extra';
-import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
+import { getErrorMessage } from '../utils/error-utils';
 import * as path from 'path';
 import { createUserFeatureDir } from '../../../shared/src/utils/file-utils';
 import winston from 'winston';

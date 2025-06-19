@@ -19,7 +19,9 @@ export function getErrorStack(error: unknown): string | undefined {
   return undefined;
 }
 
-export function isAxiosError(error: unknown): error is { response?: { status?: number; data?: any } } {
+export function isAxiosError(
+  error: unknown
+): error is { response?: { status?: number; data?: any } } {
   return typeof error === 'object' && error !== null && 'response' in error;
 }
 
@@ -28,4 +30,4 @@ export function getAxiosErrorMessage(error: unknown): string {
     return error.response?.data?.message || getErrorMessage(error);
   }
   return getErrorMessage(error);
-} 
+}

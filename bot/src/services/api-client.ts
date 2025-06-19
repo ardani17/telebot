@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { getErrorMessage, getErrorStack, getAxiosErrorMessage, isAxiosError } from '../utils/error-utils';
+import { getErrorMessage, getAxiosErrorMessage, isAxiosError } from '../utils/error-utils';
 import winston from 'winston';
 
 export interface User {

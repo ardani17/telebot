@@ -55,7 +55,7 @@ export class SecurityMiddleware {
         // User is in active feature mode (ocr, workbook, archive, etc)
         this.logger.debug('Bypassing rate limit for user in feature mode', {
           userId,
-          mode: authContext.session.mode
+          mode: authContext.session.mode,
         });
         return next();
       }
@@ -80,7 +80,7 @@ export class SecurityMiddleware {
       // Check if this is part of a media group (album)
       const message = ctx.message;
       let incrementCount = 1;
-      
+
       if (message && 'media_group_id' in message && message.media_group_id) {
         // This is part of a media album
         const mediaGroupId = message.media_group_id;
@@ -111,7 +111,7 @@ export class SecurityMiddleware {
           count: userRecord.count,
           limit: this.config.rateLimitMax,
         });
-        
+
         // Temporary block for 5 minutes
         this.blockedUsers.add(userId);
         setTimeout(() => this.blockedUsers.delete(userId), 300000);
@@ -159,7 +159,7 @@ export class SecurityMiddleware {
   validateFile(): Middleware<Context> {
     return async (ctx, next) => {
       const message = ctx.message;
-      
+
       if (!message) return next();
 
       // Check file types
@@ -192,7 +192,9 @@ export class SecurityMiddleware {
 
       // Check file size
       if (fileSize > this.config.maxFileSize) {
-        await ctx.reply(`❌ File terlalu besar. Maksimal ${Math.floor(this.config.maxFileSize / 1024 / 1024)}MB.`);
+        await ctx.reply(
+          `❌ File terlalu besar. Maksimal ${Math.floor(this.config.maxFileSize / 1024 / 1024)}MB.`
+        );
         return;
       }
 
@@ -200,7 +202,7 @@ export class SecurityMiddleware {
       if (fileType === 'document' && fileName) {
         const blockedExtensions = ['.exe', '.dll', '.bat', '.cmd', '.scr', '.vbs', '.js', '.jar'];
         const fileExt = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
-        
+
         if (blockedExtensions.includes(fileExt)) {
           this.logger.warn('Blocked file type upload attempt', {
             userId: ctx.from?.id,
@@ -245,4 +247,4 @@ export class SecurityMiddleware {
   startCleanupInterval(): void {
     setInterval(() => this.cleanup(), 60000); // Clean up every minute
   }
-} 
+}

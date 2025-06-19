@@ -1,5 +1,5 @@
 import { AuthContext } from '../types/auth';
-import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
+import { getErrorMessage, getErrorStack } from '../utils/error-utils';
 import { Message } from 'telegraf/typings/core/types/typegram';
 import winston from 'winston';
 import * as fs from 'fs-extra';

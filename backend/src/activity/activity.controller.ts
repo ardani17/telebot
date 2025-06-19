@@ -73,7 +73,7 @@ export class ActivityController {
   async getUserAnalytics(
     @Param('userId') userId: string,
     @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string,
+    @Query('dateTo') dateTo?: string
   ) {
     return this.activityService.getUserAnalytics(userId, dateFrom, dateTo);
   }

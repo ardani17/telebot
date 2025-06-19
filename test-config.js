@@ -14,8 +14,10 @@ if (fs.existsSync(envPath)) {
       if (key && valueParts.length > 0) {
         let value = valueParts.join('=').trim();
         // Remove surrounding quotes if present
-        if ((value.startsWith('"') && value.endsWith('"')) || 
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
         envConfig[key.trim()] = value;
@@ -29,4 +31,4 @@ console.log('POSTGRES_DB:', envConfig.POSTGRES_DB);
 console.log('POSTGRES_USER:', envConfig.POSTGRES_USER);
 console.log('POSTGRES_PASSWORD:', envConfig.POSTGRES_PASSWORD);
 console.log('BACKEND_PORT:', envConfig.BACKEND_PORT);
-console.log('\nTotal env vars loaded:', Object.keys(envConfig).length); 
+console.log('\nTotal env vars loaded:', Object.keys(envConfig).length);

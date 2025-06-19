@@ -1,6 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Files, Activity, Settings, LogOut, Menu, X, Sliders, BarChart3, UserCheck } from 'lucide-react';
+import {
+  Home,
+  Users,
+  Files,
+  Activity,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Sliders,
+  BarChart3,
+  UserCheck,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface LayoutProps {

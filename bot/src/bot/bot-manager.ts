@@ -1,5 +1,5 @@
 import { Telegraf, Context } from 'telegraf';
-import { getErrorMessage, getErrorStack, getAxiosErrorMessage } from '../utils/error-utils';
+// import { getErrorMessage } from '../utils/error-utils';
 import { UserService } from '../services/user.service';
 import { ModeManager } from '../utils/mode-manager';
 import { FileHandler } from '../utils/file-handler';

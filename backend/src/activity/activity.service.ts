@@ -194,7 +194,7 @@ export class ActivityService {
     if (mode) where.mode = mode;
     if (action) where.action = { contains: action, mode: 'insensitive' };
     if (success !== undefined) where.success = success;
-    
+
     if (dateFrom || dateTo) {
       where.createdAt = {};
       if (dateFrom) where.createdAt.gte = new Date(dateFrom);
@@ -356,19 +356,22 @@ export class ActivityService {
       });
 
       // Group activities by date
-      const activityByDate = activities.reduce((acc, activity) => {
-        const dateKey = activity.createdAt.toISOString().split('T')[0];
-        if (!acc[dateKey]) {
-          acc[dateKey] = { total: 0, success: 0, failure: 0 };
-        }
-        acc[dateKey].total++;
-        if (activity.success) {
-          acc[dateKey].success++;
-        } else {
-          acc[dateKey].failure++;
-        }
-        return acc;
-      }, {} as Record<string, { total: number; success: number; failure: number }>);
+      const activityByDate = activities.reduce(
+        (acc, activity) => {
+          const dateKey = activity.createdAt.toISOString().split('T')[0];
+          if (!acc[dateKey]) {
+            acc[dateKey] = { total: 0, success: 0, failure: 0 };
+          }
+          acc[dateKey].total++;
+          if (activity.success) {
+            acc[dateKey].success++;
+          } else {
+            acc[dateKey].failure++;
+          }
+          return acc;
+        },
+        {} as Record<string, { total: number; success: number; failure: number }>
+      );
 
       // Fill in missing dates with zero values
       const timeSeriesData = dateRange.map(date => {
@@ -395,7 +398,7 @@ export class ActivityService {
   async getUserAnalytics(userId: string, dateFrom?: string, dateTo?: string) {
     try {
       const whereClause: any = { userId };
-      
+
       if (dateFrom || dateTo) {
         whereClause.createdAt = {};
         if (dateFrom) whereClause.createdAt.gte = new Date(dateFrom);
@@ -434,54 +437,68 @@ export class ActivityService {
       const successRate = totalActivities > 0 ? (successCount / totalActivities) * 100 : 0;
 
       // Group by mode (feature)
-      const featureUsage = activities.reduce((acc, activity) => {
-        const mode = activity.mode;
-        if (!acc[mode]) {
-          acc[mode] = { total: 0, success: 0, failure: 0 };
-        }
-        acc[mode].total++;
-        if (activity.success) {
-          acc[mode].success++;
-        } else {
-          acc[mode].failure++;
-        }
-        return acc;
-      }, {} as Record<string, { total: number; success: number; failure: number }>);
+      const featureUsage = activities.reduce(
+        (acc, activity) => {
+          const mode = activity.mode;
+          if (!acc[mode]) {
+            acc[mode] = { total: 0, success: 0, failure: 0 };
+          }
+          acc[mode].total++;
+          if (activity.success) {
+            acc[mode].success++;
+          } else {
+            acc[mode].failure++;
+          }
+          return acc;
+        },
+        {} as Record<string, { total: number; success: number; failure: number }>
+      );
 
       // Group by action
-      const actionUsage = activities.reduce((acc, activity) => {
-        const action = activity.action;
-        acc[action] = (acc[action] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const actionUsage = activities.reduce(
+        (acc, activity) => {
+          const action = activity.action;
+          acc[action] = (acc[action] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       // Create time series data for user
-      const startDate = dateFrom ? new Date(dateFrom) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const startDate = dateFrom
+        ? new Date(dateFrom)
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const endDate = dateTo ? new Date(dateTo) : new Date();
-      
+
       const dateRange: Date[] = [];
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         dateRange.push(new Date(d));
       }
 
-      const activityByDate = activities.reduce((acc, activity) => {
-        const dateKey = activity.createdAt.toISOString().split('T')[0];
-        if (!acc[dateKey]) {
-          acc[dateKey] = { total: 0, success: 0, failure: 0, byMode: {} };
-        }
-        acc[dateKey].total++;
-        if (activity.success) {
-          acc[dateKey].success++;
-        } else {
-          acc[dateKey].failure++;
-        }
-        
-        // Track by mode per date
-        const mode = activity.mode;
-        acc[dateKey].byMode[mode] = (acc[dateKey].byMode[mode] || 0) + 1;
-        
-        return acc;
-      }, {} as Record<string, { total: number; success: number; failure: number; byMode: Record<string, number> }>);
+      const activityByDate = activities.reduce(
+        (acc, activity) => {
+          const dateKey = activity.createdAt.toISOString().split('T')[0];
+          if (!acc[dateKey]) {
+            acc[dateKey] = { total: 0, success: 0, failure: 0, byMode: {} };
+          }
+          acc[dateKey].total++;
+          if (activity.success) {
+            acc[dateKey].success++;
+          } else {
+            acc[dateKey].failure++;
+          }
+
+          // Track by mode per date
+          const mode = activity.mode;
+          acc[dateKey].byMode[mode] = (acc[dateKey].byMode[mode] || 0) + 1;
+
+          return acc;
+        },
+        {} as Record<
+          string,
+          { total: number; success: number; failure: number; byMode: Record<string, number> }
+        >
+      );
 
       const timeSeriesData = dateRange.map(date => {
         const dateKey = date.toISOString().split('T')[0];
@@ -497,7 +514,7 @@ export class ActivityService {
 
       // Get most used features
       const topFeatures = Object.entries(featureUsage)
-        .sort(([,a], [,b]) => b.total - a.total)
+        .sort(([, a], [, b]) => b.total - a.total)
         .slice(0, 5)
         .map(([mode, stats]) => ({
           mode,
@@ -533,7 +550,7 @@ export class ActivityService {
           successRate: stats.total > 0 ? (stats.success / stats.total) * 100 : 0,
         })),
         actionUsage: Object.entries(actionUsage)
-          .sort(([,a], [,b]) => b - a)
+          .sort(([, a], [, b]) => b - a)
           .map(([action, count]) => ({ action, count })),
         topFeatures,
         timeSeriesData,
@@ -564,7 +581,7 @@ export class ActivityService {
 
       // Get activity counts for each user
       const usersWithActivityCount = await Promise.all(
-        users.map(async (user) => {
+        users.map(async user => {
           const activityCount = await this.prisma.botActivity.count({
             where: { userId: user.id },
           });

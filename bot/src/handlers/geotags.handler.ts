@@ -276,22 +276,22 @@ export class GeotagsHandler {
         const parsedDate = this.customDateParser(timeString);
         if (parsedDate) {
           state.customDateTime = parsedDate;
-          
+
           // Format preview in Indonesia timezone for confirmation
-          const preview = parsedDate.toLocaleString('id-ID', { 
-            dateStyle: 'full', 
+          const preview = parsedDate.toLocaleString('id-ID', {
+            dateStyle: 'full',
             timeStyle: 'short',
-            timeZone: 'Asia/Jakarta'
+            timeZone: 'Asia/Jakarta',
           });
-          
+
           // Debug logging
           this.logger.info('Custom time set', {
             telegramId,
             input: timeString,
             parsedUTC: parsedDate.toISOString(),
-            previewWIB: preview
+            previewWIB: preview,
           });
-          
+
           await ctx.reply(`⏱️ Waktu manual diatur ke: ${preview} WIB`);
         } else {
           await ctx.reply(
@@ -522,17 +522,22 @@ export class GeotagsHandler {
 
     // ✅ FIX: Create date in Indonesia timezone (WIB = UTC+7)
     // User input: "2024-06-28 14:00" should be treated as 14:00 WIB
-    
+
     // Create UTC date and adjust for Indonesia timezone offset
     const utcDate = new Date(Date.UTC(year, month, day, hours - 7, minutes)); // Subtract 7 hours for WIB
-    
+
     // Validate the input components (before timezone adjustment)
     if (
-      year >= 1900 && year <= 2100 &&
-      month >= 0 && month <= 11 &&
-      day >= 1 && day <= 31 &&
-      hours >= 0 && hours <= 23 &&
-      minutes >= 0 && minutes <= 59
+      year >= 1900 &&
+      year <= 2100 &&
+      month >= 0 &&
+      month <= 11 &&
+      day >= 1 &&
+      day <= 31 &&
+      hours >= 0 &&
+      hours <= 23 &&
+      minutes >= 0 &&
+      minutes <= 59
     ) {
       return utcDate;
     }
@@ -707,7 +712,7 @@ export class GeotagsHandler {
     this.logger.info('Generating geotag timestamp', {
       isCustomTime: !!customDateTime,
       targetDateTimeUTC: targetDateTime.toISOString(),
-      targetDateTimeLocal: targetDateTime.toString()
+      targetDateTimeLocal: targetDateTime.toString(),
     });
 
     // Format date and time in Indonesian format using the target datetime
@@ -736,7 +741,7 @@ export class GeotagsHandler {
     this.logger.info('Formatted timestamp result', {
       dateStrParts: dateStrParts.map(p => `${p.type}:${p.value}`),
       finalTimeStr: timeStr,
-      finalDateTimeString: `${year}-${month}-${day}(${dayName}) ${timeStr}`
+      finalDateTimeString: `${year}-${month}-${day}(${dayName}) ${timeStr}`,
     });
 
     // Format: 2025-06-07(Sab) 06:16(PM)

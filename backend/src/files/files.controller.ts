@@ -424,7 +424,7 @@ export class FilesController {
 
       // Decode the URL encoded path
       const decodedPath = decodeURIComponent(filePath);
-      
+
       this.logger.log('Path after decoding', {
         decodedPath,
         telegramId,
@@ -485,10 +485,7 @@ export class FilesController {
 
   @Delete('delete-file/:telegramId')
   @UseGuards(JwtAuthGuard)
-  async deleteFileAlt(
-    @Param('telegramId') telegramId: string,
-    @Query('path') filePath: string
-  ) {
+  async deleteFileAlt(@Param('telegramId') telegramId: string, @Query('path') filePath: string) {
     try {
       this.logger.log('Alternative delete request', {
         telegramId,
@@ -518,7 +515,7 @@ export class FilesController {
   @Delete('path/:telegramId/*')
   @UseGuards(JwtAuthGuard)
   async deleteFileByPath(
-    @Param('telegramId') telegramId: string, 
+    @Param('telegramId') telegramId: string,
     @Param('*') filePath: string,
     @Req() req: any
   ) {
@@ -532,7 +529,7 @@ export class FilesController {
 
       // Decode the URL encoded path
       const decodedPath = decodeURIComponent(filePath);
-      
+
       this.logger.log('Path after decoding', {
         decodedPath,
         telegramId,

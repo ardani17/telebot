@@ -17,12 +17,12 @@ console.log('Running prisma db push...');
 const { execSync } = require('child_process');
 
 try {
-  execSync('npx prisma db push --skip-generate', { 
+  execSync('npx prisma db push --skip-generate', {
     stdio: 'inherit',
-    env: process.env 
+    env: process.env,
   });
   console.log('✅ Database sync completed successfully');
 } catch (error) {
   console.error('❌ Error running prisma db push:', error.message);
   process.exit(1);
-} 
+}
