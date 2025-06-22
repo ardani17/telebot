@@ -33,10 +33,10 @@ function UserSelector({ users, selectedUser, onUserSelect, loading }: UserSelect
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className='relative'>
+    <div className='relative w-full sm:w-auto'>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className='inline-flex items-center justify-between w-full sm:w-auto min-w-48 px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+        className='inline-flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
         disabled={loading}
       >
         <div className='flex items-center min-w-0 flex-1'>
@@ -153,6 +153,17 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
     });
   };
 
+  // Truncate file names for mobile display
+  const truncateFileName = (fileName: string, maxLength: number = 30) => {
+    if (fileName.length <= maxLength) return fileName;
+    
+    const extension = fileName.split('.').pop();
+    const nameWithoutExt = fileName.slice(0, fileName.lastIndexOf('.'));
+    const truncatedName = nameWithoutExt.slice(0, maxLength - (extension?.length || 0) - 3);
+    
+    return `${truncatedName}...${extension ? '.' + extension : ''}`;
+  };
+
   if (!filesystem.exists) {
     return (
       <div className='text-center py-8 text-gray-500'>
@@ -163,18 +174,21 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
   }
 
   return (
-    <div className='space-y-2'>
+    <div className='space-y-2 overflow-hidden'>
       {/* Root files */}
       {filesystem.files.map(file => (
         <div
           key={file.path}
-          className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors'
+          className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors'
         >
-          <div className='flex items-center space-x-3 min-w-0 flex-1'>
+          <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
             <div className='flex-shrink-0'>{getFileIcon(file.name, file.mimeType)}</div>
-            <div className='min-w-0 flex-1'>
-              <div className='font-medium text-sm truncate'>{file.name}</div>
-              <div className='text-xs text-gray-500'>
+            <div className='min-w-0 flex-1 overflow-hidden'>
+              <div className='font-medium text-sm text-gray-900 break-all' title={file.name}>
+                <span className='sm:hidden'>{truncateFileName(file.name)}</span>
+                <span className='hidden sm:inline'>{file.name}</span>
+              </div>
+              <div className='text-xs text-gray-500 mt-1'>
                 {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
               </div>
             </div>
@@ -182,7 +196,7 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
           <div className='flex items-center justify-end gap-2 flex-shrink-0'>
             <button
               onClick={() => onDownload(file.path, file.name)}
-              className='flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors'
+              className='flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors text-sm'
               title='Download'
               disabled={loading}
             >
@@ -191,7 +205,7 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
             </button>
             <button
               onClick={() => onDelete(file.path, file.name)}
-              className='flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors'
+              className='flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors text-sm'
               title='Delete'
               disabled={loading}
             >
@@ -204,168 +218,184 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
 
       {/* Folders */}
       {filesystem.folders.map(folder => (
-        <div key={folder.path} className='border rounded-lg'>
+        <div key={folder.path} className='space-y-2'>
           <div
-            className='flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50'
+            className='flex items-center justify-between p-3 cursor-pointer hover:bg-gray-100 rounded-lg border bg-gray-50'
             onClick={() => toggleFolder(folder.path)}
           >
-            <div className='flex items-center space-x-3'>
+            <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
               {expandedFolders.has(folder.path) ? (
-                <ChevronDown className='h-4 w-4 text-gray-400' />
+                <ChevronDown className='h-4 w-4 text-gray-400 flex-shrink-0' />
               ) : (
-                <ChevronRight className='h-4 w-4 text-gray-400' />
+                <ChevronRight className='h-4 w-4 text-gray-400 flex-shrink-0' />
               )}
-              <Folder className='h-4 w-4 text-yellow-500' />
-              <div>
-                <div className='font-medium text-sm'>{folder.name}</div>
-                <div className='text-xs text-gray-500'>
+              <Folder className='h-4 w-4 text-yellow-500 flex-shrink-0' />
+              <div className='min-w-0 flex-1 overflow-hidden'>
+                <div className='font-medium text-sm text-gray-900 break-all' title={folder.name}>
+                  <span className='sm:hidden'>{truncateFileName(folder.name)}</span>
+                  <span className='hidden sm:inline'>{folder.name}</span>
+                </div>
+                <div className='text-xs text-gray-500 mt-1'>
                   {folder.fileCount} files • {formatBytes(folder.size)}
                 </div>
               </div>
             </div>
-            <div className='text-xs text-gray-400'>{formatDate(folder.modifiedAt)}</div>
+            <div className='text-xs text-gray-400 hidden sm:block'>
+              {formatDate(folder.modifiedAt)}
+            </div>
           </div>
 
+          {/* Folder contents */}
           {expandedFolders.has(folder.path) && (
-            <div className='border-t bg-gray-50 p-3'>
-              <div className='space-y-2'>
-                {/* Render nested folders first */}
-                {folder.folders?.map(nestedFolder => (
-                  <div key={nestedFolder.path} className='ml-4'>
-                    <div
-                      className='flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 rounded border bg-white'
-                      onClick={() => toggleFolder(nestedFolder.path)}
-                    >
-                      <div className='flex items-center space-x-3'>
-                        {expandedFolders.has(nestedFolder.path) ? (
-                          <ChevronDown className='h-4 w-4 text-gray-400' />
-                        ) : (
-                          <ChevronRight className='h-4 w-4 text-gray-400' />
-                        )}
-                        <Folder className='h-4 w-4 text-yellow-500' />
-                        <div>
-                          <div className='font-medium text-sm'>{nestedFolder.name}</div>
-                          <div className='text-xs text-gray-500'>
-                            {nestedFolder.fileCount} files • {formatBytes(nestedFolder.size)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className='text-xs text-gray-400'>
-                        {formatDate(nestedFolder.modifiedAt)}
-                      </div>
-                    </div>
-
-                    {/* Recursively render nested folder contents */}
-                    {expandedFolders.has(nestedFolder.path) && (
-                      <div className='ml-6 mt-2 space-y-2'>
-                        {/* Files in nested folder */}
-                        {nestedFolder.files.map(file => (
-                          <div
-                            key={file.path}
-                            className='flex items-center justify-between p-2 bg-white rounded border'
-                          >
-                            <div className='flex items-center space-x-3'>
-                              {getFileIcon(file.name, file.mimeType)}
-                              <div>
-                                <div className='font-medium text-sm'>{file.name}</div>
-                                <div className='text-xs text-gray-500'>
-                                  {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
-                                </div>
-                              </div>
-                            </div>
-                            <div className='flex items-center space-x-2'>
-                              <button
-                                onClick={() => onDownload(file.path, file.name)}
-                                className='p-1 text-blue-600 hover:text-blue-800 rounded'
-                                title='Download'
-                                disabled={loading}
-                              >
-                                <Download className='h-4 w-4' />
-                              </button>
-                              <button
-                                onClick={() => onDelete(file.path, file.name)}
-                                className='p-1 text-red-600 hover:text-red-800 rounded'
-                                title='Delete'
-                                disabled={loading}
-                              >
-                                <Trash2 className='h-4 w-4' />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        {/* Render further nested folders if any */}
-                        {nestedFolder.folders?.map(deepFolder => (
-                          <div key={deepFolder.path} className='ml-4'>
-                            <div
-                              className='flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 rounded border bg-white'
-                              onClick={() => toggleFolder(deepFolder.path)}
-                            >
-                              <div className='flex items-center space-x-3'>
-                                {expandedFolders.has(deepFolder.path) ? (
-                                  <ChevronDown className='h-4 w-4 text-gray-400' />
-                                ) : (
-                                  <ChevronRight className='h-4 w-4 text-gray-400' />
-                                )}
-                                <Folder className='h-4 w-4 text-yellow-500' />
-                                <div>
-                                  <div className='font-medium text-sm'>{deepFolder.name}</div>
-                                  <div className='text-xs text-gray-500'>
-                                    {deepFolder.fileCount} files • {formatBytes(deepFolder.size)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            {/* Note: For simplicity, only showing 2 levels. For infinite nesting, create a recursive component */}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Render files in current folder */}
-                {folder.files.map(file => (
+            <div className='ml-3 space-y-2 border-l-2 border-gray-200 pl-4'>
+              {/* Nested folders */}
+              {folder.folders?.map(nestedFolder => (
+                <div key={nestedFolder.path}>
                   <div
-                    key={file.path}
-                    className='flex items-center justify-between p-2 bg-white rounded border'
+                    className='flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 rounded border bg-white'
+                    onClick={() => toggleFolder(nestedFolder.path)}
                   >
-                    <div className='flex items-center space-x-3 ml-6'>
-                      {getFileIcon(file.name, file.mimeType)}
-                      <div>
-                        <div className='font-medium text-sm'>{file.name}</div>
-                        <div className='text-xs text-gray-500'>
-                          {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
+                    <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
+                      {expandedFolders.has(nestedFolder.path) ? (
+                        <ChevronDown className='h-4 w-4 text-gray-400 flex-shrink-0' />
+                      ) : (
+                        <ChevronRight className='h-4 w-4 text-gray-400 flex-shrink-0' />
+                      )}
+                      <Folder className='h-4 w-4 text-yellow-500 flex-shrink-0' />
+                      <div className='min-w-0 flex-1 overflow-hidden'>
+                        <div className='font-medium text-sm text-gray-900 break-all' title={nestedFolder.name}>
+                          <span className='sm:hidden'>{truncateFileName(nestedFolder.name)}</span>
+                          <span className='hidden sm:inline'>{nestedFolder.name}</span>
+                        </div>
+                        <div className='text-xs text-gray-500 mt-1'>
+                          {nestedFolder.fileCount} files • {formatBytes(nestedFolder.size)}
                         </div>
                       </div>
                     </div>
-                    <div className='flex items-center space-x-2'>
-                      <button
-                        onClick={() => onDownload(file.path, file.name)}
-                        className='p-1 text-blue-600 hover:text-blue-800 rounded'
-                        title='Download'
-                        disabled={loading}
-                      >
-                        <Download className='h-4 w-4' />
-                      </button>
-                      <button
-                        onClick={() => onDelete(file.path, file.name)}
-                        className='p-1 text-red-600 hover:text-red-800 rounded'
-                        title='Delete'
-                        disabled={loading}
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
+                    <div className='text-xs text-gray-400 hidden sm:block'>
+                      {formatDate(nestedFolder.modifiedAt)}
                     </div>
                   </div>
-                ))}
 
-                {folder.files.length === 0 && (!folder.folders || folder.folders.length === 0) && (
-                  <div className='text-center py-4 text-gray-400 text-sm'>
-                    No files or folders in this directory
+                  {/* Recursively render nested folder contents */}
+                  {expandedFolders.has(nestedFolder.path) && (
+                    <div className='ml-6 mt-2 space-y-2'>
+                      {/* Files in nested folder */}
+                      {nestedFolder.files.map(file => (
+                        <div
+                          key={file.path}
+                          className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 bg-white rounded border'
+                        >
+                          <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
+                            {getFileIcon(file.name, file.mimeType)}
+                            <div className='min-w-0 flex-1 overflow-hidden'>
+                              <div className='font-medium text-sm text-gray-900 break-all' title={file.name}>
+                                <span className='sm:hidden'>{truncateFileName(file.name)}</span>
+                                <span className='hidden sm:inline'>{file.name}</span>
+                              </div>
+                              <div className='text-xs text-gray-500 mt-1'>
+                                {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-end space-x-2 flex-shrink-0'>
+                            <button
+                              onClick={() => onDownload(file.path, file.name)}
+                              className='p-1 text-blue-600 hover:text-blue-800 rounded'
+                              title='Download'
+                              disabled={loading}
+                            >
+                              <Download className='h-4 w-4' />
+                            </button>
+                            <button
+                              onClick={() => onDelete(file.path, file.name)}
+                              className='p-1 text-red-600 hover:text-red-800 rounded'
+                              title='Delete'
+                              disabled={loading}
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Render further nested folders if any */}
+                      {nestedFolder.folders?.map(deepFolder => (
+                        <div key={deepFolder.path} className='ml-4'>
+                          <div
+                            className='flex items-center justify-between p-2 cursor-pointer hover:bg-gray-100 rounded border bg-white'
+                            onClick={() => toggleFolder(deepFolder.path)}
+                          >
+                            <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
+                              {expandedFolders.has(deepFolder.path) ? (
+                                <ChevronDown className='h-4 w-4 text-gray-400 flex-shrink-0' />
+                              ) : (
+                                <ChevronRight className='h-4 w-4 text-gray-400 flex-shrink-0' />
+                              )}
+                              <Folder className='h-4 w-4 text-yellow-500 flex-shrink-0' />
+                              <div className='min-w-0 flex-1 overflow-hidden'>
+                                <div className='font-medium text-sm text-gray-900 break-all' title={deepFolder.name}>
+                                  <span className='sm:hidden'>{truncateFileName(deepFolder.name)}</span>
+                                  <span className='hidden sm:inline'>{deepFolder.name}</span>
+                                </div>
+                                <div className='text-xs text-gray-500 mt-1'>
+                                  {deepFolder.fileCount} files • {formatBytes(deepFolder.size)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          {/* Note: For simplicity, only showing 2 levels. For infinite nesting, create a recursive component */}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Render files in current folder */}
+              {folder.files.map(file => (
+                <div
+                  key={file.path}
+                  className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 bg-white rounded border'
+                >
+                  <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
+                    {getFileIcon(file.name, file.mimeType)}
+                    <div className='min-w-0 flex-1 overflow-hidden'>
+                      <div className='font-medium text-sm text-gray-900 break-all' title={file.name}>
+                        <span className='sm:hidden'>{truncateFileName(file.name)}</span>
+                        <span className='hidden sm:inline'>{file.name}</span>
+                      </div>
+                      <div className='text-xs text-gray-500 mt-1'>
+                        {formatBytes(file.size)} • {formatDate(file.modifiedAt)}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div className='flex items-center justify-end space-x-2 flex-shrink-0'>
+                    <button
+                      onClick={() => onDownload(file.path, file.name)}
+                      className='p-1 text-blue-600 hover:text-blue-800 rounded'
+                      title='Download'
+                      disabled={loading}
+                    >
+                      <Download className='h-4 w-4' />
+                    </button>
+                    <button
+                      onClick={() => onDelete(file.path, file.name)}
+                      className='p-1 text-red-600 hover:text-red-800 rounded'
+                      title='Delete'
+                      disabled={loading}
+                    >
+                      <Trash2 className='h-4 w-4' />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {folder.files.length === 0 && (!folder.folders || folder.folders.length === 0) && (
+                <div className='text-center py-4 text-gray-400 text-sm'>
+                  No files or folders in this directory
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -658,13 +688,15 @@ export function Files() {
 
       {/* Filesystem View */}
       {selectedUser ? (
-        <div className='bg-white shadow rounded-lg p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <h3 className='text-lg font-medium text-gray-900'>
-              Files for {users.find(u => u.telegramId === selectedUser)?.name || selectedUser}
+        <div className='bg-white shadow rounded-lg p-4 sm:p-6 overflow-hidden'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4'>
+            <h3 className='text-lg font-medium text-gray-900 min-w-0 flex-1'>
+              <span className='block truncate'>
+                Files for {users.find(u => u.telegramId === selectedUser)?.name || selectedUser}
+              </span>
             </h3>
             {filesystem && (
-              <div className='text-sm text-gray-500'>
+              <div className='text-sm text-gray-500 flex-shrink-0'>
                 {filesystem.totalSize
                   ? `Total: ${Math.round(filesystem.totalSize / 1024 / 1024)} MB`
                   : ''}
