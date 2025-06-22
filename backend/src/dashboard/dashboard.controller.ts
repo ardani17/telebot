@@ -40,4 +40,10 @@ export class DashboardController {
   async getSystemStatus() {
     return this.dashboardService.getSystemStatus();
   }
+
+  @Get('system-metrics')
+  @ApiOperation({ summary: 'Get real-time system metrics (RAM, CPU)' })
+  async getSystemMetrics() {
+    return this.dashboardService.getSystemMetrics();
+  }
 }

@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Play,
   Square,
+  Monitor,
+  Cpu,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +30,16 @@ interface DashboardStats {
       used: number;
       total: number;
       percentage: number;
+    };
+    memory: {
+      used: number;
+      total: number;
+      percentage: number;
+    };
+    cpu: {
+      usage: number;
+      cores: number;
+      loadAverage: number[];
     };
   };
 }
@@ -70,12 +82,32 @@ interface SystemStatus {
   timestamp: string;
 }
 
+interface SystemMetrics {
+  memory: {
+    used: number;
+    total: number;
+    percentage: number;
+    usedGB: string;
+    totalGB: string;
+  };
+  cpu: {
+    usage: number;
+    cores: number;
+    loadAverage: number[];
+    load1m: number;
+    load5m: number;
+    load15m: number;
+  };
+  timestamp: string;
+}
+
 export function Dashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLogs | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
+  const [systemMetrics, setSystemMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedLogService, setSelectedLogService] = useState<string>('all');
@@ -97,6 +129,10 @@ export function Dashboard() {
         // Fetch system status
         const statusResponse = await api.get('/dashboard/system-status');
         setSystemStatus(statusResponse.data);
+
+        // Fetch system metrics
+        const metricsResponse = await api.get('/dashboard/system-metrics');
+        setSystemMetrics(metricsResponse.data);
 
         // Fetch logs
         await fetchLogs();
@@ -121,13 +157,15 @@ export function Dashboard() {
 
   const refreshData = async () => {
     try {
-      const [statsRes, statusRes] = await Promise.all([
+      const [statsRes, statusRes, metricsRes] = await Promise.all([
         api.get('/dashboard/stats'),
         api.get('/dashboard/system-status'),
+        api.get('/dashboard/system-metrics'),
       ]);
 
       setStats(statsRes.data);
       setSystemStatus(statusRes.data);
+      setSystemMetrics(metricsRes.data);
       await fetchLogs();
     } catch (err) {
       console.error('Failed to refresh data:', err);
@@ -205,6 +243,22 @@ export function Dashboard() {
       change: stats.systemStatus.storage.percentage > 80 ? 'High Usage' : 'Normal Usage',
       changeType: stats.systemStatus.storage.percentage > 80 ? 'decrease' : ('increase' as const),
     },
+    {
+      name: 'RAM Usage',
+      stat: `${stats.systemStatus.memory.percentage}%`,
+      substat: `${(stats.systemStatus.memory.used / 1024 / 1024 / 1024).toFixed(1)}GB of ${(stats.systemStatus.memory.total / 1024 / 1024 / 1024).toFixed(1)}GB`,
+      icon: Monitor,
+      change: stats.systemStatus.memory.percentage > 80 ? 'High Usage' : 'Normal Usage',
+      changeType: stats.systemStatus.memory.percentage > 80 ? 'decrease' : ('increase' as const),
+    },
+    {
+      name: 'CPU Usage',
+      stat: `${stats.systemStatus.cpu.usage.toFixed(1)}%`,
+      substat: `${stats.systemStatus.cpu.cores} cores`,
+      icon: Cpu,
+      change: stats.systemStatus.cpu.usage > 80 ? 'High Load' : 'Normal Load',
+      changeType: stats.systemStatus.cpu.usage > 80 ? 'decrease' : ('increase' as const),
+    },
   ];
 
   const getStatusColor = (status: string) => {
@@ -276,7 +330,7 @@ export function Dashboard() {
       </div>
 
       {/* Stats Grid - Mobile Responsive */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4'>
         {statCards.map(item => (
           <div
             key={item.name}
@@ -355,6 +409,103 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Real-time System Metrics */}
+      {systemMetrics && (
+        <div>
+          <h2 className='text-lg font-medium text-gray-900 mb-4'>Real-time System Metrics</h2>
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {/* Memory Usage Chart */}
+            <div className='bg-white p-6 shadow rounded-lg border'>
+              <div className='flex items-center justify-between mb-4'>
+                <div className='flex items-center'>
+                  <Monitor className='h-5 w-5 text-blue-500 mr-2' />
+                  <h3 className='text-sm font-medium text-gray-900'>Memory Usage</h3>
+                </div>
+                <span className='text-sm text-gray-500'>
+                  Last updated: {formatRelativeTime(systemMetrics.timestamp)}
+                </span>
+              </div>
+              <div className='space-y-3'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-2xl font-bold text-gray-900'>
+                    {systemMetrics.memory.percentage}%
+                  </span>
+                  <span className='text-sm text-gray-600'>
+                    {systemMetrics.memory.usedGB}GB / {systemMetrics.memory.totalGB}GB
+                  </span>
+                </div>
+                <div className='w-full bg-gray-200 rounded-full h-3'>
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      systemMetrics.memory.percentage > 80
+                        ? 'bg-red-500'
+                        : systemMetrics.memory.percentage > 60
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min(systemMetrics.memory.percentage, 100)}%` }}
+                  ></div>
+                </div>
+                <div className='text-xs text-gray-500'>
+                  {systemMetrics.memory.percentage > 80
+                    ? '⚠️ High memory usage detected'
+                    : systemMetrics.memory.percentage > 60
+                    ? '⚡ Moderate memory usage'
+                    : '✅ Memory usage is normal'}
+                </div>
+              </div>
+            </div>
+
+            {/* CPU Usage Chart */}
+            <div className='bg-white p-6 shadow rounded-lg border'>
+              <div className='flex items-center justify-between mb-4'>
+                <div className='flex items-center'>
+                  <Cpu className='h-5 w-5 text-green-500 mr-2' />
+                  <h3 className='text-sm font-medium text-gray-900'>CPU Usage</h3>
+                </div>
+                <span className='text-sm text-gray-500'>
+                  {systemMetrics.cpu.cores} cores
+                </span>
+              </div>
+              <div className='space-y-3'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-2xl font-bold text-gray-900'>
+                    {systemMetrics.cpu.usage.toFixed(1)}%
+                  </span>
+                  <span className='text-sm text-gray-600'>
+                    Load: {systemMetrics.cpu.load1m.toFixed(2)}
+                  </span>
+                </div>
+                <div className='w-full bg-gray-200 rounded-full h-3'>
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      systemMetrics.cpu.usage > 80
+                        ? 'bg-red-500'
+                        : systemMetrics.cpu.usage > 60
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(systemMetrics.cpu.usage, 100)}%` }}
+                  ></div>
+                </div>
+                <div className='grid grid-cols-3 gap-2 text-xs text-gray-600'>
+                  <div>1m: {systemMetrics.cpu.load1m.toFixed(2)}</div>
+                  <div>5m: {systemMetrics.cpu.load5m.toFixed(2)}</div>
+                  <div>15m: {systemMetrics.cpu.load15m.toFixed(2)}</div>
+                </div>
+                <div className='text-xs text-gray-500'>
+                  {systemMetrics.cpu.usage > 80
+                    ? '⚠️ High CPU usage detected'
+                    : systemMetrics.cpu.usage > 60
+                    ? '⚡ Moderate CPU usage'
+                    : '✅ CPU usage is normal'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Activities - Mobile Responsive */}
       <div>

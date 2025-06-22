@@ -21,6 +21,16 @@ interface DashboardStats {
       total: number;
       percentage: number;
     };
+    memory: {
+      used: number;
+      total: number;
+      percentage: number;
+    };
+    cpu: {
+      usage: number;
+      cores: number;
+      loadAverage: number[];
+    };
   };
 }
 
@@ -67,11 +77,17 @@ export class DashboardService {
       // Get storage information
       const storage = await this.getStorageInfo();
 
+      // Get system performance metrics
+      const memory = await this.getMemoryInfo();
+      const cpu = await this.getCpuInfo();
+
       // Check system status
       const systemStatus = {
         database: await this.checkDatabaseHealth(),
         bot: await this.checkBotHealth(),
         storage,
+        memory,
+        cpu,
       };
 
       return {
@@ -101,6 +117,16 @@ export class DashboardService {
             used: 0,
             total: 100 * 1024 * 1024 * 1024, // 100GB
             percentage: 0,
+          },
+          memory: {
+            used: 0,
+            total: 8 * 1024 * 1024 * 1024, // 8GB
+            percentage: 0,
+          },
+          cpu: {
+            usage: 0,
+            cores: os.cpus().length,
+            loadAverage: [0, 0, 0],
           },
         },
       };
@@ -143,32 +169,66 @@ export class DashboardService {
 
   private async checkBotHealth(): Promise<'healthy' | 'warning' | 'error'> {
     try {
-      // Check recent bot activity (last 5 minutes)
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const recentActivity = await this.prisma.botActivity.findFirst({
-        where: {
-          createdAt: {
-            gte: fiveMinutesAgo,
+      const execAsync = promisify(exec);
+      
+      // First check if bot process is running via PM2
+      try {
+        const { stdout } = await execAsync('pm2 jlist');
+        const processes = JSON.parse(stdout || '[]');
+        const botProcess = processes.find(p => p.name === 'teleweb-bot');
+        
+        if (!botProcess) {
+          return 'error'; // Bot process not found
+        }
+        
+        if (botProcess.pm2_env.status !== 'online') {
+          return 'error'; // Bot process not online
+        }
+        
+        // If process is online, check for recent activity as secondary indicator
+        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+        const recentActivity = await this.prisma.botActivity.findFirst({
+          where: {
+            createdAt: {
+              gte: thirtyMinutesAgo,
+            },
           },
-        },
-      });
+        });
 
-      if (recentActivity) {
-        return 'healthy';
+        if (recentActivity) {
+          return 'healthy'; // Process online + recent activity
+        }
+
+        // Check if there's activity in the last 2 hours (bot might be idle but working)
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const hourlyActivity = await this.prisma.botActivity.findFirst({
+          where: {
+            createdAt: {
+              gte: twoHoursAgo,
+            },
+          },
+        });
+
+        // If process is online but no recent activity, consider it warning (idle but working)
+        return hourlyActivity ? 'warning' : 'healthy';
+        
+      } catch (pm2Error) {
+        console.error('PM2 check failed, falling back to activity check:', pm2Error);
+        
+        // Fallback to activity-based check if PM2 fails
+        const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+        const recentActivity = await this.prisma.botActivity.findFirst({
+          where: {
+            createdAt: {
+              gte: fifteenMinutesAgo,
+            },
+          },
+        });
+
+        return recentActivity ? 'healthy' : 'warning';
       }
-
-      // Check if there's activity in the last hour
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const hourlyActivity = await this.prisma.botActivity.findFirst({
-        where: {
-          createdAt: {
-            gte: oneHourAgo,
-          },
-        },
-      });
-
-      return hourlyActivity ? 'warning' : 'error';
     } catch (error) {
+      console.error('Bot health check error:', error);
       return 'error';
     }
   }
@@ -341,6 +401,118 @@ export class DashboardService {
     return totalSize;
   }
 
+  private async getMemoryInfo(): Promise<{
+    used: number;
+    total: number;
+    percentage: number;
+  }> {
+    try {
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const percentage = Math.round((usedMemory / totalMemory) * 100);
+
+      return {
+        used: usedMemory,
+        total: totalMemory,
+        percentage,
+      };
+    } catch (error) {
+      console.error('Memory info error:', error);
+      return {
+        used: 0,
+        total: 8 * 1024 * 1024 * 1024, // 8GB default
+        percentage: 0,
+      };
+    }
+  }
+
+  private async getCpuInfo(): Promise<{
+    usage: number;
+    cores: number;
+    loadAverage: number[];
+  }> {
+    try {
+      const cpus = os.cpus();
+      const loadAvg = os.loadavg();
+
+      // Calculate CPU usage by reading /proc/stat on Linux
+      let cpuUsage = 0;
+      try {
+        const execAsync = promisify(exec);
+        const { stdout } = await execAsync(
+          "top -bn1 | grep 'Cpu(s)' | sed 's/.*, *\\([0-9.]*\\)%* id.*/\\1/' | awk '{print 100 - $1}'"
+        );
+        cpuUsage = parseFloat(stdout.trim()) || 0;
+      } catch (error) {
+        // Fallback: estimate CPU usage from load average
+        cpuUsage = Math.min((loadAvg[0] / cpus.length) * 100, 100);
+      }
+
+      return {
+        usage: Math.round(cpuUsage * 100) / 100, // Round to 2 decimal places
+        cores: cpus.length,
+        loadAverage: loadAvg,
+      };
+    } catch (error) {
+      console.error('CPU info error:', error);
+      return {
+        usage: 0,
+        cores: os.cpus().length,
+        loadAverage: [0, 0, 0],
+      };
+    }
+  }
+
+  async getSystemMetrics() {
+    try {
+      const [memory, cpu] = await Promise.all([
+        this.getMemoryInfo(),
+        this.getCpuInfo(),
+      ]);
+
+      return {
+        memory: {
+          used: memory.used,
+          total: memory.total,
+          percentage: memory.percentage,
+          usedGB: (memory.used / 1024 / 1024 / 1024).toFixed(2),
+          totalGB: (memory.total / 1024 / 1024 / 1024).toFixed(2),
+        },
+        cpu: {
+          usage: cpu.usage,
+          cores: cpu.cores,
+          loadAverage: cpu.loadAverage,
+          load1m: cpu.loadAverage[0],
+          load5m: cpu.loadAverage[1],
+          load15m: cpu.loadAverage[2],
+        },
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('System metrics error:', error);
+      return {
+        memory: {
+          used: 0,
+          total: 8 * 1024 * 1024 * 1024, // 8GB default
+          percentage: 0,
+          usedGB: '0.00',
+          totalGB: '8.00',
+        },
+        cpu: {
+          usage: 0,
+          cores: os.cpus().length,
+          loadAverage: [0, 0, 0],
+          load1m: 0,
+          load5m: 0,
+          load15m: 0,
+        },
+        timestamp: new Date().toISOString(),
+        error: error.message,
+      };
+    }
+  }
+
   async getSystemLogs(service: string = 'all', lines: number = 50) {
     try {
       const logs = {
@@ -462,59 +634,125 @@ export class DashboardService {
     const execAsync = promisify(exec);
 
     try {
-      let logPath = '';
-      let serviceName = '';
-
       switch (service) {
         case 'backend':
-          logPath = '/home/teleweb/logs/backend-out.log';
-          serviceName = 'teleweb-backend';
-          break;
+          return await this.getBackendLogs(lines, execAsync);
         case 'frontend':
-          // Frontend logs might not be available in production
-          logPath = '/home/teleweb/logs/frontend-out.log';
-          serviceName = 'teleweb-frontend';
-          break;
+          return await this.getFrontendLogs(lines, execAsync);
         case 'bot':
-          logPath = '/home/teleweb/logs/bot-out.log';
-          serviceName = 'teleweb-bot';
-          break;
+          return await this.getBotLogs(lines, execAsync);
         default:
           return [`Unknown service: ${service}`];
       }
-
-      // First try to read from log files
-      try {
-        const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
-        if (stdout.trim()) {
-          return stdout
-            .trim()
-            .split('\n')
-            .filter(line => line.length > 0);
-        }
-      } catch (fileError) {
-        // If log file doesn't exist, try PM2 logs
-      }
-
-      // Fallback to PM2 logs
-      try {
-        const { stdout } = await execAsync(
-          `pm2 logs ${serviceName} --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
-        );
-        if (stdout.trim()) {
-          return stdout
-            .trim()
-            .split('\n')
-            .filter(line => line.length > 0);
-        }
-      } catch (pm2Error) {
-        // If PM2 command fails, continue to next fallback
-      }
-
-      // If neither works, return a message
-      return [`No logs available for ${service}`];
     } catch (error) {
       return [`Error getting ${service} logs: ${error.message}`];
+    }
+  }
+
+  private async getBackendLogs(lines: number, execAsync: any): Promise<string[]> {
+    const logPath = '/home/teleweb/logs/backend-out.log';
+    
+    // Try to read from log files
+    try {
+      const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
+      if (stdout.trim()) {
+        return stdout.trim().split('\n').filter(line => line.length > 0);
+      }
+    } catch (fileError) {
+      // If log file doesn't exist, try PM2 logs
+    }
+
+    // Fallback to PM2 logs
+    try {
+      const { stdout } = await execAsync(
+        `pm2 logs teleweb-backend --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
+      );
+      if (stdout.trim()) {
+        return stdout.trim().split('\n').filter(line => line.length > 0);
+      }
+    } catch (pm2Error) {
+      // Continue to fallback
+    }
+
+    return [`No backend logs available`];
+  }
+
+  private async getBotLogs(lines: number, execAsync: any): Promise<string[]> {
+    const logPath = '/home/teleweb/logs/bot-out.log';
+    
+    // Try to read from log files
+    try {
+      const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
+      if (stdout.trim()) {
+        return stdout.trim().split('\n').filter(line => line.length > 0);
+      }
+    } catch (fileError) {
+      // If log file doesn't exist, try PM2 logs
+    }
+
+    // Fallback to PM2 logs
+    try {
+      const { stdout } = await execAsync(
+        `pm2 logs teleweb-bot --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
+      );
+      if (stdout.trim()) {
+        return stdout.trim().split('\n').filter(line => line.length > 0);
+      }
+    } catch (pm2Error) {
+      // Continue to fallback
+    }
+
+    return [`No bot logs available`];
+  }
+
+  private async getFrontendLogs(lines: number, execAsync: any): Promise<string[]> {
+    const logs: string[] = [];
+
+    try {
+      // Frontend uses Nginx, so get access logs (most relevant for production)
+      const { stdout: accessLogs } = await execAsync(
+        `tail -n ${Math.ceil(lines / 2)} /var/log/nginx/teleweb_access.log 2>/dev/null | head -n ${Math.ceil(lines / 2)}`
+      ).catch(() => ({ stdout: '' }));
+
+      if (accessLogs.trim()) {
+        const accessLogLines = accessLogs.trim().split('\n').filter(line => line.length > 0);
+        logs.push('[NGINX ACCESS]', ...accessLogLines);
+      }
+
+      // Get error logs if available
+      const { stdout: errorLogs } = await execAsync(
+        `tail -n ${Math.floor(lines / 2)} /var/log/nginx/teleweb_error.log 2>/dev/null | head -n ${Math.floor(lines / 2)}`
+      ).catch(() => ({ stdout: '' }));
+
+      if (errorLogs.trim()) {
+        const errorLogLines = errorLogs.trim().split('\n').filter(line => line.length > 0);
+        logs.push('[NGINX ERROR]', ...errorLogLines);
+      }
+
+      // Fallback: Try development logs if nginx logs not available
+      if (logs.length === 0) {
+        const { stdout: devLogs } = await execAsync(
+          `tail -n ${lines} /home/teleweb/logs/frontend.log 2>/dev/null`
+        ).catch(() => ({ stdout: '' }));
+
+        if (devLogs.trim()) {
+          const devLogLines = devLogs.trim().split('\n').filter(line => line.length > 0);
+          logs.push('[VITE DEV]', ...devLogLines);
+        }
+      }
+
+      return logs.length > 0 ? logs : [
+        'Frontend (React+Vite) served as static files by Nginx',
+        'Logs: Check nginx access/error logs',
+        'Status: Frontend served successfully if you can access the web interface'
+      ];
+
+    } catch (error) {
+      return [
+        'Frontend Nginx logs not accessible',
+        'Frontend is served as static files by Nginx',
+        `Error: ${error.message}`
+      ];
     }
   }
 
@@ -522,26 +760,85 @@ export class DashboardService {
     const execAsync = promisify(exec);
 
     try {
-      const [backendCheck, frontendCheck, botCheck] = await Promise.all([
-        execAsync('ps aux | grep "nest start" | grep -v grep').catch(() => ({ stdout: '' })),
-        execAsync('ps aux | grep "vite" | grep -v grep').catch(() => ({ stdout: '' })),
-        // Check for bot processes - look for teleweb processes with src/index.ts
-        execAsync('ps aux | grep "teleweb.*src/index" | grep -v grep').catch(() => ({
-          stdout: '',
-        })),
-      ]);
+      // Use PM2 to check process status for backend and bot
+      const { stdout } = await execAsync('pm2 jlist');
+      const processes = JSON.parse(stdout || '[]');
+      
+      const getProcessStatus = (processName: string) => {
+        const process = processes.find(p => p.name === processName);
+        if (!process) return 'stopped';
+        return process.pm2_env.status === 'online' ? 'running' : 'stopped';
+      };
+
+      // Frontend is served by Nginx, not PM2, so check Nginx status
+      const frontendStatus = await this.checkFrontendStatus(execAsync);
 
       return {
-        backend: backendCheck.stdout.trim() ? 'running' : 'stopped',
-        frontend: frontendCheck.stdout.trim() ? 'running' : 'stopped',
-        bot: botCheck.stdout.trim() ? 'running' : 'stopped',
+        backend: getProcessStatus('teleweb-backend'),
+        frontend: frontendStatus,
+        bot: getProcessStatus('teleweb-bot'),
       };
     } catch (error) {
-      return {
-        backend: 'error',
-        frontend: 'error',
-        bot: 'error',
-      };
+      console.error('Process status check error:', error);
+      // Fallback to ps aux method if PM2 fails
+      try {
+        const [backendCheck, botCheck, frontendCheck] = await Promise.all([
+          execAsync('ps aux | grep "node.*backend" | grep -v grep').catch(() => ({ stdout: '' })),
+          execAsync('ps aux | grep "node.*bot" | grep -v grep').catch(() => ({ stdout: '' })),
+          this.checkFrontendStatus(execAsync),
+        ]);
+
+        return {
+          backend: backendCheck.stdout.trim() ? 'running' : 'stopped',
+          frontend: frontendCheck,
+          bot: botCheck.stdout.trim() ? 'running' : 'stopped',
+        };
+      } catch (fallbackError) {
+        return {
+          backend: 'error',
+          frontend: 'error',
+          bot: 'error',
+        };
+      }
+    }
+  }
+
+  private async checkFrontendStatus(execAsync: any): Promise<string> {
+    try {
+      // Frontend is served by Nginx as static files
+      // Check if Nginx is running and serving teleweb
+      const nginxCheck = await execAsync('ps aux | grep "nginx" | grep -v grep').catch(() => ({ stdout: '' }));
+      
+      if (!nginxCheck.stdout.trim()) {
+        return 'stopped'; // Nginx not running
+      }
+
+      // Check if teleweb nginx config is active and frontend files exist
+      const [configCheck, filesCheck] = await Promise.all([
+        execAsync('nginx -T 2>/dev/null | grep -q "teleweb" && echo "config_ok"').catch(() => ({ stdout: '' })),
+        execAsync('ls -la /home/teleweb/frontend/dist/index.html 2>/dev/null && echo "files_ok"').catch(() => ({ stdout: '' })),
+      ]);
+
+      if (configCheck.stdout.includes('config_ok') && filesCheck.stdout.includes('files_ok')) {
+        return 'running'; // Nginx running + config exists + files exist
+      }
+
+      if (configCheck.stdout.includes('config_ok')) {
+        return 'running'; // At least nginx config exists
+      }
+
+      // Final check: Try to access nginx teleweb logs (indicates it's configured)
+      const logsCheck = await execAsync('ls -la /var/log/nginx/teleweb_access.log 2>/dev/null && echo "logs_ok"').catch(() => ({ stdout: '' }));
+      
+      if (logsCheck.stdout.includes('logs_ok')) {
+        return 'running'; // Nginx serving teleweb (logs exist)
+      }
+
+      return 'stopped'; // Nginx running but teleweb not configured
+      
+    } catch (error) {
+      console.error('Frontend status check error:', error);
+      return 'unknown';
     }
   }
 }
