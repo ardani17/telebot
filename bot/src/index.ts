@@ -102,12 +102,12 @@ const adminHandler = new AdminHandler(apiClient, logger);
 const securityMiddleware = new SecurityMiddleware(logger);
 
 // Apply security middleware
-// bot.use(securityMiddleware.rateLimit()); // DISABLED - No rate limiting needed for high volume usage
+// bot.use(securityMiddleware.rateLimit()); // DISABLED - Rate limiting mengganggu penggunaan masif bot
 bot.use(securityMiddleware.validateMessage());
 bot.use(securityMiddleware.validateFile());
 
 // Start cleanup interval for rate limiting
-// securityMiddleware.startCleanupInterval(); // DISABLED - No cleanup needed without rate limiting
+// securityMiddleware.startCleanupInterval(); // DISABLED - No cleanup karena rate limiting dinonaktifkan
 
 // Error handling
 bot.catch((err, ctx) => {

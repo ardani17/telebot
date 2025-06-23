@@ -156,11 +156,11 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
   // Truncate file names for mobile display
   const truncateFileName = (fileName: string, maxLength: number = 30) => {
     if (fileName.length <= maxLength) return fileName;
-    
+
     const extension = fileName.split('.').pop();
     const nameWithoutExt = fileName.slice(0, fileName.lastIndexOf('.'));
     const truncatedName = nameWithoutExt.slice(0, maxLength - (extension?.length || 0) - 3);
-    
+
     return `${truncatedName}...${extension ? '.' + extension : ''}`;
   };
 
@@ -263,7 +263,10 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
                       )}
                       <Folder className='h-4 w-4 text-yellow-500 flex-shrink-0' />
                       <div className='min-w-0 flex-1 overflow-hidden'>
-                        <div className='font-medium text-sm text-gray-900 break-all' title={nestedFolder.name}>
+                        <div
+                          className='font-medium text-sm text-gray-900 break-all'
+                          title={nestedFolder.name}
+                        >
                           <span className='sm:hidden'>{truncateFileName(nestedFolder.name)}</span>
                           <span className='hidden sm:inline'>{nestedFolder.name}</span>
                         </div>
@@ -289,7 +292,10 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
                           <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
                             {getFileIcon(file.name, file.mimeType)}
                             <div className='min-w-0 flex-1 overflow-hidden'>
-                              <div className='font-medium text-sm text-gray-900 break-all' title={file.name}>
+                              <div
+                                className='font-medium text-sm text-gray-900 break-all'
+                                title={file.name}
+                              >
                                 <span className='sm:hidden'>{truncateFileName(file.name)}</span>
                                 <span className='hidden sm:inline'>{file.name}</span>
                               </div>
@@ -334,8 +340,13 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
                               )}
                               <Folder className='h-4 w-4 text-yellow-500 flex-shrink-0' />
                               <div className='min-w-0 flex-1 overflow-hidden'>
-                                <div className='font-medium text-sm text-gray-900 break-all' title={deepFolder.name}>
-                                  <span className='sm:hidden'>{truncateFileName(deepFolder.name)}</span>
+                                <div
+                                  className='font-medium text-sm text-gray-900 break-all'
+                                  title={deepFolder.name}
+                                >
+                                  <span className='sm:hidden'>
+                                    {truncateFileName(deepFolder.name)}
+                                  </span>
                                   <span className='hidden sm:inline'>{deepFolder.name}</span>
                                 </div>
                                 <div className='text-xs text-gray-500 mt-1'>
@@ -361,7 +372,10 @@ function FilesystemView({ filesystem, onDownload, onDelete, loading }: Filesyste
                   <div className='flex items-center space-x-3 min-w-0 flex-1 overflow-hidden'>
                     {getFileIcon(file.name, file.mimeType)}
                     <div className='min-w-0 flex-1 overflow-hidden'>
-                      <div className='font-medium text-sm text-gray-900 break-all' title={file.name}>
+                      <div
+                        className='font-medium text-sm text-gray-900 break-all'
+                        title={file.name}
+                      >
                         <span className='sm:hidden'>{truncateFileName(file.name)}</span>
                         <span className='hidden sm:inline'>{file.name}</span>
                       </div>

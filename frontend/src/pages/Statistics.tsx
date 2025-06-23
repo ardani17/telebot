@@ -160,7 +160,9 @@ export default function Statistics() {
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
         <div className='min-w-0 flex-1'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 break-words'>Statistik Sistem</h1>
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 break-words'>
+            Statistik Sistem
+          </h1>
           <p className='text-gray-600 mt-1 text-sm sm:text-base break-words'>
             Dashboard analitik penggunaan dan aktivitas pengguna
           </p>
@@ -191,7 +193,9 @@ export default function Statistics() {
           <div className='flex items-center justify-between'>
             <div className='min-w-0 flex-1'>
               <p className='text-sm font-medium text-gray-600 truncate'>Total Pengguna</p>
-              <p className='text-xl sm:text-2xl font-bold text-gray-900'>{dashboardStats?.totalUsers || 0}</p>
+              <p className='text-xl sm:text-2xl font-bold text-gray-900'>
+                {dashboardStats?.totalUsers || 0}
+              </p>
             </div>
             <div className='h-10 w-10 sm:h-12 sm:w-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0'>
               <Users className='h-5 w-5 sm:h-6 sm:w-6 text-blue-600' />
@@ -208,7 +212,9 @@ export default function Statistics() {
           <div className='flex items-center justify-between'>
             <div className='min-w-0 flex-1'>
               <p className='text-sm font-medium text-gray-600 truncate'>Total Aktivitas</p>
-              <p className='text-xl sm:text-2xl font-bold text-gray-900'>{activityStats?.total || 0}</p>
+              <p className='text-xl sm:text-2xl font-bold text-gray-900'>
+                {activityStats?.total || 0}
+              </p>
             </div>
             <div className='h-10 w-10 sm:h-12 sm:w-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0'>
               <Activity className='h-5 w-5 sm:h-6 sm:w-6 text-green-600' />
@@ -242,7 +248,9 @@ export default function Statistics() {
           <div className='flex items-center justify-between'>
             <div className='min-w-0 flex-1'>
               <p className='text-sm font-medium text-gray-600 truncate'>Total File</p>
-              <p className='text-xl sm:text-2xl font-bold text-gray-900'>{dashboardStats?.totalFiles || 0}</p>
+              <p className='text-xl sm:text-2xl font-bold text-gray-900'>
+                {dashboardStats?.totalFiles || 0}
+              </p>
             </div>
             <div className='h-10 w-10 sm:h-12 sm:w-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0'>
               <BarChart3 className='h-5 w-5 sm:h-6 sm:w-6 text-purple-600' />
@@ -258,9 +266,7 @@ export default function Statistics() {
       <div className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6'>
           <h3 className='text-lg font-semibold text-gray-900 min-w-0 flex-1'>
-            <span className='block break-words'>
-              Tren Aktivitas ({timeRange} Hari Terakhir)
-            </span>
+            <span className='block break-words'>Tren Aktivitas ({timeRange} Hari Terakhir)</span>
           </h3>
           <TrendingUp className='h-5 w-5 text-gray-400 flex-shrink-0' />
         </div>

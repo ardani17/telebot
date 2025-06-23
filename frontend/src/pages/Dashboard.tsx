@@ -441,8 +441,8 @@ export function Dashboard() {
                       systemMetrics.memory.percentage > 80
                         ? 'bg-red-500'
                         : systemMetrics.memory.percentage > 60
-                        ? 'bg-yellow-500'
-                        : 'bg-blue-500'
+                          ? 'bg-yellow-500'
+                          : 'bg-blue-500'
                     }`}
                     style={{ width: `${Math.min(systemMetrics.memory.percentage, 100)}%` }}
                   ></div>
@@ -451,8 +451,8 @@ export function Dashboard() {
                   {systemMetrics.memory.percentage > 80
                     ? '⚠️ High memory usage detected'
                     : systemMetrics.memory.percentage > 60
-                    ? '⚡ Moderate memory usage'
-                    : '✅ Memory usage is normal'}
+                      ? '⚡ Moderate memory usage'
+                      : '✅ Memory usage is normal'}
                 </div>
               </div>
             </div>
@@ -464,9 +464,7 @@ export function Dashboard() {
                   <Cpu className='h-5 w-5 text-green-500 mr-2' />
                   <h3 className='text-sm font-medium text-gray-900'>CPU Usage</h3>
                 </div>
-                <span className='text-sm text-gray-500'>
-                  {systemMetrics.cpu.cores} cores
-                </span>
+                <span className='text-sm text-gray-500'>{systemMetrics.cpu.cores} cores</span>
               </div>
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
@@ -483,8 +481,8 @@ export function Dashboard() {
                       systemMetrics.cpu.usage > 80
                         ? 'bg-red-500'
                         : systemMetrics.cpu.usage > 60
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
                     }`}
                     style={{ width: `${Math.min(systemMetrics.cpu.usage, 100)}%` }}
                   ></div>
@@ -498,8 +496,8 @@ export function Dashboard() {
                   {systemMetrics.cpu.usage > 80
                     ? '⚠️ High CPU usage detected'
                     : systemMetrics.cpu.usage > 60
-                    ? '⚡ Moderate CPU usage'
-                    : '✅ CPU usage is normal'}
+                      ? '⚡ Moderate CPU usage'
+                      : '✅ CPU usage is normal'}
                 </div>
               </div>
             </div>

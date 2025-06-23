@@ -81,7 +81,7 @@ export class AdminService {
       // Use getChat method to get user information
       const botApiServer = process.env.BOT_API_SERVER;
       let apiUrl: string;
-      
+
       if (botApiServer) {
         apiUrl = `${botApiServer}/bot${botToken}/getChat`;
       } else {
@@ -90,31 +90,35 @@ export class AdminService {
 
       const response = await axios.get(apiUrl, {
         params: {
-          chat_id: telegramId
+          chat_id: telegramId,
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 10000, // 10 second timeout
       });
 
       if (response.data.ok && response.data.result) {
         const userInfo = response.data.result;
-        
+
         return {
           id: userInfo.id,
           first_name: userInfo.first_name,
           last_name: userInfo.last_name,
           username: userInfo.username,
-          type: userInfo.type
+          type: userInfo.type,
         };
       } else {
-        throw new NotFoundException(`User with Telegram ID ${telegramId} not found or bot cannot access this user`);
+        throw new NotFoundException(
+          `User with Telegram ID ${telegramId} not found or bot cannot access this user`
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to check Telegram user ${telegramId}`, error);
-      
+
       if (error.response?.status === 400) {
-        throw new NotFoundException(`User with Telegram ID ${telegramId} not found or bot cannot access this user`);
+        throw new NotFoundException(
+          `User with Telegram ID ${telegramId} not found or bot cannot access this user`
+        );
       }
-      
+
       throw error;
     }
   }

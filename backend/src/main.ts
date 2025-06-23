@@ -82,11 +82,36 @@ async function bootstrap() {
     })
   );
 
-  // Security middleware
+  // Security middleware with comprehensive headers
   app.use(
     helmet({
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      dnsPrefetchControl: true,
+      frameguard: { action: 'deny' },
+      hidePoweredBy: true,
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true,
+      },
+      ieNoOpen: true,
+      noSniff: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      xssFilter: true,
     })
   );
 
@@ -106,8 +131,16 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or Postman)
-      if (!origin) return callback(null, true);
+      // Only allow requests with no origin in development mode
+      if (!origin) {
+        const isDev = configService.get('NODE_ENV') === 'development';
+        if (isDev) {
+          return callback(null, true);
+        } else {
+          logger.warn('CORS blocked request with no origin in production');
+          return callback(null, false);
+        }
+      }
 
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -120,6 +153,7 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     exposedHeaders: ['X-Total-Count'],
+    maxAge: 86400, // Cache preflight for 24 hours
   });
 
   // API prefix

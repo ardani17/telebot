@@ -84,10 +84,10 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
     try {
       const response = await api.get(`/admin/users/check-telegram/${formData.telegramId}`);
       const userData = response.data;
-      
+
       setCheckResult({
         name: userData.first_name + (userData.last_name ? ` ${userData.last_name}` : ''),
-        username: userData.username
+        username: userData.username,
       });
 
       // Auto-fill the form if data is found
@@ -95,7 +95,7 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
         setFormData(prev => ({
           ...prev,
           name: userData.first_name + (userData.last_name ? ` ${userData.last_name}` : ''),
-          username: userData.username || ''
+          username: userData.username || '',
         }));
       }
     } catch (err: any) {
@@ -211,13 +211,17 @@ function UserDialog({ isOpen, onClose, user, onSuccess }: UserDialogProps) {
                 {checkingUser ? 'Cek...' : 'Cek'}
               </button>
             </div>
-            
+
             {/* Check Result Display */}
             {checkResult && (
               <div className='mt-2 p-3 bg-green-50 border border-green-200 rounded-md'>
                 <div className='text-sm text-green-800'>
-                  <div><strong>Nama:</strong> {checkResult.name || 'Tidak ada'}</div>
-                  <div><strong>Username:</strong> @{checkResult.username || 'Tidak ada'}</div>
+                  <div>
+                    <strong>Nama:</strong> {checkResult.name || 'Tidak ada'}
+                  </div>
+                  <div>
+                    <strong>Username:</strong> @{checkResult.username || 'Tidak ada'}
+                  </div>
                 </div>
               </div>
             )}

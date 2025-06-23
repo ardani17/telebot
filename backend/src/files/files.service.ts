@@ -12,6 +12,89 @@ export class FilesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Sanitize and validate file paths to prevent path traversal attacks
+   */
+  private sanitizePath(inputPath: string, basePath?: string): string {
+    // Remove null bytes and normalize
+    const cleanPath = inputPath.replace(/\0/g, '').normalize();
+
+    // Remove dangerous path components
+    const sanitized = cleanPath
+      .replace(/\.\./g, '') // Remove ..
+      .replace(/\/+/g, '/') // Replace multiple slashes with single
+      .replace(/^\/+/, '') // Remove leading slashes
+      .trim();
+
+    if (basePath) {
+      const resolvedPath = path.resolve(basePath, sanitized);
+      const resolvedBase = path.resolve(basePath);
+
+      // Ensure the resolved path is within the base directory
+      if (!resolvedPath.startsWith(resolvedBase)) {
+        throw new Error('Invalid path: Outside of allowed directory');
+      }
+
+      return resolvedPath;
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Validate file extension against allowed types
+   */
+  private validateFileExtension(fileName: string, allowedExtensions: string[] = []): void {
+    const ext = path.extname(fileName).toLowerCase();
+    const defaultAllowed = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.pdf',
+      '.doc',
+      '.docx',
+      '.xls',
+      '.xlsx',
+      '.zip',
+      '.rar',
+    ];
+    const allowed = allowedExtensions.length > 0 ? allowedExtensions : defaultAllowed;
+
+    if (!allowed.includes(ext)) {
+      throw new Error(`File type not allowed: ${ext}`);
+    }
+  }
+
+  /**
+   * Safely execute shell commands with input sanitization
+   */
+  private safeExecSync(command: string, options: any = {}): string {
+    // Validate command doesn't contain dangerous patterns
+    const dangerousPatterns = [
+      /;.*rm\s+/i,
+      /\|\s*rm\s+/i,
+      /&&.*rm\s+/i,
+      /`.*`/,
+      /\$\(/,
+      />\s*\/dev\//i,
+      /wget|curl.*\|/i,
+      /nc\s+.*\s+\d+/i,
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(command)) {
+        throw new Error('Command contains potentially dangerous patterns');
+      }
+    }
+
+    return execSync(command, {
+      encoding: 'utf8',
+      timeout: 30000, // 30 second timeout
+      ...options,
+    }) as string;
+  }
+
+  /**
    * Generate Excel file from workbook photos
    */
   async generateWorkbookExcel(data: {

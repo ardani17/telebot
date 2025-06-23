@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { createHash } from 'crypto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -117,10 +117,11 @@ export class UsersService {
       throw new Error('User already exists');
     }
 
-    // Hash password if provided
+    // Hash password if provided using bcrypt
     let hashedPassword: string | undefined;
     if (userData.password) {
-      hashedPassword = createHash('sha256').update(userData.password).digest('hex');
+      const saltRounds = 12;
+      hashedPassword = await bcrypt.hash(userData.password, saltRounds);
     }
 
     const user = await this.prisma.user.create({
@@ -166,10 +167,11 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Hash password if provided
+    // Hash password if provided using bcrypt
     const updateData: any = { ...userData };
     if (userData.password) {
-      updateData.password = createHash('sha256').update(userData.password).digest('hex');
+      const saltRounds = 12;
+      updateData.password = await bcrypt.hash(userData.password, saltRounds);
     }
 
     const updatedUser = await this.prisma.user.update({

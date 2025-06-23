@@ -46,6 +46,55 @@ interface RecentActivity {
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Sanitize input to prevent command injection
+   */
+  private sanitizeInput(input: string): string {
+    // Remove dangerous characters and escape spaces
+    return input
+      .replace(/[;&|`$(){}[\]\\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Safely execute shell commands with input validation
+   */
+  private async safeExec(
+    command: string,
+    options: any = {}
+  ): Promise<{ stdout: string; stderr: string }> {
+    const execAsync = promisify(exec);
+
+    // Validate command doesn't contain dangerous patterns
+    const dangerousPatterns = [
+      /;.*rm\s+/i,
+      /\|\s*rm\s+/i,
+      /&&.*rm\s+/i,
+      /`.*`/,
+      /\$\(/,
+      />\s*\/dev\//i,
+      /wget|curl.*\|/i,
+      /nc\s+.*\s+\d+/i,
+    ];
+
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(command)) {
+        throw new Error('Command contains potentially dangerous patterns');
+      }
+    }
+
+    const result = await execAsync(command, {
+      timeout: 10000, // 10 second timeout
+      ...options,
+    });
+
+    return {
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
+    };
+  }
+
   async getStats(): Promise<DashboardStats> {
     try {
       const now = new Date();
@@ -170,21 +219,21 @@ export class DashboardService {
   private async checkBotHealth(): Promise<'healthy' | 'warning' | 'error'> {
     try {
       const execAsync = promisify(exec);
-      
+
       // First check if bot process is running via PM2
       try {
         const { stdout } = await execAsync('pm2 jlist');
         const processes = JSON.parse(stdout || '[]');
         const botProcess = processes.find(p => p.name === 'teleweb-bot');
-        
+
         if (!botProcess) {
           return 'error'; // Bot process not found
         }
-        
+
         if (botProcess.pm2_env.status !== 'online') {
           return 'error'; // Bot process not online
         }
-        
+
         // If process is online, check for recent activity as secondary indicator
         const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
         const recentActivity = await this.prisma.botActivity.findFirst({
@@ -211,10 +260,9 @@ export class DashboardService {
 
         // If process is online but no recent activity, consider it warning (idle but working)
         return hourlyActivity ? 'warning' : 'healthy';
-        
       } catch (pm2Error) {
         console.error('PM2 check failed, falling back to activity check:', pm2Error);
-        
+
         // Fallback to activity-based check if PM2 fails
         const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
         const recentActivity = await this.prisma.botActivity.findFirst({
@@ -239,10 +287,8 @@ export class DashboardService {
     percentage: number;
   }> {
     try {
-      const execAsync = promisify(exec);
-
       // Get VPS system storage info using df command
-      const { stdout } = await execAsync('df -h / | tail -1');
+      const { stdout } = await this.safeExec('df -h / | tail -1');
       const parts = stdout.trim().split(/\s+/);
 
       if (parts.length >= 5) {
@@ -466,10 +512,7 @@ export class DashboardService {
 
   async getSystemMetrics() {
     try {
-      const [memory, cpu] = await Promise.all([
-        this.getMemoryInfo(),
-        this.getCpuInfo(),
-      ]);
+      const [memory, cpu] = await Promise.all([this.getMemoryInfo(), this.getCpuInfo()]);
 
       return {
         memory: {
@@ -651,12 +694,15 @@ export class DashboardService {
 
   private async getBackendLogs(lines: number, execAsync: any): Promise<string[]> {
     const logPath = '/home/teleweb/logs/backend-out.log';
-    
+
     // Try to read from log files
     try {
       const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
       if (stdout.trim()) {
-        return stdout.trim().split('\n').filter(line => line.length > 0);
+        return stdout
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
       }
     } catch (fileError) {
       // If log file doesn't exist, try PM2 logs
@@ -668,7 +714,10 @@ export class DashboardService {
         `pm2 logs teleweb-backend --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
       );
       if (stdout.trim()) {
-        return stdout.trim().split('\n').filter(line => line.length > 0);
+        return stdout
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
       }
     } catch (pm2Error) {
       // Continue to fallback
@@ -679,12 +728,15 @@ export class DashboardService {
 
   private async getBotLogs(lines: number, execAsync: any): Promise<string[]> {
     const logPath = '/home/teleweb/logs/bot-out.log';
-    
+
     // Try to read from log files
     try {
       const { stdout } = await execAsync(`tail -n ${lines} "${logPath}" 2>/dev/null`);
       if (stdout.trim()) {
-        return stdout.trim().split('\n').filter(line => line.length > 0);
+        return stdout
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
       }
     } catch (fileError) {
       // If log file doesn't exist, try PM2 logs
@@ -696,7 +748,10 @@ export class DashboardService {
         `pm2 logs teleweb-bot --nostream --lines ${lines} --out 2>/dev/null | tail -n ${lines}`
       );
       if (stdout.trim()) {
-        return stdout.trim().split('\n').filter(line => line.length > 0);
+        return stdout
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
       }
     } catch (pm2Error) {
       // Continue to fallback
@@ -715,7 +770,10 @@ export class DashboardService {
       ).catch(() => ({ stdout: '' }));
 
       if (accessLogs.trim()) {
-        const accessLogLines = accessLogs.trim().split('\n').filter(line => line.length > 0);
+        const accessLogLines = accessLogs
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
         logs.push('[NGINX ACCESS]', ...accessLogLines);
       }
 
@@ -725,7 +783,10 @@ export class DashboardService {
       ).catch(() => ({ stdout: '' }));
 
       if (errorLogs.trim()) {
-        const errorLogLines = errorLogs.trim().split('\n').filter(line => line.length > 0);
+        const errorLogLines = errorLogs
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
         logs.push('[NGINX ERROR]', ...errorLogLines);
       }
 
@@ -736,22 +797,26 @@ export class DashboardService {
         ).catch(() => ({ stdout: '' }));
 
         if (devLogs.trim()) {
-          const devLogLines = devLogs.trim().split('\n').filter(line => line.length > 0);
+          const devLogLines = devLogs
+            .trim()
+            .split('\n')
+            .filter(line => line.length > 0);
           logs.push('[VITE DEV]', ...devLogLines);
         }
       }
 
-      return logs.length > 0 ? logs : [
-        'Frontend (React+Vite) served as static files by Nginx',
-        'Logs: Check nginx access/error logs',
-        'Status: Frontend served successfully if you can access the web interface'
-      ];
-
+      return logs.length > 0
+        ? logs
+        : [
+            'Frontend (React+Vite) served as static files by Nginx',
+            'Logs: Check nginx access/error logs',
+            'Status: Frontend served successfully if you can access the web interface',
+          ];
     } catch (error) {
       return [
         'Frontend Nginx logs not accessible',
         'Frontend is served as static files by Nginx',
-        `Error: ${error.message}`
+        `Error: ${error.message}`,
       ];
     }
   }
@@ -763,7 +828,7 @@ export class DashboardService {
       // Use PM2 to check process status for backend and bot
       const { stdout } = await execAsync('pm2 jlist');
       const processes = JSON.parse(stdout || '[]');
-      
+
       const getProcessStatus = (processName: string) => {
         const process = processes.find(p => p.name === processName);
         if (!process) return 'stopped';
@@ -807,16 +872,22 @@ export class DashboardService {
     try {
       // Frontend is served by Nginx as static files
       // Check if Nginx is running and serving teleweb
-      const nginxCheck = await execAsync('ps aux | grep "nginx" | grep -v grep').catch(() => ({ stdout: '' }));
-      
+      const nginxCheck = await execAsync('ps aux | grep "nginx" | grep -v grep').catch(() => ({
+        stdout: '',
+      }));
+
       if (!nginxCheck.stdout.trim()) {
         return 'stopped'; // Nginx not running
       }
 
       // Check if teleweb nginx config is active and frontend files exist
       const [configCheck, filesCheck] = await Promise.all([
-        execAsync('nginx -T 2>/dev/null | grep -q "teleweb" && echo "config_ok"').catch(() => ({ stdout: '' })),
-        execAsync('ls -la /home/teleweb/frontend/dist/index.html 2>/dev/null && echo "files_ok"').catch(() => ({ stdout: '' })),
+        execAsync('nginx -T 2>/dev/null | grep -q "teleweb" && echo "config_ok"').catch(() => ({
+          stdout: '',
+        })),
+        execAsync(
+          'ls -la /home/teleweb/frontend/dist/index.html 2>/dev/null && echo "files_ok"'
+        ).catch(() => ({ stdout: '' })),
       ]);
 
       if (configCheck.stdout.includes('config_ok') && filesCheck.stdout.includes('files_ok')) {
@@ -828,14 +899,15 @@ export class DashboardService {
       }
 
       // Final check: Try to access nginx teleweb logs (indicates it's configured)
-      const logsCheck = await execAsync('ls -la /var/log/nginx/teleweb_access.log 2>/dev/null && echo "logs_ok"').catch(() => ({ stdout: '' }));
-      
+      const logsCheck = await execAsync(
+        'ls -la /var/log/nginx/teleweb_access.log 2>/dev/null && echo "logs_ok"'
+      ).catch(() => ({ stdout: '' }));
+
       if (logsCheck.stdout.includes('logs_ok')) {
         return 'running'; // Nginx serving teleweb (logs exist)
       }
 
       return 'stopped'; // Nginx running but teleweb not configured
-      
     } catch (error) {
       console.error('Frontend status check error:', error);
       return 'unknown';

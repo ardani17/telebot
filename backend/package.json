@@ -45,6 +45,7 @@
     "@nestjs/websockets": "^10.2.10",
     "@prisma/client": "^5.7.0",
     "@teleweb/shared": "file:../shared",
+    "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/fs-extra": "^11.0.4",
     "@types/helmet": "^0.0.48",

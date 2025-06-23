@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import * as bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
 
 export interface JwtPayload {
@@ -42,9 +43,35 @@ export class AuthService {
       throw new UnauthorizedException('Password not set for this user');
     }
 
-    // For now, use simple hash comparison (should be replaced with proper bcrypt later)
-    const hashedPassword = createHash('sha256').update(password).digest('hex');
-    if (hashedPassword !== user.password) {
+    // Support both bcrypt and legacy SHA256 (temporary backward compatibility)
+    let isPasswordValid = false;
+
+    // Support both bcrypt and legacy SHA256 (backward compatibility)
+    // Try bcrypt first (new format)
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password);
+    } catch (error) {
+      isPasswordValid = false;
+    }
+
+    // If bcrypt failed, try legacy SHA256 format
+    if (!isPasswordValid) {
+      const legacyHash = createHash('sha256').update(password).digest('hex');
+      isPasswordValid = legacyHash === user.password;
+
+      // If legacy hash matches, migrate to bcrypt
+      if (isPasswordValid) {
+        const saltRounds = 12;
+        const newBcryptHash = await bcrypt.hash(password, saltRounds);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { password: newBcryptHash },
+        });
+        console.log(`🔄 Password migrated to bcrypt for user: ${user.telegramId}`);
+      }
+    }
+
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid password');
     }
 
@@ -140,5 +167,20 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: userPassword2, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  /**
+   * Hash password using bcrypt with salt rounds
+   */
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12; // High security salt rounds
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  /**
+   * Verify password against hash using bcrypt
+   */
+  async verifyPassword(password: string, hash: string): Promise<boolean> {
+    return await bcrypt.compare(password, hash);
   }
 }
